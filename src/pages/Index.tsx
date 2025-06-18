@@ -1,8 +1,8 @@
 
-import NetworkMonitor from "@/components/NetworkMonitor";
+import IndustrialMonitor from "@/components/IndustrialMonitor";
 
 const Index = () => {
-  return <NetworkMonitor />;
+  return <IndustrialMonitor />;
 };
 
 export default Index;
