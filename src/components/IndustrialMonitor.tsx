@@ -9,6 +9,7 @@ import SystemOverviewCard from './SystemOverviewCard';
 import ActiveFailuresCard from './ActiveFailuresCard';
 import CausalAnomaliesCard from './CausalAnomaliesCard';
 import CausalGraphCard from './CausalGraphCard';
+import EnhancedCausalMonitor from './EnhancedCausalMonitor';
 
 const IndustrialMonitor = () => {
   const [simulator] = useState(() => new PhysicsSimulator());
@@ -141,6 +142,15 @@ const IndustrialMonitor = () => {
       </div>
 
       <CausalGraphCard causalGraph={causalGraph} />
+
+      {/* Enhanced Causal Monitor */}
+      {currentState && sensorData.length > 0 && (
+        <EnhancedCausalMonitor
+          currentState={currentState}
+          sensorReadings={sensorData.slice(-20)} // Recent readings
+          isRunning={isRunning}
+        />
+      )}
     </div>
   );
 };
