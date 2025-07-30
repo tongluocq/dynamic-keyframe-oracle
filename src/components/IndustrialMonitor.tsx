@@ -10,6 +10,7 @@ import ActiveFailuresCard from './ActiveFailuresCard';
 import CausalAnomaliesCard from './CausalAnomaliesCard';
 import CausalGraphCard from './CausalGraphCard';
 import EnhancedCausalMonitor from './EnhancedCausalMonitor';
+import VisualizationDashboard from './VisualizationDashboard';
 
 const IndustrialMonitor = () => {
   const [simulator] = useState(() => new PhysicsSimulator());
