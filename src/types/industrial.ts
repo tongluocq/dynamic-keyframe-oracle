@@ -72,6 +72,14 @@ export interface FailureMode {
   causal_chain: CausalRelation[];
 }
 
+export interface ActiveFailure {
+  failure_id: string;
+  description: string;
+  severity: number;
+  timestamp: Date;
+  domain: IndustrialDomain;
+}
+
 export interface BenchmarkMetrics {
   causal_discovery_accuracy: number;
   failure_prediction_accuracy: number;

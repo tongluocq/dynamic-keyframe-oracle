@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
@@ -8,7 +9,8 @@ import SystemOverviewCard from './SystemOverviewCard';
 import ActiveFailuresCard from './ActiveFailuresCard';
 import CausalAnomaliesCard from './CausalAnomaliesCard';
 import CausalGraphCard from './CausalGraphCard';
-import NeuralNetworkComparison from './NeuralNetworkComparison';
+import EnhancedCausalMonitor from './EnhancedCausalMonitor';
+import VisualizationDashboard from './VisualizationDashboard';
 
 const IndustrialMonitor = () => {
   const [simulator] = useState(() => new PhysicsSimulator());
@@ -142,10 +144,14 @@ const IndustrialMonitor = () => {
 
       <CausalGraphCard causalGraph={causalGraph} />
 
-      <NeuralNetworkComparison 
-        currentReadings={sensorData.slice(-50)} 
-        isRunning={isRunning}
-      />
+      {/* Enhanced Causal Monitor */}
+      {currentState && sensorData.length > 0 && (
+        <EnhancedCausalMonitor
+          currentState={currentState}
+          sensorReadings={sensorData.slice(-20)} // Recent readings
+          isRunning={isRunning}
+        />
+      )}
     </div>
   );
 };
