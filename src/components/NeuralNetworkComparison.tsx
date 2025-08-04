@@ -8,6 +8,24 @@ import { EnhancedCausalInference } from '@/utils/enhancedCausalInference';
 import { SensorReading } from '@/types/industrial';
 import { Brain, Network, TrendingUp, AlertTriangle } from 'lucide-react';
 
+interface AnalysisResults {
+  vggResults: {
+    causalRelations: Array<{cause: string, effect: string, strength: number, lag: number, domain_bridge: boolean}>;
+    faultPrediction: 'normal' | 'fault';
+    confidence: number;
+  };
+  graphResults: {
+    causalGraph: Map<string, Array<{cause: string, effect: string, strength: number, lag: number, domain_bridge: boolean}>>;
+    anomalies: Array<{sensor: string, anomaly_score: number}>;
+    globalHealth: number;
+  };
+  comparison: {
+    agreement: number;
+    recommendedApproach: 'vgg' | 'graph' | 'hybrid';
+    reasoning: string;
+  };
+}
+
 interface NeuralNetworkComparisonProps {
   currentReadings: SensorReading[];
   isRunning: boolean;
@@ -18,7 +36,7 @@ const NeuralNetworkComparison: React.FC<NeuralNetworkComparisonProps> = ({
   isRunning
 }) => {
   const [enhancedAnalyzer] = useState(() => new EnhancedCausalInference());
-  const [analysisResults, setAnalysisResults] = useState<any>(null);
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResults | null>(null);
   const [activeTab, setActiveTab] = useState('comparison');
 
   useEffect(() => {
