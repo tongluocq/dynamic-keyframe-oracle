@@ -146,15 +146,15 @@ const EnhancedCausalMonitor: React.FC<EnhancedCausalMonitorProps> = ({
             <div className="space-y-2">
               <label className="text-sm font-medium">Monte Carlo</label>
               <Switch
-                checked={config.enableMonteCarloUncertainty}
-                onCheckedChange={(checked) => handleConfigChange('enableMonteCarloUncertainty', checked)}
+                checked={config.enableMonteCarlo}
+                onCheckedChange={(checked) => handleConfigChange('enableMonteCarlo', checked)}
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Counterfactual</label>
               <Switch
-                checked={config.enableCounterfactualAnalysis}
-                onCheckedChange={(checked) => handleConfigChange('enableCounterfactualAnalysis', checked)}
+                checked={config.enableCounterfactual}
+                onCheckedChange={(checked) => handleConfigChange('enableCounterfactual', checked)}
               />
             </div>
           </div>
@@ -360,8 +360,8 @@ const EnhancedCausalMonitor: React.FC<EnhancedCausalMonitorProps> = ({
                     <div className="space-y-2">
                       {result.detectedInterventions.map((intervention, index) => (
                         <div key={index} className="flex justify-between text-sm">
-                          <span>Intervention {intervention.index}</span>
-                          <span>Effect: {intervention.effect.toFixed(3)} ± {intervention.uncertainty.toFixed(3)}</span>
+                          <span>{intervention.type} at {intervention.timestamp}</span>
+                          <span>Confidence: {intervention.confidence.toFixed(3)}</span>
                         </div>
                       ))}
                     </div>
@@ -383,25 +383,25 @@ const EnhancedCausalMonitor: React.FC<EnhancedCausalMonitorProps> = ({
                     <div>
                       <div className="text-sm font-medium">Training Loss</div>
                       <div className="text-lg font-bold">
-                        {result.trainingMetrics.train_loss?.slice(-1)[0]?.toFixed(4) || 'N/A'}
+                        {result.trainingMetrics.train_loss?.toFixed(4) || result.trainingMetrics.loss?.toFixed(4) || 'N/A'}
                       </div>
                     </div>
                     <div>
                       <div className="text-sm font-medium">Training Accuracy</div>
                       <div className="text-lg font-bold">
-                        {((result.trainingMetrics.train_acc?.slice(-1)[0] || 0) * 100).toFixed(1)}%
+                        {((result.trainingMetrics.train_acc || result.trainingMetrics.accuracy || 0) * 100).toFixed(1)}%
                       </div>
                     </div>
                     <div>
                       <div className="text-sm font-medium">Validation Loss</div>
                       <div className="text-lg font-bold">
-                        {result.trainingMetrics.val_loss?.slice(-1)[0]?.toFixed(4) || 'N/A'}
+                        {result.trainingMetrics.val_loss?.toFixed(4) || 'N/A'}
                       </div>
                     </div>
                     <div>
                       <div className="text-sm font-medium">Validation Accuracy</div>
                       <div className="text-lg font-bold">
-                        {((result.trainingMetrics.val_acc?.slice(-1)[0] || 0) * 100).toFixed(1)}%
+                        {((result.trainingMetrics.val_acc || 0) * 100).toFixed(1)}%
                       </div>
                     </div>
                   </div>
