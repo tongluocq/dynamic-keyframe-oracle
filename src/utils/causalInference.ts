@@ -1,12 +1,42 @@
 
 import { SensorReading, CausalRelation } from '@/types/industrial';
+import { NeuralCausalEncoder } from './neuralCausalEncoder';
 
 export class CausalDiscovery {
   private data: SensorReading[] = [];
   private causalGraph: Map<string, CausalRelation[]> = new Map();
+  private neuralEncoder: NeuralCausalEncoder | null = null;
+  private useNeuralMode: boolean = false;
 
   public addData(readings: SensorReading[]): void {
     this.data.push(...readings);
+  }
+
+  /**
+   * Enable neural-augmented causal discovery mode
+   */
+  public async enableNeuralMode(): Promise<void> {
+    if (!this.neuralEncoder) {
+      this.neuralEncoder = new NeuralCausalEncoder();
+      await this.neuralEncoder.buildModel();
+    }
+    this.useNeuralMode = true;
+    console.log('Neural causal mode enabled');
+  }
+
+  /**
+   * Disable neural mode and fall back to traditional PC algorithm
+   */
+  public disableNeuralMode(): void {
+    this.useNeuralMode = false;
+    console.log('Neural causal mode disabled');
+  }
+
+  /**
+   * Get neural encoder for advanced operations
+   */
+  public getNeuralEncoder(): NeuralCausalEncoder | null {
+    return this.neuralEncoder;
   }
 
   // Simplified PC Algorithm for causal discovery
@@ -153,8 +183,15 @@ export class CausalDiscovery {
     return this.causalGraph;
   }
 
-  // Interventional anomaly detection
-  public detectCausalAnomalies(currentReadings: SensorReading[]): Array<{sensor: string, anomaly_score: number}> {
+  // Interventional anomaly detection with optional neural mode
+  public async detectCausalAnomalies(currentReadings: SensorReading[]): Promise<Array<{sensor: string, anomaly_score: number, causal_pathway?: string}>> {
+    // Use neural encoder if enabled
+    if (this.useNeuralMode && this.neuralEncoder) {
+      const neuralAnomalies = await this.neuralEncoder.detectAnomalies(currentReadings);
+      return neuralAnomalies;
+    }
+    
+    // Fall back to traditional method
     const anomalies: Array<{sensor: string, anomaly_score: number}> = [];
     
     currentReadings.forEach(reading => {

@@ -3,8 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
@@ -19,8 +21,10 @@ const IndustrialMonitor = () => {
   const [currentState, setCurrentState] = useState<SystemState | null>(null);
   const [sensorData, setSensorData] = useState<SensorReading[]>([]);
   const [causalGraph, setCausalGraph] = useState<Map<string, CausalRelation[]>>(new Map());
-  const [anomalies, setAnomalies] = useState<Array<{sensor: string, anomaly_score: number}>>([]);
+  const [anomalies, setAnomalies] = useState<Array<{sensor: string, anomaly_score: number, causal_pathway?: string}>>([]);
   const [activeFailures, setActiveFailures] = useState<Array<{id: string, name: string, severity: number, domain: string}>>([]);
+  const [neuralMode, setNeuralMode] = useState(false);
+  const [neuralModelInfo, setNeuralModelInfo] = useState<{initialized: boolean, parameters: number} | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -48,9 +52,10 @@ const IndustrialMonitor = () => {
           setCausalGraph(discoveredGraph);
         }
         
-        // Detect anomalies
-        const detectedAnomalies = causalAnalyzer.detectCausalAnomalies(readings);
-        setAnomalies(detectedAnomalies);
+        // Detect anomalies (async when in neural mode)
+        causalAnalyzer.detectCausalAnomalies(readings).then(detectedAnomalies => {
+          setAnomalies(detectedAnomalies);
+        });
         
       }, 100); // 100ms interval
     }
@@ -114,6 +119,24 @@ const IndustrialMonitor = () => {
     setActiveFailures([]);
   };
 
+  const handleToggleNeuralMode = async () => {
+    if (!neuralMode) {
+      // Enable neural mode
+      await causalAnalyzer.enableNeuralMode();
+      const encoder = causalAnalyzer.getNeuralEncoder();
+      if (encoder) {
+        const info = encoder.getModelInfo();
+        setNeuralModelInfo(info);
+      }
+      setNeuralMode(true);
+    } else {
+      // Disable neural mode
+      causalAnalyzer.disableNeuralMode();
+      setNeuralMode(false);
+      setNeuralModelInfo(null);
+    }
+  };
+
   const getDomainIcon = (domain: string) => {
     switch (domain) {
       case 'hydraulic': return <Droplets className="h-4 w-4" />;
@@ -135,8 +158,30 @@ const IndustrialMonitor = () => {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Industrial Multi-System Causal Health Monitor</h1>
-        <div className="flex gap-2">
+        <div>
+          <h1 className="text-3xl font-bold">Industrial Multi-System Causal Health Monitor</h1>
+          {neuralMode && neuralModelInfo && (
+            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+              <Brain className="h-4 w-4" />
+              <span>Neural Causal VGG Active • {neuralModelInfo.parameters.toLocaleString()} parameters</span>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 items-center">
+          <div className="flex items-center space-x-2 px-3 py-2 border rounded-lg bg-card">
+            <Switch
+              id="neural-mode"
+              checked={neuralMode}
+              onCheckedChange={handleToggleNeuralMode}
+              disabled={isRunning}
+            />
+            <Label htmlFor="neural-mode" className="cursor-pointer">
+              <div className="flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                Neural Mode
+              </div>
+            </Label>
+          </div>
           <Button 
             onClick={() => setIsRunning(!isRunning)}
             variant={isRunning ? "destructive" : "default"}
@@ -300,12 +345,15 @@ const IndustrialMonitor = () => {
                     <div>
                       <div className="font-medium">{anomaly.sensor}</div>
                       <div className="text-sm text-muted-foreground">
-                        Causal expectation violated
+                        {anomaly.causal_pathway ? `Pathway: ${anomaly.causal_pathway}` : 'Causal expectation violated'}
                       </div>
                     </div>
-                    <Badge variant={anomaly.anomaly_score > 0.7 ? 'destructive' : 'secondary'}>
-                      {(anomaly.anomaly_score * 100).toFixed(0)}%
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {neuralMode && <Brain className="h-3 w-3 text-purple-500" />}
+                      <Badge variant={anomaly.anomaly_score > 0.7 ? 'destructive' : 'secondary'}>
+                        {(anomaly.anomaly_score * 100).toFixed(0)}%
+                      </Badge>
+                    </div>
                   </div>
                 ))
               )}
@@ -317,7 +365,15 @@ const IndustrialMonitor = () => {
       {/* Causal Graph Visualization */}
       <Card>
         <CardHeader>
-          <CardTitle>Discovered Causal Relationships</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Discovered Causal Relationships</CardTitle>
+            {neuralMode && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Brain className="h-3 w-3" />
+                Neural-Augmented
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
