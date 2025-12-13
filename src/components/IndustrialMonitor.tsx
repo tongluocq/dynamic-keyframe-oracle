@@ -1,16 +1,20 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
 import { SystemState, SensorReading, CausalRelation } from '@/types/industrial';
+import EnhancedCVGGPanel from '@/components/EnhancedCVGGPanel';
+import { InferenceResult } from '@/hooks/useEnhancedCVGG';
+
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg';
 
 const IndustrialMonitor = () => {
   const [simulator] = useState(() => new PhysicsSimulator());
@@ -23,8 +27,18 @@ const IndustrialMonitor = () => {
   const [causalGraph, setCausalGraph] = useState<Map<string, CausalRelation[]>>(new Map());
   const [anomalies, setAnomalies] = useState<Array<{sensor: string, anomaly_score: number, causal_pathway?: string}>>([]);
   const [activeFailures, setActiveFailures] = useState<Array<{id: string, name: string, severity: number, domain: string}>>([]);
-  const [neuralMode, setNeuralMode] = useState(false);
+  
+  // Model modes
+  const [modelMode, setModelMode] = useState<ModelMode>('none');
   const [neuralModelInfo, setNeuralModelInfo] = useState<{initialized: boolean, parameters: number} | null>(null);
+  const [cvggInferenceResult, setCvggInferenceResult] = useState<InferenceResult | null>(null);
+  
+  // Sensor history for CVGG
+  const [sensorHistory, setSensorHistory] = useState<{
+    vibrationX: number[];
+    vibrationY: number[];
+    vibrationZ: number[];
+  }>({ vibrationX: [], vibrationY: [], vibrationZ: [] });
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -34,6 +48,13 @@ const IndustrialMonitor = () => {
         // Step simulation
         const newState = simulator.step();
         setCurrentState(newState);
+        
+        // Update sensor history for CVGG
+        setSensorHistory(prev => ({
+          vibrationX: [...prev.vibrationX, newState.mechanical.vibration_x].slice(-1024),
+          vibrationY: [...prev.vibrationY, newState.mechanical.vibration_y].slice(-1024),
+          vibrationZ: [...prev.vibrationZ, newState.mechanical.vibration_z].slice(-1024)
+        }));
         
         // Progress failures
         failureSimulator.progressFailures(0.1);
@@ -119,8 +140,8 @@ const IndustrialMonitor = () => {
     setActiveFailures([]);
   };
 
-  const handleToggleNeuralMode = async () => {
-    if (!neuralMode) {
+  const handleToggleNeuralMode = useCallback(async () => {
+    if (modelMode !== 'neural') {
       // Enable neural mode
       await causalAnalyzer.enableNeuralMode();
       const encoder = causalAnalyzer.getNeuralEncoder();
@@ -128,14 +149,18 @@ const IndustrialMonitor = () => {
         const info = encoder.getModelInfo();
         setNeuralModelInfo(info);
       }
-      setNeuralMode(true);
+      setModelMode('neural');
     } else {
       // Disable neural mode
       causalAnalyzer.disableNeuralMode();
-      setNeuralMode(false);
+      setModelMode('none');
       setNeuralModelInfo(null);
     }
-  };
+  }, [modelMode, causalAnalyzer]);
+
+  const handleCvggInferenceResult = useCallback((result: InferenceResult) => {
+    setCvggInferenceResult(result);
+  }, []);
 
   const getDomainIcon = (domain: string) => {
     switch (domain) {
@@ -157,44 +182,62 @@ const IndustrialMonitor = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Industrial Multi-System Causal Health Monitor</h1>
-          {neuralMode && neuralModelInfo && (
-            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-              <Brain className="h-4 w-4" />
-              <span>Neural Causal VGG Active • {neuralModelInfo.parameters.toLocaleString()} parameters</span>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-2 items-center">
-          <div className="flex items-center space-x-2 px-3 py-2 border rounded-lg bg-card">
-            <Switch
-              id="neural-mode"
-              checked={neuralMode}
-              onCheckedChange={handleToggleNeuralMode}
-              disabled={isRunning}
-            />
-            <Label htmlFor="neural-mode" className="cursor-pointer">
-              <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4 mt-2">
+            {modelMode === 'neural' && neuralModelInfo && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Brain className="h-4 w-4" />
-                Neural Mode
+                <span>Neural Causal VGG • {neuralModelInfo.parameters.toLocaleString()} params</span>
               </div>
-            </Label>
+            )}
+            {modelMode === 'enhanced-cvgg' && cvggInferenceResult && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Cpu className="h-4 w-4 text-primary" />
+                <span>EnhancedCVGG: {cvggInferenceResult.classification.className} ({(cvggInferenceResult.classification.confidence * 100).toFixed(0)}%)</span>
+              </div>
+            )}
           </div>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Model Mode Selector */}
+          <Tabs value={modelMode} onValueChange={(v) => setModelMode(v as ModelMode)} className="mr-2">
+            <TabsList className="h-9">
+              <TabsTrigger value="none" className="text-xs px-2">Off</TabsTrigger>
+              <TabsTrigger value="neural" className="text-xs px-2" onClick={handleToggleNeuralMode}>
+                <Brain className="h-3 w-3 mr-1" />
+                Neural
+              </TabsTrigger>
+              <TabsTrigger value="enhanced-cvgg" className="text-xs px-2">
+                <Cpu className="h-3 w-3 mr-1" />
+                CVGG
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
           <Button 
             onClick={() => setIsRunning(!isRunning)}
             variant={isRunning ? "destructive" : "default"}
           >
             {isRunning ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-            {isRunning ? "Stop" : "Start"} Simulation
+            {isRunning ? "Stop" : "Start"}
           </Button>
           <Button onClick={handleClearFailures} variant="outline">
             <RotateCcw className="h-4 w-4 mr-2" />
-            Clear Failures
+            Clear
           </Button>
         </div>
       </div>
+
+      {/* EnhancedCVGG Panel - Show when CVGG mode is active */}
+      {modelMode === 'enhanced-cvgg' && (
+        <EnhancedCVGGPanel
+          currentState={currentState}
+          sensorHistory={sensorHistory}
+          onInferenceResult={handleCvggInferenceResult}
+        />
+      )}
 
       {/* System Overview */}
       {currentState && (
@@ -349,7 +392,8 @@ const IndustrialMonitor = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {neuralMode && <Brain className="h-3 w-3 text-purple-500" />}
+                      {modelMode === 'neural' && <Brain className="h-3 w-3 text-purple-500" />}
+                      {modelMode === 'enhanced-cvgg' && <Cpu className="h-3 w-3 text-primary" />}
                       <Badge variant={anomaly.anomaly_score > 0.7 ? 'destructive' : 'secondary'}>
                         {(anomaly.anomaly_score * 100).toFixed(0)}%
                       </Badge>
@@ -367,10 +411,11 @@ const IndustrialMonitor = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Discovered Causal Relationships</CardTitle>
-            {neuralMode && (
+            {modelMode !== 'none' && (
               <Badge variant="outline" className="flex items-center gap-1">
-                <Brain className="h-3 w-3" />
-                Neural-Augmented
+                {modelMode === 'neural' && <Brain className="h-3 w-3" />}
+                {modelMode === 'enhanced-cvgg' && <Cpu className="h-3 w-3" />}
+                {modelMode === 'neural' ? 'Neural-Augmented' : 'EnhancedCVGG'}
               </Badge>
             )}
           </div>
