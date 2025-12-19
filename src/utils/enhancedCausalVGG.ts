@@ -632,12 +632,6 @@ export class EnhancedCausalVGG {
       // Combine embeddings (shared representation)
       const combinedEmbedding = tf.concat([imageEmbedding, scalogramEmbedding], 1) as tf.Tensor2D;
       
-      // Confounder proxy from combined embedding
-      const confounderProxy = tf.layers.dense({
-        units: 32,
-        activation: 'tanh'
-      }).apply(combinedEmbedding) as tf.Tensor2D;
-      
       // Classification Head: embedding + causal metadata
       const classificationInput = tf.concat([combinedEmbedding, causalMetadataEncoding], 1);
       const classificationLogits = this.classifierModel!.predict(classificationInput) as tf.Tensor2D;
@@ -651,6 +645,9 @@ export class EnhancedCausalVGG {
       const directEffectValue = (causalOutputs[2] as tf.Tensor2D).dataSync()[0];
       const indirectEffectValue = (causalOutputs[3] as tf.Tensor2D).dataSync()[0];
       
+      // Confounder proxy from causal head output
+      const confounderProxy = causalOutputs[4] as tf.Tensor2D;
+      
       return {
         classificationLogits,
         causalEffects: {
@@ -660,7 +657,7 @@ export class EnhancedCausalVGG {
           indirectEffect: indirectEffectValue
         },
         embeddings: combinedEmbedding,
-        confounderProxy: causalOutputs[4] as tf.Tensor2D
+        confounderProxy
       };
     });
   }
@@ -794,6 +791,161 @@ export class EnhancedCausalVGG {
       interventions: [],
       confounders: { temperature: 25, workingLoad: 0.5 },
       instrumentalVariables: [0, 0, 0, 0, 0]
+    };
+  }
+  
+  /**
+   * Get all trainable variables from all model components
+   */
+  getTrainableVariables(): tf.Variable[] {
+    const vars: tf.Variable[] = [];
+    
+    const collectFromModel = (model: tf.LayersModel | null) => {
+      if (!model) return;
+      model.trainableWeights.forEach(w => {
+        // Access the underlying tensor and create a variable reference
+        const tensor = w.read();
+        if (tensor) {
+          vars.push(tf.variable(tensor, true, w.name));
+        }
+      });
+    };
+    
+    collectFromModel(this.backboneModel);
+    collectFromModel(this.scalogramBackboneModel);
+    collectFromModel(this.metadataEncoderModel);
+    collectFromModel(this.classifierModel);
+    collectFromModel(this.causalModel);
+    
+    return vars;
+  }
+  
+  /**
+   * Compute gradients for training with combined loss
+   */
+  async computeGradients(
+    input: EnhancedCVGGInput,
+    classLabel: number,
+    observedOutcome: number,
+    treatmentIndicator: number,
+    classificationWeight: number,
+    causalWeight: number,
+    numClasses: number
+  ): Promise<{
+    lossValue: number;
+    classLossValue: number;
+    causalLossValue: number;
+    grads: tf.Tensor[];
+  }> {
+    if (!this.isBuilt) {
+      await this.build();
+    }
+    
+    const trainableVars = this.getTrainableVariables();
+    
+    // Compute gradients using tf.variableGrads
+    const { value, grads } = tf.variableGrads(() => {
+      // Forward pass (inline to capture gradients)
+      let imageEmbedding: tf.Tensor2D;
+      let scalogramEmbedding: tf.Tensor2D;
+      let causalMetadataEncoding: tf.Tensor2D;
+      
+      // Process rock image
+      if (input.rockImage) {
+        imageEmbedding = this.backboneModel!.predict(input.rockImage) as tf.Tensor2D;
+      } else {
+        imageEmbedding = tf.zeros([1, this.config.embeddingDim]) as tf.Tensor2D;
+      }
+      
+      // Process signals to scalograms
+      if (input.cwruSignals && input.environmentalSignals) {
+        const scalograms = this.waveletTransformer.transformMultiChannelSignals(
+          input.cwruSignals,
+          input.environmentalSignals,
+          this.config.scalogramSize,
+          this.config.scalogramSize
+        );
+        scalogramEmbedding = this.scalogramBackboneModel!.predict(scalograms) as tf.Tensor2D;
+      } else {
+        scalogramEmbedding = tf.zeros([1, this.config.embeddingDim]) as tf.Tensor2D;
+      }
+      
+      // Encode causal metadata
+      if (input.causalMetadata) {
+        const metadataVector = this.causalMetadataEncoder.encode(input.causalMetadata);
+        causalMetadataEncoding = this.metadataEncoderModel!.predict(metadataVector) as tf.Tensor2D;
+      } else {
+        causalMetadataEncoding = tf.zeros([1, this.config.causalMetadataDim]) as tf.Tensor2D;
+      }
+      
+      // Combine embeddings
+      const combinedEmbedding = tf.concat([imageEmbedding, scalogramEmbedding], 1) as tf.Tensor2D;
+      
+      // Classification logits
+      const classificationInput = tf.concat([combinedEmbedding, causalMetadataEncoding], 1);
+      const classificationLogits = this.classifierModel!.predict(classificationInput) as tf.Tensor2D;
+      
+      // Causal outputs
+      const causalOutputs = this.causalModel!.predict([combinedEmbedding, causalMetadataEncoding]) as tf.Tensor[];
+      
+      // Classification loss with label smoothing
+      const smoothing = 0.1;
+      const classLabels = tf.tensor1d([classLabel], 'int32');
+      const oneHot = tf.oneHot(classLabels, numClasses);
+      const smoothedLabels = tf.add(
+        tf.mul(oneHot, 1 - smoothing),
+        tf.scalar(smoothing / numClasses)
+      );
+      const classLoss = tf.losses.softmaxCrossEntropy(smoothedLabels, classificationLogits);
+      
+      // Causal loss
+      const ateValue = (causalOutputs[0] as tf.Tensor2D).flatten().slice([0], [1]);
+      const directValue = (causalOutputs[2] as tf.Tensor2D).flatten().slice([0], [1]);
+      const indirectValue = (causalOutputs[3] as tf.Tensor2D).flatten().slice([0], [1]);
+      
+      // DAG constraint: ATE ≈ direct + indirect
+      const dagConstraint = tf.square(tf.sub(ateValue, tf.add(directValue, indirectValue)));
+      
+      // Outcome prediction loss
+      const predictedOutcome = tf.mul(ateValue, tf.scalar(treatmentIndicator));
+      const outcomeLoss = tf.square(tf.sub(tf.scalar(observedOutcome), predictedOutcome));
+      
+      // Combined causal loss
+      const causalLoss = tf.add(dagConstraint, outcomeLoss).mean();
+      
+      // Combined total loss
+      const totalLoss = tf.add(
+        tf.mul(classLoss, tf.scalar(classificationWeight)),
+        tf.mul(causalLoss, tf.scalar(causalWeight))
+      ) as tf.Scalar;
+      
+      return totalLoss;
+    });
+    
+    const lossValue = value.dataSync()[0];
+    
+    // Separately compute individual losses for logging
+    const output = await this.forward(input);
+    const classLossValue = tf.tidy(() => {
+      const classLabels = tf.tensor1d([classLabel], 'int32');
+      const oneHot = tf.oneHot(classLabels, numClasses);
+      return tf.losses.softmaxCrossEntropy(oneHot, output.classificationLogits).dataSync()[0];
+    });
+    
+    const { ATE, directEffect, indirectEffect } = output.causalEffects;
+    const causalLossValue = Math.pow(ATE - (directEffect + indirectEffect), 2) +
+      Math.pow(observedOutcome - treatmentIndicator * ATE, 2);
+    
+    // Convert grads object to array
+    const gradArray = Object.values(grads);
+    
+    value.dispose();
+    
+    return {
+      lossValue,
+      classLossValue,
+      causalLossValue,
+      grads: gradArray
     };
   }
   
