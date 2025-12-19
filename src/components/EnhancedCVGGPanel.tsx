@@ -65,16 +65,16 @@ const EnhancedCVGGPanel: React.FC<EnhancedCVGGPanelProps> = ({
   const [rockImagePreview, setRockImagePreview] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<InferenceResult | null>(null);
   
-  // Training config
+  // Training config with better defaults for VGG
   const [trainingConfig, setTrainingConfig] = useState<TrainingConfig>({
-    epochs: 10,
-    batchSize: 8,
-    learningRate: 0.001,
-    classificationWeight: 0.7,
-    causalWeight: 0.3,
+    epochs: 20,
+    batchSize: 4,
+    learningRate: 0.0001, // Lower LR for better convergence with deep VGG
+    classificationWeight: 0.8,
+    causalWeight: 0.2,
     validationSplit: 0.2
   });
-  const [numSyntheticSamples, setNumSyntheticSamples] = useState(100);
+  const [numSyntheticSamples, setNumSyntheticSamples] = useState(200); // More samples for training
 
   // Intervention parameters
   const [interventionAmplitude, setInterventionAmplitude] = useState(0.5);

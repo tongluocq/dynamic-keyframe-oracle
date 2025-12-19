@@ -275,7 +275,7 @@ export function useEnhancedCVGG() {
     }
   }, [modelState.isBuilt]);
 
-  // Training loop with combined loss
+  // Training loop with combined loss and actual gradient updates
   const train = useCallback(async (
     samples: TrainingSample[],
     config: TrainingConfig
@@ -301,8 +301,19 @@ export function useEnhancedCVGG() {
     
     const { epochs, batchSize, learningRate, classificationWeight, causalWeight } = config;
     
-    // Create optimizer
-    const optimizer = tf.train.adam(learningRate);
+    // Get trainable variables from model
+    const trainableVars = modelRef.current.getTrainableVariables();
+    
+    if (trainableVars.length === 0) {
+      console.error('[useEnhancedCVGG] No trainable variables found');
+      setModelState(prev => ({ ...prev, mode: 'idle' }));
+      return false;
+    }
+    
+    console.log(`[useEnhancedCVGG] Training with ${trainableVars.length} trainable variable groups`);
+    
+    // Create optimizer with appropriate learning rate
+    const optimizer = tf.train.adam(learningRate, 0.9, 0.999, 1e-7);
     
     try {
       for (let epoch = 0; epoch < epochs; epoch++) {
@@ -322,42 +333,54 @@ export function useEnhancedCVGG() {
         
         // Process in batches
         for (let batchStart = 0; batchStart < shuffled.length; batchStart += batchSize) {
+          if (abortControllerRef.current.signal.aborted) break;
+          
           const batchEnd = Math.min(batchStart + batchSize, shuffled.length);
           const batchSamples = shuffled.slice(batchStart, batchEnd);
           
+          // Accumulate gradients for batch
+          let batchLoss = 0;
+          let batchClassLoss = 0;
+          let batchCausalLoss = 0;
+          
           for (const sample of batchSamples) {
-            // Forward pass
-            const output = await modelRef.current!.forward(sample.input);
+            // Compute loss and gradients
+            const { lossValue, classLossValue, causalLossValue, grads } = 
+              await modelRef.current!.computeGradients(
+                sample.input,
+                sample.classLabel,
+                sample.observedOutcome,
+                sample.treatmentIndicator,
+                classificationWeight,
+                causalWeight,
+                CLASS_NAMES.length
+              );
             
-            // Calculate losses synchronously
-            const classLossValue = tf.tidy(() => {
-              const classLabels = tf.tensor1d([sample.classLabel], 'int32');
-              const oneHot = tf.oneHot(classLabels, CLASS_NAMES.length);
-              const classLoss = tf.losses.softmaxCrossEntropy(oneHot, output.classificationLogits);
-              return classLoss.dataSync()[0];
-            });
+            // Apply gradients
+            if (grads && grads.length > 0) {
+              optimizer.applyGradients(
+                grads.map((g, i) => ({ name: `var_${i}`, tensor: g }))
+              );
+              // Dispose gradients after applying
+              grads.forEach(g => g.dispose());
+            }
             
-            // Causal loss calculation
-            const { ATE, directEffect, indirectEffect } = output.causalEffects;
-            const totalEffectConstraint = Math.pow(ATE - (directEffect + indirectEffect), 2);
-            const predictedOutcome = sample.treatmentIndicator * ATE;
-            const outcomeError = Math.pow(sample.observedOutcome - predictedOutcome, 2);
-            const causalLossValue = totalEffectConstraint + outcomeError;
-            
-            // Combined loss
-            const lossValue = classificationWeight * classLossValue + causalWeight * causalLossValue;
-            
-            epochLoss += lossValue;
-            epochClassLoss += classLossValue;
-            epochCausalLoss += causalLossValue;
+            batchLoss += lossValue;
+            batchClassLoss += classLossValue;
+            batchCausalLoss += causalLossValue;
             
             // Check accuracy
+            const output = await modelRef.current!.forward(sample.input);
             const predictions = await output.classificationLogits.data();
             const predictionsArray = Array.from(predictions);
             const predictedClass = predictionsArray.indexOf(Math.max(...predictionsArray));
             if (predictedClass === sample.classLabel) correctPredictions++;
             totalSamples++;
           }
+          
+          epochLoss += batchLoss;
+          epochClassLoss += batchClassLoss;
+          epochCausalLoss += batchCausalLoss;
         }
         
         // Calculate epoch metrics
@@ -389,12 +412,14 @@ export function useEnhancedCVGG() {
         await new Promise(resolve => setTimeout(resolve, 10));
       }
       
+      optimizer.dispose();
       setTrainingProgress(prev => ({ ...prev, isTraining: false }));
       setModelState(prev => ({ ...prev, mode: 'idle' }));
       
       return true;
     } catch (error) {
       console.error('[useEnhancedCVGG] Training error:', error);
+      optimizer.dispose();
       setTrainingProgress(prev => ({ ...prev, isTraining: false }));
       setModelState(prev => ({ ...prev, mode: 'idle' }));
       return false;
@@ -406,60 +431,112 @@ export function useEnhancedCVGG() {
     abortControllerRef.current?.abort();
   }, []);
 
-  // Generate synthetic training samples
+  // Generate synthetic training samples with better class discrimination
   const generateSyntheticSamples = useCallback((count: number): TrainingSample[] => {
     const samples: TrainingSample[] = [];
+    const samplesPerClass = Math.ceil(count / CLASS_NAMES.length);
     
-    for (let i = 0; i < count; i++) {
-      const classLabel = Math.floor(Math.random() * CLASS_NAMES.length);
+    // Fault signatures for each class (more discriminative patterns)
+    const faultSignatures = [
+      { freqMultiplier: 1.0, amplitude: 1.0, modulation: 0, harmonics: 1 },      // Normal
+      { freqMultiplier: 3.56, amplitude: 1.5, modulation: 0.3, harmonics: 3 },   // Inner Race
+      { freqMultiplier: 2.35, amplitude: 1.3, modulation: 0.2, harmonics: 2 },   // Outer Race
+      { freqMultiplier: 1.94, amplitude: 1.8, modulation: 0.4, harmonics: 4 },   // Ball Fault
+      { freqMultiplier: 0.38, amplitude: 1.2, modulation: 0.5, harmonics: 2 },   // Cage Fault
+      { freqMultiplier: 2.0, amplitude: 1.4, modulation: 0.1, harmonics: 2 },    // Misalignment
+      { freqMultiplier: 1.0, amplitude: 2.0, modulation: 0.6, harmonics: 1 },    // Unbalance
+      { freqMultiplier: 0.5, amplitude: 1.6, modulation: 0.7, harmonics: 3 },    // Looseness
+      { freqMultiplier: 4.0, amplitude: 1.9, modulation: 0.3, harmonics: 5 },    // Rubbing
+      { freqMultiplier: 2.5, amplitude: 2.2, modulation: 0.5, harmonics: 4 },    // Composite
+    ];
+    
+    for (let classLabel = 0; classLabel < CLASS_NAMES.length; classLabel++) {
+      const signature = faultSignatures[classLabel];
       
-      // Generate synthetic vibration signals based on class
-      const baseFreq = 10 + classLabel * 5;
-      const signalLength = 1024;
-      
-      const vibX: number[] = [];
-      const vibY: number[] = [];
-      const vibZ: number[] = [];
-      
-      for (let j = 0; j < signalLength; j++) {
-        const t = j / 1000;
-        vibX.push(Math.sin(2 * Math.PI * baseFreq * t) + 0.5 * Math.random());
-        vibY.push(Math.cos(2 * Math.PI * baseFreq * 0.8 * t) + 0.3 * Math.random());
-        vibZ.push(Math.sin(2 * Math.PI * baseFreq * 1.2 * t + Math.PI / 4) + 0.4 * Math.random());
+      for (let s = 0; s < samplesPerClass && samples.length < count; s++) {
+        const baseFreq = 29.2; // CWRU motor shaft frequency (29.2 Hz at 1750 RPM)
+        const faultFreq = baseFreq * signature.freqMultiplier;
+        const signalLength = 1024;
+        const samplingRate = 12000; // 12kHz
+        
+        const vibX: number[] = [];
+        const vibY: number[] = [];
+        const vibZ: number[] = [];
+        
+        // Add slight random variation
+        const noiseLevel = 0.1 + 0.1 * Math.random();
+        const phaseOffset = Math.random() * 2 * Math.PI;
+        
+        for (let j = 0; j < signalLength; j++) {
+          const t = j / samplingRate;
+          
+          // Base signal with class-specific characteristics
+          let xSig = signature.amplitude * Math.sin(2 * Math.PI * faultFreq * t + phaseOffset);
+          let ySig = signature.amplitude * 0.8 * Math.cos(2 * Math.PI * faultFreq * t + phaseOffset);
+          let zSig = signature.amplitude * 0.6 * Math.sin(2 * Math.PI * faultFreq * t + phaseOffset + Math.PI / 3);
+          
+          // Add harmonics (characteristic of bearing faults)
+          for (let h = 2; h <= signature.harmonics; h++) {
+            const harmAmp = signature.amplitude / (h * 1.5);
+            xSig += harmAmp * Math.sin(2 * Math.PI * faultFreq * h * t);
+            ySig += harmAmp * 0.7 * Math.cos(2 * Math.PI * faultFreq * h * t);
+          }
+          
+          // Add amplitude modulation (characteristic of rotating machinery faults)
+          const modEnvelope = 1 + signature.modulation * Math.sin(2 * Math.PI * baseFreq * t);
+          xSig *= modEnvelope;
+          ySig *= modEnvelope;
+          zSig *= modEnvelope;
+          
+          // Add noise
+          vibX.push(xSig + noiseLevel * (Math.random() - 0.5));
+          vibY.push(ySig + noiseLevel * (Math.random() - 0.5));
+          vibZ.push(zSig + noiseLevel * (Math.random() - 0.5));
+        }
+        
+        const cwruSignals = generateCWRUSignals(vibX, vibY, vibZ);
+        
+        // Class-correlated environmental conditions
+        const temperature = 25 + classLabel * 3 + Math.random() * 5;
+        const pressure = 100 + (classLabel > 5 ? 10 : 0) + Math.random() * 5;
+        const humidity = 50 + (classLabel % 3) * 10 + Math.random() * 10;
+        
+        const environmentalSignals = generateEnvironmentalSignals(
+          Array(signalLength).fill(temperature),
+          Array(signalLength).fill(pressure),
+          Array(signalLength).fill(humidity)
+        );
+        
+        // Treatment indicator correlated with fault severity
+        const treatmentIndicator = classLabel > 0 ? (Math.random() > 0.3 ? 1 : 0) : 0;
+        const faultSeverity = classLabel > 0 ? 0.3 + 0.7 * (classLabel / 9) : 0;
+        const observedOutcome = treatmentIndicator * faultSeverity + 0.1 * Math.random();
+        
+        samples.push({
+          input: {
+            cwruSignals,
+            environmentalSignals,
+            causalMetadata: createCausalMetadata(
+              treatmentIndicator > 0 ? [{ 
+                amplitude: 0.3 + 0.5 * faultSeverity, 
+                interventionType: 'load_change',
+                startTime: 0,
+                endTime: 1,
+                slope: 0.1
+              }] : [],
+              temperature,
+              0.3 + 0.5 * faultSeverity
+            )
+          },
+          classLabel,
+          observedOutcome,
+          treatmentIndicator
+        });
       }
-      
-      const cwruSignals = generateCWRUSignals(vibX, vibY, vibZ);
-      
-      const temperature = 20 + Math.random() * 30;
-      const pressure = 90 + Math.random() * 20;
-      const humidity = 40 + Math.random() * 40;
-      
-      const environmentalSignals = generateEnvironmentalSignals(
-        Array(signalLength).fill(temperature),
-        Array(signalLength).fill(pressure),
-        Array(signalLength).fill(humidity)
-      );
-      
-      const treatmentIndicator = Math.random() > 0.5 ? 1 : 0;
-      const observedOutcome = treatmentIndicator * (0.5 + 0.5 * Math.random()) + 0.2 * Math.random();
-      
-      samples.push({
-        input: {
-          cwruSignals,
-          environmentalSignals,
-          causalMetadata: createCausalMetadata(
-            treatmentIndicator > 0 ? [{ amplitude: 0.5, interventionType: 'load_change' }] : [],
-            temperature,
-            0.5 + 0.5 * Math.random()
-          )
-        },
-        classLabel,
-        observedOutcome,
-        treatmentIndicator
-      });
     }
     
-    return samples;
+    // Shuffle the samples
+    return samples.sort(() => Math.random() - 0.5);
   }, [generateCWRUSignals, generateEnvironmentalSignals, createCausalMetadata]);
 
   // Cleanup on unmount
