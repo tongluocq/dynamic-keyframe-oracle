@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,8 @@ import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
 import { SystemState, SensorReading, CausalRelation } from '@/types/industrial';
 import EnhancedCVGGPanel from '@/components/EnhancedCVGGPanel';
-import { InferenceResult } from '@/hooks/useEnhancedCVGG';
+import CausalVisualizationPanel from '@/components/CausalVisualizationPanel';
+import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 
 type ModelMode = 'none' | 'neural' | 'enhanced-cvgg';
 
@@ -32,6 +33,12 @@ const IndustrialMonitor = () => {
   const [modelMode, setModelMode] = useState<ModelMode>('none');
   const [neuralModelInfo, setNeuralModelInfo] = useState<{initialized: boolean, parameters: number} | null>(null);
   const [cvggInferenceResult, setCvggInferenceResult] = useState<InferenceResult | null>(null);
+  
+  // Inference history for visualizations
+  const [inferenceHistory, setInferenceHistory] = useState<InferenceResult[]>([]);
+  
+  // CVGG hook for counterfactual sweep
+  const cvggHook = useEnhancedCVGG();
   
   // Sensor history for CVGG
   const [sensorHistory, setSensorHistory] = useState<{
@@ -160,7 +167,60 @@ const IndustrialMonitor = () => {
 
   const handleCvggInferenceResult = useCallback((result: InferenceResult) => {
     setCvggInferenceResult(result);
+    // Add to inference history for visualizations (keep last 100)
+    setInferenceHistory(prev => [...prev, result].slice(-100));
   }, []);
+
+  // Counterfactual sweep handler
+  const handleCounterfactualSweep = useCallback(async (pressureValues: number[]): Promise<{ pressure: number; effect: number }[]> => {
+    if (!cvggHook.modelState.isBuilt) {
+      await cvggHook.initializeModel();
+    }
+
+    const results: { pressure: number; effect: number }[] = [];
+    
+    for (const pressure of pressureValues) {
+      // Generate signals with varied pressure
+      const cwruSignals = cvggHook.generateCWRUSignals(
+        sensorHistory.vibrationX.length > 0 ? sensorHistory.vibrationX : [0],
+        sensorHistory.vibrationY.length > 0 ? sensorHistory.vibrationY : [0],
+        sensorHistory.vibrationZ.length > 0 ? sensorHistory.vibrationZ : [0]
+      );
+
+      const environmentalSignals = cvggHook.generateEnvironmentalSignals(
+        currentState ? [currentState.thermal.system_temp] : [25],
+        [pressure], // Varied pressure
+        [50]
+      );
+
+      const causalMetadata = cvggHook.createCausalMetadata(
+        [{
+          amplitude: pressure / 200, // Normalize to 0-1
+          interventionType: 'pressure_spike',
+          startTime: 0,
+          endTime: 1,
+          slope: 0.5
+        }],
+        currentState?.thermal.system_temp || 25,
+        0.5
+      );
+
+      const result = await cvggHook.runInference({
+        cwruSignals,
+        environmentalSignals,
+        causalMetadata
+      });
+
+      if (result) {
+        results.push({
+          pressure,
+          effect: result.causalEffects.ATE
+        });
+      }
+    }
+
+    return results;
+  }, [cvggHook, sensorHistory, currentState]);
 
   const getDomainIcon = (domain: string) => {
     switch (domain) {
@@ -236,6 +296,15 @@ const IndustrialMonitor = () => {
           currentState={currentState}
           sensorHistory={sensorHistory}
           onInferenceResult={handleCvggInferenceResult}
+        />
+      )}
+
+      {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
+      {(inferenceHistory.length > 0 || causalGraph.size > 0) && (
+        <CausalVisualizationPanel
+          inferenceHistory={inferenceHistory}
+          causalGraph={causalGraph}
+          onCounterfactualSweep={modelMode === 'enhanced-cvgg' ? handleCounterfactualSweep : undefined}
         />
       )}
 
