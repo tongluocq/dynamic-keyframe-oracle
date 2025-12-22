@@ -16,6 +16,17 @@ import {
   resetEnhancedCausalVGG
 } from '@/utils/enhancedCausalVGG';
 
+// Optimized defaults for faster feedback
+export const DEFAULT_SAMPLE_COUNT = 50;  // Reduced from 200
+export const DEFAULT_TRAINING_CONFIG = {
+  epochs: 5,           // Reduced from 20
+  batchSize: 8,        // Smaller batches for more frequent UI updates
+  learningRate: 0.001,
+  classificationWeight: 1.0,
+  causalWeight: 0.5,
+  validationSplit: 0.1
+};
+
 export interface TrainingConfig {
   epochs: number;
   batchSize: number;
@@ -276,9 +287,10 @@ export function useEnhancedCVGG() {
   }, [modelState.isBuilt]);
 
   // Training loop with combined loss and actual gradient updates
+  // Optimized with batch progress logging and UI yielding
   const train = useCallback(async (
     samples: TrainingSample[],
-    config: TrainingConfig
+    config: TrainingConfig = DEFAULT_TRAINING_CONFIG
   ): Promise<boolean> => {
     if (!modelRef.current || !modelState.isBuilt) {
       console.warn('[useEnhancedCVGG] Model not ready for training');
@@ -300,6 +312,10 @@ export function useEnhancedCVGG() {
     setTrainingHistory([]);
     
     const { epochs, batchSize, learningRate, classificationWeight, causalWeight } = config;
+    const numBatches = Math.ceil(samples.length / batchSize);
+    
+    console.log(`[CVGG] Starting training: ${samples.length} samples, ${epochs} epochs, batch size ${batchSize}`);
+    console.log(`[CVGG] Total batches per epoch: ${numBatches}`);
     
     // Get trainable variables from model
     const trainableVars = modelRef.current.getTrainableVariables();
@@ -310,7 +326,7 @@ export function useEnhancedCVGG() {
       return false;
     }
     
-    console.log(`[useEnhancedCVGG] Training with ${trainableVars.length} trainable variable groups`);
+    console.log(`[CVGG] Training with ${trainableVars.length} trainable variable groups`);
     
     // Create optimizer with appropriate learning rate
     const optimizer = tf.train.adam(learningRate, 0.9, 0.999, 1e-7);
@@ -318,10 +334,11 @@ export function useEnhancedCVGG() {
     try {
       for (let epoch = 0; epoch < epochs; epoch++) {
         if (abortControllerRef.current.signal.aborted) {
-          console.log('[useEnhancedCVGG] Training aborted');
+          console.log('[CVGG] Training aborted by user');
           break;
         }
         
+        const epochStartTime = performance.now();
         let epochLoss = 0;
         let epochClassLoss = 0;
         let epochCausalLoss = 0;
@@ -331,10 +348,13 @@ export function useEnhancedCVGG() {
         // Shuffle samples
         const shuffled = [...samples].sort(() => Math.random() - 0.5);
         
+        console.log(`[CVGG] Epoch ${epoch + 1}/${epochs} starting...`);
+        
         // Process in batches
-        for (let batchStart = 0; batchStart < shuffled.length; batchStart += batchSize) {
+        for (let batchIdx = 0; batchIdx < numBatches; batchIdx++) {
           if (abortControllerRef.current.signal.aborted) break;
           
+          const batchStart = batchIdx * batchSize;
           const batchEnd = Math.min(batchStart + batchSize, shuffled.length);
           const batchSamples = shuffled.slice(batchStart, batchEnd);
           
@@ -381,6 +401,13 @@ export function useEnhancedCVGG() {
           epochLoss += batchLoss;
           epochClassLoss += batchClassLoss;
           epochCausalLoss += batchCausalLoss;
+          
+          // Log batch progress
+          const batchAvgLoss = batchLoss / batchSamples.length;
+          console.log(`[CVGG] Epoch ${epoch + 1} - Batch ${batchIdx + 1}/${numBatches} - Loss: ${batchAvgLoss.toFixed(4)}`);
+          
+          // CRITICAL: Yield to UI thread after each batch to prevent freezing
+          await tf.nextFrame();
         }
         
         // Calculate epoch metrics
@@ -388,6 +415,7 @@ export function useEnhancedCVGG() {
         const avgClassLoss = epochClassLoss / totalSamples;
         const avgCausalLoss = epochCausalLoss / totalSamples;
         const accuracy = correctPredictions / totalSamples;
+        const epochTime = ((performance.now() - epochStartTime) / 1000).toFixed(1);
         
         // Update progress
         setTrainingProgress({
@@ -406,19 +434,20 @@ export function useEnhancedCVGG() {
           accuracy
         }]);
         
-        console.log(`[useEnhancedCVGG] Epoch ${epoch + 1}/${epochs} - Loss: ${avgLoss.toFixed(4)}, Accuracy: ${(accuracy * 100).toFixed(1)}%`);
+        console.log(`[CVGG] Epoch ${epoch + 1}/${epochs} complete in ${epochTime}s - Loss: ${avgLoss.toFixed(4)}, Accuracy: ${(accuracy * 100).toFixed(1)}%`);
         
-        // Allow UI to update
-        await new Promise(resolve => setTimeout(resolve, 10));
+        // Yield to UI between epochs
+        await tf.nextFrame();
       }
       
       optimizer.dispose();
       setTrainingProgress(prev => ({ ...prev, isTraining: false }));
       setModelState(prev => ({ ...prev, mode: 'idle' }));
       
+      console.log('[CVGG] Training completed successfully');
       return true;
     } catch (error) {
-      console.error('[useEnhancedCVGG] Training error:', error);
+      console.error('[CVGG] Training error:', error);
       optimizer.dispose();
       setTrainingProgress(prev => ({ ...prev, isTraining: false }));
       setModelState(prev => ({ ...prev, mode: 'idle' }));
@@ -594,6 +623,10 @@ export function useEnhancedCVGG() {
     generateEnvironmentalSignals,
     createCausalMetadata,
     generateSyntheticSamples,
-    getModelSummary
+    getModelSummary,
+    
+    // Optimized defaults
+    DEFAULT_SAMPLE_COUNT,
+    DEFAULT_TRAINING_CONFIG
   };
 }
