@@ -28,7 +28,13 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
-import { useEnhancedCVGG, TrainingConfig, InferenceResult } from '@/hooks/useEnhancedCVGG';
+import {
+  useEnhancedCVGG,
+  TrainingConfig,
+  InferenceResult,
+  DEFAULT_SAMPLE_COUNT,
+  DEFAULT_TRAINING_CONFIG
+} from '@/hooks/useEnhancedCVGG';
 import { SystemState } from '@/types/industrial';
 
 interface EnhancedCVGGPanelProps {
@@ -64,17 +70,12 @@ const EnhancedCVGGPanel: React.FC<EnhancedCVGGPanelProps> = ({
   const [rockImageFile, setRockImageFile] = useState<File | null>(null);
   const [rockImagePreview, setRockImagePreview] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<InferenceResult | null>(null);
-  
-  // Training config with better defaults for VGG
+
+  // Training config: keep UI defaults in sync with the hook defaults
   const [trainingConfig, setTrainingConfig] = useState<TrainingConfig>({
-    epochs: 20,
-    batchSize: 4,
-    learningRate: 0.0001, // Lower LR for better convergence with deep VGG
-    classificationWeight: 0.8,
-    causalWeight: 0.2,
-    validationSplit: 0.2
+    ...DEFAULT_TRAINING_CONFIG
   });
-  const [numSyntheticSamples, setNumSyntheticSamples] = useState(200); // More samples for training
+  const [numSyntheticSamples, setNumSyntheticSamples] = useState(DEFAULT_SAMPLE_COUNT);
 
   // Intervention parameters
   const [interventionAmplitude, setInterventionAmplitude] = useState(0.5);
