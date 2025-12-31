@@ -6,16 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
 import { SystemState, SensorReading, CausalRelation } from '@/types/industrial';
 import EnhancedCVGGPanel from '@/components/EnhancedCVGGPanel';
 import CausalVisualizationPanel from '@/components/CausalVisualizationPanel';
+import PrescriptiveAIPanel from '@/components/PrescriptiveAIPanel';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 
-type ModelMode = 'none' | 'neural' | 'enhanced-cvgg';
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive';
 
 const IndustrialMonitor = () => {
   const [simulator] = useState(() => new PhysicsSimulator());
@@ -273,6 +274,10 @@ const IndustrialMonitor = () => {
                 <Cpu className="h-3 w-3 mr-1" />
                 CVGG
               </TabsTrigger>
+              <TabsTrigger value="prescriptive" className="text-xs px-2">
+                <Lightbulb className="h-3 w-3 mr-1" />
+                Prescriptive
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           
@@ -299,8 +304,20 @@ const IndustrialMonitor = () => {
         />
       )}
 
+      {/* Prescriptive AI Panel - Show when Prescriptive mode is active */}
+      {modelMode === 'prescriptive' && (
+        <PrescriptiveAIPanel
+          currentState={currentState}
+          anomalies={anomalies}
+          activeFailures={activeFailures}
+          causalGraph={causalGraph}
+          cvggResult={cvggInferenceResult}
+          inferenceHistory={inferenceHistory}
+        />
+      )}
+
       {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
-      {(inferenceHistory.length > 0 || causalGraph.size > 0) && (
+      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && (
         <CausalVisualizationPanel
           inferenceHistory={inferenceHistory}
           causalGraph={causalGraph}
