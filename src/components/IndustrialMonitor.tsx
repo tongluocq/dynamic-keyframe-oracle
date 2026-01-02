@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
@@ -14,9 +14,10 @@ import { SystemState, SensorReading, CausalRelation } from '@/types/industrial';
 import EnhancedCVGGPanel from '@/components/EnhancedCVGGPanel';
 import CausalVisualizationPanel from '@/components/CausalVisualizationPanel';
 import PrescriptiveAIPanel from '@/components/PrescriptiveAIPanel';
+import CounterfactualQueryPanel from '@/components/CounterfactualQueryPanel';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 
-type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive';
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual';
 
 const IndustrialMonitor = () => {
   const [simulator] = useState(() => new PhysicsSimulator());
@@ -274,6 +275,10 @@ const IndustrialMonitor = () => {
                 <Cpu className="h-3 w-3 mr-1" />
                 CVGG
               </TabsTrigger>
+              <TabsTrigger value="counterfactual" className="text-xs px-2">
+                <HelpCircle className="h-3 w-3 mr-1" />
+                What-If
+              </TabsTrigger>
               <TabsTrigger value="prescriptive" className="text-xs px-2">
                 <Lightbulb className="h-3 w-3 mr-1" />
                 Prescriptive
@@ -304,6 +309,14 @@ const IndustrialMonitor = () => {
         />
       )}
 
+      {/* Counterfactual Query Panel - Show when What-If mode is active */}
+      {modelMode === 'counterfactual' && (
+        <CounterfactualQueryPanel
+          currentState={currentState}
+          cvggResult={cvggInferenceResult}
+        />
+      )}
+
       {/* Prescriptive AI Panel - Show when Prescriptive mode is active */}
       {modelMode === 'prescriptive' && (
         <PrescriptiveAIPanel
@@ -317,7 +330,7 @@ const IndustrialMonitor = () => {
       )}
 
       {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
-      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && (
+      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && (
         <CausalVisualizationPanel
           inferenceHistory={inferenceHistory}
           causalGraph={causalGraph}
