@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
@@ -15,9 +15,52 @@ import EnhancedCVGGPanel from '@/components/EnhancedCVGGPanel';
 import CausalVisualizationPanel from '@/components/CausalVisualizationPanel';
 import PrescriptiveAIPanel from '@/components/PrescriptiveAIPanel';
 import CounterfactualQueryPanel from '@/components/CounterfactualQueryPanel';
+import CausalInterventionPanel from '@/components/CausalInterventionPanel';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 
-type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual';
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention';
+
+// Function Status Card Component
+const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMode: ModelMode }> = ({ cvggResult, modelMode }) => {
+  const functions = [
+    { name: 'Causal Effect (ATE/CATE)', status: cvggResult ? 'complete' : 'ready', module: 'CVGG' },
+    { name: 'Causal Intervention (do-calculus)', status: modelMode === 'intervention' ? 'active' : 'ready', module: 'IMSCHM' },
+    { name: 'Counterfactual (What-If)', status: modelMode === 'counterfactual' ? 'active' : 'ready', module: 'IMSCHM' },
+    { name: 'Prescriptive AI', status: modelMode === 'prescriptive' ? 'active' : 'ready', module: 'IMSCHM' },
+    { name: 'Decision Making', status: modelMode === 'prescriptive' ? 'active' : 'ready', module: 'IMSCHM' },
+    { name: 'Interpretability', status: cvggResult ? 'complete' : 'ready', module: 'Both' },
+  ];
+
+  return (
+    <Card className="border-muted/50">
+      <CardHeader className="py-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Activity className="h-4 w-4" />
+          Function Completion Status
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="py-2">
+        <div className="flex flex-wrap gap-2">
+          {functions.map(f => (
+            <Badge 
+              key={f.name} 
+              variant="outline" 
+              className={`text-xs ${
+                f.status === 'complete' ? 'bg-green-500/20 text-green-400 border-green-500/50' :
+                f.status === 'active' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' :
+                'bg-muted/30 text-muted-foreground'
+              }`}
+            >
+              {f.status === 'complete' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+              {f.status === 'active' && <Activity className="h-3 w-3 mr-1" />}
+              {f.name} ({f.module})
+            </Badge>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const IndustrialMonitor = () => {
   const [simulator] = useState(() => new PhysicsSimulator());
@@ -275,6 +318,10 @@ const IndustrialMonitor = () => {
                 <Cpu className="h-3 w-3 mr-1" />
                 CVGG
               </TabsTrigger>
+              <TabsTrigger value="intervention" className="text-xs px-2">
+                <Crosshair className="h-3 w-3 mr-1" />
+                do()
+              </TabsTrigger>
               <TabsTrigger value="counterfactual" className="text-xs px-2">
                 <HelpCircle className="h-3 w-3 mr-1" />
                 What-If
@@ -300,12 +347,26 @@ const IndustrialMonitor = () => {
         </div>
       </div>
 
+      {/* Function Completion Status Card */}
+      <FunctionStatusCard 
+        cvggResult={cvggInferenceResult}
+        modelMode={modelMode}
+      />
+
       {/* EnhancedCVGG Panel - Show when CVGG mode is active */}
       {modelMode === 'enhanced-cvgg' && (
         <EnhancedCVGGPanel
           currentState={currentState}
           sensorHistory={sensorHistory}
           onInferenceResult={handleCvggInferenceResult}
+        />
+      )}
+
+      {/* Causal Intervention Panel - Show when do() mode is active */}
+      {modelMode === 'intervention' && (
+        <CausalInterventionPanel
+          currentState={currentState}
+          cvggResult={cvggInferenceResult}
         />
       )}
 
@@ -330,7 +391,7 @@ const IndustrialMonitor = () => {
       )}
 
       {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
-      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && (
+      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && (
         <CausalVisualizationPanel
           inferenceHistory={inferenceHistory}
           causalGraph={causalGraph}

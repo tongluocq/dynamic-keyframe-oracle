@@ -108,19 +108,36 @@ const VARIABLE_CONFIG: Record<string, {
   },
 };
 
-// Preset intervention queries for TBM operations
-export const PRESET_INTERVENTIONS: InterventionQuery[] = [
+// Preset counterfactual queries for TBM operations
+// These are "What if?" scenarios - observational counterfactuals
+export const PRESET_COUNTERFACTUAL_QUERIES: InterventionQuery[] = [
+  // ==========================================
+  // EXAMPLE 1: Thrust Increase Counterfactual
+  // ==========================================
   {
-    id: 'thrust-increase-10',
+    id: 'cf-thrust-increase-10',
     variable: 'thrust',
     domain: 'mechanical',
-    currentValue: 0, // Will be filled from current state
-    interventionValue: 10, // 10% increase
+    currentValue: 0,
+    interventionValue: 10,
     interventionType: 'relative',
-    description: 'What if thrust increases by 10%?',
+    description: 'EXAMPLE 1: What if thrust increases by 10%?',
   },
+  // ==========================================
+  // EXAMPLE 2: Temperature Control Counterfactual  
+  // ==========================================
   {
-    id: 'thrust-decrease-20',
+    id: 'cf-temp-control-55',
+    variable: 'thermal_system_temp',
+    domain: 'thermal',
+    currentValue: 0,
+    interventionValue: 55,
+    interventionType: 'absolute',
+    description: 'EXAMPLE 2: What if temperature is maintained at 55°C?',
+  },
+  // Additional counterfactual queries
+  {
+    id: 'cf-thrust-decrease-20',
     variable: 'thrust',
     domain: 'mechanical',
     currentValue: 0,
@@ -129,7 +146,7 @@ export const PRESET_INTERVENTIONS: InterventionQuery[] = [
     description: 'What if thrust decreases by 20%?',
   },
   {
-    id: 'rotation-increase-5',
+    id: 'cf-rotation-increase-5',
     variable: 'rotation_speed',
     domain: 'mechanical',
     currentValue: 0,
@@ -138,7 +155,7 @@ export const PRESET_INTERVENTIONS: InterventionQuery[] = [
     description: 'What if rotation speed increases by 5%?',
   },
   {
-    id: 'temp-set-60',
+    id: 'cf-temp-set-60',
     variable: 'thermal_system_temp',
     domain: 'thermal',
     currentValue: 0,
@@ -147,7 +164,7 @@ export const PRESET_INTERVENTIONS: InterventionQuery[] = [
     description: 'What if system temperature is controlled at 60°C?',
   },
   {
-    id: 'pressure-increase-15',
+    id: 'cf-pressure-increase-15',
     variable: 'hydraulic_pressure',
     domain: 'hydraulic',
     currentValue: 0,
@@ -156,6 +173,9 @@ export const PRESET_INTERVENTIONS: InterventionQuery[] = [
     description: 'What if hydraulic pressure increases by 15%?',
   },
 ];
+
+// Alias for backward compatibility
+export const PRESET_INTERVENTIONS = PRESET_COUNTERFACTUAL_QUERIES;
 
 /**
  * Counterfactual Query Engine
