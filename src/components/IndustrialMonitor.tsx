@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
@@ -16,9 +16,10 @@ import CausalVisualizationPanel from '@/components/CausalVisualizationPanel';
 import PrescriptiveAIPanel from '@/components/PrescriptiveAIPanel';
 import CounterfactualQueryPanel from '@/components/CounterfactualQueryPanel';
 import CausalInterventionPanel from '@/components/CausalInterventionPanel';
+import CausalVerificationPanel from '@/components/CausalVerificationPanel';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 
-type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention';
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification';
 
 // Function Status Card Component
 const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMode: ModelMode }> = ({ cvggResult, modelMode }) => {
@@ -28,6 +29,7 @@ const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMo
     { name: 'Counterfactual (What-If)', status: modelMode === 'counterfactual' ? 'active' : 'ready', module: 'IMSCHM' },
     { name: 'Prescriptive AI', status: modelMode === 'prescriptive' ? 'active' : 'ready', module: 'IMSCHM' },
     { name: 'Decision Making', status: modelMode === 'prescriptive' ? 'active' : 'ready', module: 'IMSCHM' },
+    { name: 'Dataset Verification', status: modelMode === 'verification' ? 'active' : 'ready', module: 'IMSCHM' },
     { name: 'Interpretability', status: cvggResult ? 'complete' : 'ready', module: 'Both' },
   ];
 
@@ -330,6 +332,10 @@ const IndustrialMonitor = () => {
                 <Lightbulb className="h-3 w-3 mr-1" />
                 Prescriptive
               </TabsTrigger>
+              <TabsTrigger value="verification" className="text-xs px-2">
+                <Shield className="h-3 w-3 mr-1" />
+                Verify
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           
@@ -390,8 +396,16 @@ const IndustrialMonitor = () => {
         />
       )}
 
+      {/* Causal Verification Panel - Show when Verify mode is active */}
+      {modelMode === 'verification' && (
+        <CausalVerificationPanel
+          sensorData={sensorData}
+          isRunning={isRunning}
+        />
+      )}
+
       {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
-      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && (
+      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && modelMode !== 'verification' && (
         <CausalVisualizationPanel
           inferenceHistory={inferenceHistory}
           causalGraph={causalGraph}
