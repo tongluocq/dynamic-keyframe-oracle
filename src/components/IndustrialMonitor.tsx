@@ -17,12 +17,16 @@ import PrescriptiveAIPanel from '@/components/PrescriptiveAIPanel';
 import CounterfactualQueryPanel from '@/components/CounterfactualQueryPanel';
 import CausalInterventionPanel from '@/components/CausalInterventionPanel';
 import CausalVerificationPanel from '@/components/CausalVerificationPanel';
+import LanguageSelector from '@/components/LanguageSelector';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 
 type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification';
 
 // Function Status Card Component
 const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMode: ModelMode }> = ({ cvggResult, modelMode }) => {
+  const { t } = useLanguage();
+  
   const functions = [
     { name: 'Causal Effect (ATE/CATE)', status: cvggResult ? 'complete' : 'ready', module: 'CVGG' },
     { name: 'Causal Intervention (do-calculus)', status: modelMode === 'intervention' ? 'active' : 'ready', module: 'IMSCHM' },
@@ -38,7 +42,7 @@ const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMo
       <CardHeader className="py-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Activity className="h-4 w-4" />
-          Function Completion Status
+          {t('function.status')}
         </CardTitle>
       </CardHeader>
       <CardContent className="py-2">
@@ -65,6 +69,7 @@ const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMo
 };
 
 const IndustrialMonitor = () => {
+  const { t } = useLanguage();
   const [simulator] = useState(() => new PhysicsSimulator());
   const [failureSimulator] = useState(() => new FailureSimulator(simulator));
   const [causalAnalyzer] = useState(() => new CausalDiscovery());
@@ -291,7 +296,8 @@ const IndustrialMonitor = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Industrial Multi-System Causal Health Monitor</h1>
+          <h1 className="text-3xl font-bold">{t('app.title')}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{t('app.subtitle')}</p>
           <div className="flex items-center gap-4 mt-2">
             {modelMode === 'neural' && neuralModelInfo && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -308,6 +314,9 @@ const IndustrialMonitor = () => {
           </div>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
+          {/* Language Selector */}
+          <LanguageSelector />
+          
           {/* Model Mode Selector */}
           <Tabs value={modelMode} onValueChange={(v) => setModelMode(v as ModelMode)} className="mr-2">
             <TabsList className="h-9">
@@ -322,19 +331,19 @@ const IndustrialMonitor = () => {
               </TabsTrigger>
               <TabsTrigger value="intervention" className="text-xs px-2">
                 <Crosshair className="h-3 w-3 mr-1" />
-                do()
+                {t('tab.intervention')}
               </TabsTrigger>
               <TabsTrigger value="counterfactual" className="text-xs px-2">
                 <HelpCircle className="h-3 w-3 mr-1" />
-                What-If
+                {t('tab.whatif')}
               </TabsTrigger>
               <TabsTrigger value="prescriptive" className="text-xs px-2">
                 <Lightbulb className="h-3 w-3 mr-1" />
-                Prescriptive
+                {t('tab.prescriptive')}
               </TabsTrigger>
               <TabsTrigger value="verification" className="text-xs px-2">
                 <Shield className="h-3 w-3 mr-1" />
-                Verify
+                {t('tab.verification')}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -344,11 +353,11 @@ const IndustrialMonitor = () => {
             variant={isRunning ? "destructive" : "default"}
           >
             {isRunning ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-            {isRunning ? "Stop" : "Start"}
+            {isRunning ? t('control.stop') : t('control.start')}
           </Button>
           <Button onClick={handleClearFailures} variant="outline">
             <RotateCcw className="h-4 w-4 mr-2" />
-            Clear
+            {t('control.reset')}
           </Button>
         </div>
       </div>
