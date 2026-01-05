@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield, BookOpen } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
@@ -17,11 +17,12 @@ import PrescriptiveAIPanel from '@/components/PrescriptiveAIPanel';
 import CounterfactualQueryPanel from '@/components/CounterfactualQueryPanel';
 import CausalInterventionPanel from '@/components/CausalInterventionPanel';
 import CausalVerificationPanel from '@/components/CausalVerificationPanel';
+import CausalExamplesPanel from '@/components/CausalExamplesPanel';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 
-type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification';
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples';
 
 // Function Status Card Component
 const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMode: ModelMode }> = ({ cvggResult, modelMode }) => {
@@ -345,6 +346,10 @@ const IndustrialMonitor = () => {
                 <Shield className="h-3 w-3 mr-1" />
                 {t('tab.verification')}
               </TabsTrigger>
+              <TabsTrigger value="examples" className="text-xs px-2">
+                <BookOpen className="h-3 w-3 mr-1" />
+                {t('tab.examples')}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           
@@ -411,6 +416,11 @@ const IndustrialMonitor = () => {
           sensorData={sensorData}
           isRunning={isRunning}
         />
+      )}
+
+      {/* Causal Examples Panel - Show when Examples mode is active */}
+      {modelMode === 'examples' && (
+        <CausalExamplesPanel />
       )}
 
       {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
