@@ -84,6 +84,39 @@ export interface DecisionMakingExample {
 }
 
 // ============================================
+// CAUSAL INTERVENTION (do-CALCULUS) INTERFACE
+// ============================================
+
+export interface CausalInterventionExample {
+  id: string;
+  title: string;
+  command: string;
+  doCalculus: {
+    notation: string;
+    variable: string;
+    targetValue: number;
+    unit: string;
+  };
+  primaryEffects: Array<{
+    variable: string;
+    change: string;
+    value: number;
+  }>;
+  secondaryEffects: Array<{
+    variable: string;
+    change: string;
+    value: number;
+  }>;
+  riskAssessment: {
+    baselineRisk: number;
+    interventionRisk: number;
+    confidence: number;
+  };
+  interpretation: string;
+  tbmContext: string;
+}
+
+// ============================================
 // CVGG CAUSAL EFFECT EXAMPLES (ATE/CATE)
 // ============================================
 
@@ -119,6 +152,67 @@ export const CAUSAL_EFFECT_EXAMPLES: CausalEffectExample[] = [
     },
     interpretation: 'High ATE (0.4231) indicates abnormal vibration directly causes 42.31% increase in system risk. CATE=0.5872 shows effect is amplified in current fault condition.',
     tbmContext: 'TBM Main Bearing → Risk Assessment: Detected bearing wear pattern. directEffect=0.3918 (mechanical failure risk) + indirectEffect=0.1954 (thermal cascade risk) = total risk elevation requiring immediate intervention.'
+  }
+];
+
+// ============================================
+// CAUSAL INTERVENTION (do-CALCULUS) EXAMPLES
+// ============================================
+
+export const CAUSAL_INTERVENTION_EXAMPLES: CausalInterventionExample[] = [
+  {
+    id: 'ci-thrust-01',
+    title: 'Thrust Increase Intervention',
+    command: 'do(Thrust = 396.0 kN)',
+    doCalculus: {
+      notation: 'P(CuttingForce, Vibration, Risk | do(Thrust = 396.0))',
+      variable: 'Thrust',
+      targetValue: 396.0,
+      unit: 'kN'
+    },
+    primaryEffects: [
+      { variable: 'cutting_force', change: '+7.5%', value: 0.075 },
+      { variable: 'penetration_rate', change: '+12.3%', value: 0.123 }
+    ],
+    secondaryEffects: [
+      { variable: 'vibration_amplitude', change: '+5.2%', value: 0.052 },
+      { variable: 'bearing_stress', change: '+8.1%', value: 0.081 },
+      { variable: 'thermal_load', change: '+3.4%', value: 0.034 }
+    ],
+    riskAssessment: {
+      baselineRisk: 0.23,
+      interventionRisk: 0.31,
+      confidence: 0.87
+    },
+    interpretation: 'Forcing thrust to 396.0 kN (10% increase) directly increases cutting force and penetration. Secondary effects cascade through vibration and thermal systems.',
+    tbmContext: 'TBM Thrust Cylinder: do-calculus cuts all incoming causal arrows to thrust, simulating forced hydraulic pressure increase independent of other system states.'
+  },
+  {
+    id: 'ci-temp-01',
+    title: 'Temperature Control Intervention',
+    command: 'do(Temperature = 60.0°C)',
+    doCalculus: {
+      notation: 'P(Lubricant, Bearing, Risk | do(Temperature = 60.0))',
+      variable: 'Temperature',
+      targetValue: 60.0,
+      unit: '°C'
+    },
+    primaryEffects: [
+      { variable: 'lubricant_viscosity', change: '-12.0%', value: -0.12 },
+      { variable: 'thermal_expansion', change: '-8.5%', value: -0.085 }
+    ],
+    secondaryEffects: [
+      { variable: 'bearing_friction', change: '+3.2%', value: 0.032 },
+      { variable: 'seal_integrity', change: '+5.7%', value: 0.057 },
+      { variable: 'cooling_load', change: '-15.3%', value: -0.153 }
+    ],
+    riskAssessment: {
+      baselineRisk: 0.38,
+      interventionRisk: 0.29,
+      confidence: 0.82
+    },
+    interpretation: 'Controlling temperature at 60°C (below current 68.5°C) reduces thermal stress. Trade-off: slightly increased bearing friction due to viscosity change.',
+    tbmContext: 'TBM Cooling System: do(Temperature = 60°C) represents active cooling intervention, distinct from merely observing temperature naturally at 60°C.'
   }
 ];
 

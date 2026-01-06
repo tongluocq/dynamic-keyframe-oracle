@@ -13,6 +13,7 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   CAUSAL_EFFECT_EXAMPLES,
+  CAUSAL_INTERVENTION_EXAMPLES,
   COUNTERFACTUAL_EXAMPLES,
   PRESCRIPTIVE_EXAMPLES,
   DECISION_MAKING_EXAMPLES,
@@ -21,6 +22,7 @@ import {
   getRiskChangeColor,
   getPriorityColor,
   type CausalEffectExample,
+  type CausalInterventionExample,
   type CounterfactualExample,
   type PrescriptiveExample,
   type DecisionMakingExample
@@ -40,10 +42,14 @@ export const CausalExamplesPanel: React.FC = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="causal-effects" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-4">
+          <TabsList className="grid w-full grid-cols-5 mb-4">
             <TabsTrigger value="causal-effects" className="text-xs">
               <Activity className="h-3 w-3 mr-1" />
               {t('causalEffects')}
+            </TabsTrigger>
+            <TabsTrigger value="do-calculus" className="text-xs">
+              <Zap className="h-3 w-3 mr-1" />
+              {t('doCalculus')}
             </TabsTrigger>
             <TabsTrigger value="counterfactual" className="text-xs">
               <GitBranch className="h-3 w-3 mr-1" />
@@ -74,6 +80,26 @@ export const CausalExamplesPanel: React.FC = () => {
                 
                 {CAUSAL_EFFECT_EXAMPLES.map((example) => (
                   <CausalEffectCard key={example.id} example={example} />
+                ))}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          {/* do-Calculus Intervention Tab */}
+          <TabsContent value="do-calculus">
+            <ScrollArea className="h-[500px] pr-4">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant="outline" className="bg-orange-500/10 text-orange-400">
+                    do(X = x)
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {t('doCalculusDescription')}
+                  </span>
+                </div>
+                
+                {CAUSAL_INTERVENTION_EXAMPLES.map((example) => (
+                  <InterventionCard key={example.id} example={example} />
                 ))}
               </div>
             </ScrollArea>
@@ -203,6 +229,117 @@ const CausalEffectCard: React.FC<{ example: CausalEffectExample }> = ({ example 
         <div className="space-y-2">
           <div className="flex items-start gap-2">
             <Info className="h-3 w-3 text-blue-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-muted-foreground">{example.interpretation}</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <Zap className="h-3 w-3 text-yellow-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-yellow-200/80">{example.tbmContext}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const InterventionCard: React.FC<{ example: CausalInterventionExample }> = ({ example }) => {
+  const { t } = useLanguage();
+  const riskChange = example.riskAssessment.interventionRisk - example.riskAssessment.baselineRisk;
+  const isRiskIncreased = riskChange > 0;
+  
+  return (
+    <Card className="border-l-4 border-l-orange-500 bg-card/30">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Zap className="h-4 w-4 text-orange-400" />
+            {example.title}
+          </CardTitle>
+          <Badge className={isRiskIncreased ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}>
+            {isRiskIncreased ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+            {isRiskIncreased ? '+' : ''}{(riskChange * 100).toFixed(1)}% {t('risk')}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {/* do-Command Display */}
+        <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
+          <code className="text-sm font-mono text-orange-300">{example.command}</code>
+        </div>
+
+        {/* do-Calculus Notation */}
+        <div className="bg-background/50 rounded-lg p-3">
+          <h4 className="text-xs font-semibold mb-2 text-muted-foreground">{t('doCalculusNotation')}</h4>
+          <code className="text-xs font-mono text-primary/80">{example.doCalculus.notation}</code>
+          <div className="mt-2 flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">{t('targetVariable')}:</span>
+            <span className="font-mono text-orange-400">{example.doCalculus.variable} = {example.doCalculus.targetValue} {example.doCalculus.unit}</span>
+          </div>
+        </div>
+
+        {/* Primary Effects */}
+        <div className="bg-background/50 rounded-lg p-3">
+          <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
+            <ArrowRight className="h-3 w-3 text-orange-400" />
+            {t('primaryEffects')}
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            {example.primaryEffects.map((effect, idx) => (
+              <div key={idx} className="bg-orange-500/10 rounded p-2 text-xs">
+                <span className="text-muted-foreground">{effect.variable}:</span>
+                <span className={`ml-1 font-mono font-bold ${effect.value > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                  {effect.change}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Secondary (Cascade) Effects */}
+        <div className="bg-background/50 rounded-lg p-3">
+          <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
+            <GitBranch className="h-3 w-3 text-purple-400" />
+            {t('secondaryEffects')}
+          </h4>
+          <div className="grid grid-cols-3 gap-2">
+            {example.secondaryEffects.map((effect, idx) => (
+              <div key={idx} className="bg-purple-500/10 rounded p-2 text-xs">
+                <span className="text-muted-foreground">{effect.variable}:</span>
+                <span className={`ml-1 font-mono font-bold ${effect.value > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                  {effect.change}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Risk Assessment */}
+        <div className="bg-background/50 rounded-lg p-3">
+          <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3 text-yellow-400" />
+            {t('riskAssessment')}
+          </h4>
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="bg-blue-500/10 rounded p-2">
+              <span className="text-muted-foreground">{t('baselineRisk')}:</span>
+              <span className="ml-1 font-mono font-bold text-blue-400">{(example.riskAssessment.baselineRisk * 100).toFixed(1)}%</span>
+            </div>
+            <div className={`rounded p-2 ${isRiskIncreased ? 'bg-red-500/10' : 'bg-green-500/10'}`}>
+              <span className="text-muted-foreground">{t('interventionRisk')}:</span>
+              <span className={`ml-1 font-mono font-bold ${isRiskIncreased ? 'text-red-400' : 'text-green-400'}`}>
+                {(example.riskAssessment.interventionRisk * 100).toFixed(1)}%
+              </span>
+            </div>
+            <div className="bg-cyan-500/10 rounded p-2">
+              <span className="text-muted-foreground">{t('confidence')}:</span>
+              <span className="ml-1 font-mono font-bold text-cyan-400">{(example.riskAssessment.confidence * 100).toFixed(1)}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Interpretation */}
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <Info className="h-3 w-3 text-orange-400 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-muted-foreground">{example.interpretation}</p>
           </div>
           <div className="flex items-start gap-2">
