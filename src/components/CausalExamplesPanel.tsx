@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle2, 
   Lightbulb, Brain, GitBranch, ArrowRight, Zap, Thermometer,
-  Activity, Target, DollarSign, Clock, Info
+  Activity, Target, DollarSign, Clock, Info, BarChart3
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -27,6 +27,13 @@ import {
   type PrescriptiveExample,
   type DecisionMakingExample
 } from '@/utils/exampleGenerator';
+import {
+  CausalEffectChart,
+  InterventionChart,
+  CounterfactualChart,
+  PrescriptiveChart,
+  DecisionChart
+} from '@/components/ExampleCharts';
 
 export const CausalExamplesPanel: React.FC = () => {
   const { t } = useLanguage();
@@ -194,6 +201,15 @@ const CausalEffectCard: React.FC<{ example: CausalEffectExample }> = ({ example 
         <CardDescription className="text-xs">{example.description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Matplotlib-style Chart */}
+        <div className="bg-background/50 rounded-lg p-3 border border-border/30">
+          <div className="flex items-center gap-1 mb-2">
+            <BarChart3 className="h-3 w-3 text-primary" />
+            <span className="text-xs font-semibold text-muted-foreground">Visualization</span>
+          </div>
+          <CausalEffectChart example={example} />
+        </div>
+
         {/* Float Values Table */}
         <div className="bg-background/50 rounded-lg p-3">
           <h4 className="text-xs font-semibold mb-2 text-muted-foreground">{t('floatValues')}</h4>
@@ -312,6 +328,15 @@ const InterventionCard: React.FC<{ example: CausalInterventionExample }> = ({ ex
           </div>
         </div>
 
+        {/* Matplotlib-style Chart */}
+        <div className="bg-background/50 rounded-lg p-3 border border-border/30">
+          <div className="flex items-center gap-1 mb-2">
+            <BarChart3 className="h-3 w-3 text-orange-400" />
+            <span className="text-xs font-semibold text-muted-foreground">Cascade Visualization</span>
+          </div>
+          <InterventionChart example={example} />
+        </div>
+
         {/* Risk Assessment */}
         <div className="bg-background/50 rounded-lg p-3">
           <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
@@ -386,6 +411,15 @@ const CounterfactualCard: React.FC<{ example: CounterfactualExample }> = ({ exam
             <span className="font-mono text-green-400">{example.intervention.toValue}</span>
             <span className="text-muted-foreground">{example.intervention.unit}</span>
           </div>
+        </div>
+
+        {/* Matplotlib-style Chart */}
+        <div className="bg-background/50 rounded-lg p-3 border border-border/30">
+          <div className="flex items-center gap-1 mb-2">
+            <BarChart3 className="h-3 w-3 text-purple-400" />
+            <span className="text-xs font-semibold text-muted-foreground">Trajectory Visualization</span>
+          </div>
+          <CounterfactualChart example={example} />
         </div>
 
         {/* Float Values Table */}
@@ -475,6 +509,15 @@ const PrescriptiveCard: React.FC<{ example: PrescriptiveExample }> = ({ example 
             {t('recommendation')}
           </h4>
           <p className="text-sm font-medium">{example.recommendation}</p>
+        </div>
+
+        {/* Matplotlib-style Chart */}
+        <div className="bg-background/50 rounded-lg p-3 border border-border/30">
+          <div className="flex items-center gap-1 mb-2">
+            <BarChart3 className="h-3 w-3 text-green-400" />
+            <span className="text-xs font-semibold text-muted-foreground">Impact Radar</span>
+          </div>
+          <PrescriptiveChart example={example} />
         </div>
 
         {/* Float Values */}
@@ -579,6 +622,15 @@ const DecisionMakingCard: React.FC<{ example: DecisionMakingExample }> = ({ exam
         <CardDescription className="text-xs">{example.context}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Matplotlib-style Chart */}
+        <div className="bg-background/50 rounded-lg p-3 border border-border/30">
+          <div className="flex items-center gap-1 mb-2">
+            <BarChart3 className="h-3 w-3 text-blue-400" />
+            <span className="text-xs font-semibold text-muted-foreground">Decision Comparison</span>
+          </div>
+          <DecisionChart example={example} />
+        </div>
+
         {/* Prescriptive Inputs */}
         <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
           <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
