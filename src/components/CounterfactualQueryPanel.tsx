@@ -3,6 +3,7 @@
  * 
  * Interactive UI for "What if?" causal queries
  * Uses CVGG causal estimates + CounterfactualEngine
+ * Now includes Simple DAG visualization for counterfactual pathways
  */
 
 import React, { useState, useMemo } from 'react';
@@ -37,6 +38,7 @@ import {
   CounterfactualResult,
   PRESET_INTERVENTIONS,
 } from '@/utils/counterfactualEngine';
+import SimpleDAG, { buildInterventionDAG } from '@/components/SimpleDAG';
 
 interface CounterfactualQueryPanelProps {
   currentState: SystemState | null;
@@ -337,6 +339,28 @@ const CounterfactualResultCard: React.FC<{ result: CounterfactualResult }> = ({ 
             {(result.counterfactualOutcome * 100).toFixed(1)}%
           </div>
         </div>
+      </div>
+
+      {/* Simple DAG Visualization */}
+      <div className="pt-2">
+        <SimpleDAG
+          {...buildInterventionDAG(
+            result.query.variable,
+            [
+              { variable: 'direct', effect: result.directEffect },
+              { variable: 'indirect', effect: result.indirectEffect }
+            ],
+            result.affectedVariables.slice(0, 3).map(av => ({
+              variable: av.variable,
+              effect: av.predictedChange
+            })),
+            'Counterfactual',
+            result.counterfactualOutcome - result.baselineOutcome
+          )}
+          title="Counterfactual Causal Pathway"
+          height={160}
+          showLegend={false}
+        />
       </div>
 
       {/* Affected Variables */}

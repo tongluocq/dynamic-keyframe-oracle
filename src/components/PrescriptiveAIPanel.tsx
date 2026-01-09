@@ -3,6 +3,7 @@
  * 
  * IMSCHM-level component that displays AI-generated recommendations
  * based on CVGG causal estimates and system state analysis.
+ * Now includes Simple DAG visualization for recommendation impact pathways.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -38,6 +39,7 @@ import {
   Priority,
   DecisionContext,
 } from '@/utils/prescriptiveAI';
+import SimpleDAG, { SimpleDAGNode, SimpleDAGEdge } from '@/components/SimpleDAG';
 
 interface PrescriptiveAIPanelProps {
   currentState: SystemState | null;
@@ -286,6 +288,9 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
           <div className="mt-3 pt-3 border-t space-y-3">
             <p className="text-sm text-muted-foreground">{recommendation.description}</p>
 
+            {/* Simple DAG for Recommendation Impact */}
+            <RecommendationDAG recommendation={recommendation} />
+
             {/* Causal Basis */}
             <div className="flex items-center gap-2 text-xs">
               <Brain className="h-3 w-3 text-primary" />
@@ -337,6 +342,79 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
         </CollapsibleContent>
       </div>
     </Collapsible>
+  );
+};
+
+// Simple DAG component for recommendation impact visualization
+const RecommendationDAG: React.FC<{ recommendation: Recommendation }> = ({ recommendation }) => {
+  const dagData = useMemo(() => {
+    const nodes: SimpleDAGNode[] = [];
+    const edges: SimpleDAGEdge[] = [];
+
+    // Action/intervention node
+    nodes.push({
+      id: 'action',
+      label: recommendation.title.length > 15 ? recommendation.title.substring(0, 12) + '...' : recommendation.title,
+      type: 'intervention',
+      domain: recommendation.domain,
+    });
+
+    // Related sensors as primary effects
+    recommendation.relatedSensors.slice(0, 2).forEach((sensor, idx) => {
+      nodes.push({
+        id: sensor,
+        label: sensor.replace(/_/g, ' '),
+        type: 'primary',
+      });
+      edges.push({
+        from: 'action',
+        to: sensor,
+        strength: 0.7,
+      });
+    });
+
+    // Impact metrics as secondary/outcome nodes
+    nodes.push({
+      id: 'risk',
+      label: 'Risk',
+      type: 'secondary',
+      value: -recommendation.estimatedImpact.riskReduction,
+    });
+    
+    nodes.push({
+      id: 'outcome',
+      label: 'System Health',
+      type: 'outcome',
+      value: recommendation.estimatedImpact.riskReduction,
+    });
+
+    // Connect sensors to risk
+    recommendation.relatedSensors.slice(0, 2).forEach(sensor => {
+      edges.push({
+        from: sensor,
+        to: 'risk',
+        strength: 0.5,
+      });
+    });
+
+    // Connect risk to outcome
+    edges.push({
+      from: 'risk',
+      to: 'outcome',
+      strength: 0.8,
+    });
+
+    return { nodes, edges };
+  }, [recommendation]);
+
+  return (
+    <SimpleDAG
+      nodes={dagData.nodes}
+      edges={dagData.edges}
+      title="Recommendation Impact Pathway"
+      height={140}
+      showLegend={false}
+    />
   );
 };
 

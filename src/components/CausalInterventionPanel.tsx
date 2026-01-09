@@ -3,6 +3,7 @@
  * 
  * Displays do-calculus interventions and their causal effects
  * Shows verification status for each intervention
+ * Now includes Simple DAG visualization for intervention pathways
  */
 
 import React, { useState, useMemo } from 'react';
@@ -38,6 +39,7 @@ import {
   InterventionResult,
   InterventionDefinition,
 } from '@/utils/causalInterventionEngine';
+import SimpleDAG, { buildInterventionDAG } from '@/components/SimpleDAG';
 
 interface CausalInterventionPanelProps {
   currentState: SystemState | null;
@@ -334,6 +336,25 @@ const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ resu
           {riskTrend === 'unchanged' && <Minus className="h-3 w-3 mr-1" />}
           {riskTrend}
         </Badge>
+      </div>
+
+      {/* Simple DAG Visualization */}
+      <div className="pt-2">
+        <SimpleDAG
+          {...buildInterventionDAG(
+            result.intervention.variable,
+            [{ variable: 'direct_effect', effect: result.causalEffects.primaryEffect }],
+            result.causalEffects.secondaryEffects.slice(0, 3).map(se => ({
+              variable: se.pathway,
+              effect: se.effect
+            })),
+            'Risk',
+            result.riskAssessment.riskDelta
+          )}
+          title="Intervention Causal Pathway"
+          height={160}
+          showLegend={false}
+        />
       </div>
 
       {/* Secondary Effects */}
