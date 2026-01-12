@@ -37,6 +37,7 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.prescriptive': 'Prescriptive',
     'tab.verification': 'Verify',
     'tab.examples': 'Examples',
+    'tab.cases': 'Cases',
     
     // Metrics
     'metric.thrust': 'Thrust',
@@ -147,6 +148,26 @@ const translations: Record<Language, Record<string, string>> = {
     'interventionRisk': 'Post-Intervention Risk',
     'risk': 'Risk',
     
+    // Operation Cases
+    'operationCases.title': 'Industrial Operation Cases',
+    'operationCases.description': '5 comprehensive cases illustrating IMSCHM processes from TBM startup to decision making',
+    'operationCases.summaryTable': 'Case Summary',
+    'case1.title': 'Case 1: Normal Operation Baseline - Startup to Steady State',
+    'case1.scenario': 'TBM initial startup and transition to stable boring operation',
+    'case1.trainingGoal': 'Establish baseline understanding of normal CVGG outputs and healthy causal relationships',
+    'case2.title': 'Case 2: Gradual Bearing Wear Detection - Early Warning Success',
+    'case2.scenario': 'Detect early bearing degradation before catastrophic failure',
+    'case2.trainingGoal': 'Demonstrate early warning capability - detection at severity=0.48 prevents catastrophic failure',
+    'case3.title': 'Case 3: Thermal Overload Emergency - Immediate Intervention',
+    'case3.scenario': 'Sudden thermal spike requiring emergency response',
+    'case3.trainingGoal': 'Demonstrate emergency response pathway - CRITICAL priority bypasses normal scheduling',
+    'case4.title': 'Case 4: Hydraulic Leak Diagnosis - Root Cause Tracing',
+    'case4.scenario': 'Identify and trace hydraulic leak through causal pathways',
+    'case4.trainingGoal': 'Demonstrate causal pathway tracing from symptom to root cause using CVGG embeddings',
+    'case5.title': 'Case 5: Multi-Fault Competing Causes - Complex Decision Scenario',
+    'case5.scenario': 'Multiple simultaneous faults requiring prioritized response',
+    'case5.trainingGoal': 'Demonstrate complex multi-fault diagnosis with causal disentanglement',
+    
     // General
     'general.loading': 'Loading...',
     'general.error': 'Error',
@@ -185,6 +206,7 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.prescriptive': '処方',
     'tab.verification': '検証',
     'tab.examples': '例',
+    'tab.cases': '事例',
     
     // Metrics
     'metric.thrust': '推力',
@@ -295,6 +317,26 @@ const translations: Record<Language, Record<string, string>> = {
     'interventionRisk': '介入後リスク',
     'risk': 'リスク',
     
+    // Operation Cases
+    'operationCases.title': '産業運用事例',
+    'operationCases.description': 'TBM起動から意思決定までのIMSCHMプロセスを示す5つの包括的な事例',
+    'operationCases.summaryTable': '事例サマリー',
+    'case1.title': '事例1: 通常運転ベースライン - 起動から定常状態',
+    'case1.scenario': 'TBM初期起動と安定掘削運転への移行',
+    'case1.trainingGoal': '正常なCVGG出力と健全な因果関係の基本理解を確立',
+    'case2.title': '事例2: 段階的なベアリング摩耗検出 - 早期警告成功',
+    'case2.scenario': '壊滅的故障前の早期ベアリング劣化を検出',
+    'case2.trainingGoal': '早期警告機能を実証 - severity=0.48で検出し壊滅的故障を防止',
+    'case3.title': '事例3: 熱過負荷緊急事態 - 即時介入',
+    'case3.scenario': '緊急対応が必要な突然の熱スパイク',
+    'case3.trainingGoal': '緊急対応経路を実証 - CRITICAL優先度は通常スケジュールをバイパス',
+    'case4.title': '事例4: 油圧漏れ診断 - 根本原因追跡',
+    'case4.scenario': '因果経路を通じて油圧漏れを特定・追跡',
+    'case4.trainingGoal': 'CVGG埋め込みを使用した症状から根本原因への因果経路追跡を実証',
+    'case5.title': '事例5: 複数故障競合原因 - 複雑な意思決定シナリオ',
+    'case5.scenario': '優先対応が必要な複数の同時故障',
+    'case5.trainingGoal': '因果分離と複雑な複数故障診断を実証',
+    
     // General
     'general.loading': '読み込み中...',
     'general.error': 'エラー',
@@ -333,6 +375,7 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.prescriptive': '处方',
     'tab.verification': '验证',
     'tab.examples': '示例',
+    'tab.cases': '案例',
     
     // Metrics
     'metric.thrust': '推力',
@@ -443,6 +486,26 @@ const translations: Record<Language, Record<string, string>> = {
     'interventionRisk': '干预后风险',
     'risk': '风险',
     
+    // Operation Cases
+    'operationCases.title': '工业运行案例',
+    'operationCases.description': '5个全面案例展示从TBM启动到决策的IMSCHM流程',
+    'operationCases.summaryTable': '案例摘要',
+    'case1.title': '案例1: 正常运行基线 - 启动到稳态',
+    'case1.scenario': 'TBM初始启动并过渡到稳定掘进运行',
+    'case1.trainingGoal': '建立对正常CVGG输出和健康因果关系的基本理解',
+    'case2.title': '案例2: 渐进轴承磨损检测 - 早期预警成功',
+    'case2.scenario': '在灾难性故障前检测早期轴承退化',
+    'case2.trainingGoal': '展示早期预警能力 - 在severity=0.48时检测防止灾难性故障',
+    'case3.title': '案例3: 热过载紧急情况 - 立即干预',
+    'case3.scenario': '需要紧急响应的突发热峰值',
+    'case3.trainingGoal': '展示紧急响应路径 - CRITICAL优先级绕过正常调度',
+    'case4.title': '案例4: 液压泄漏诊断 - 根本原因追溯',
+    'case4.scenario': '通过因果路径识别和追溯液压泄漏',
+    'case4.trainingGoal': '展示使用CVGG嵌入从症状到根本原因的因果路径追溯',
+    'case5.title': '案例5: 多故障竞争原因 - 复杂决策场景',
+    'case5.scenario': '需要优先响应的多个同时故障',
+    'case5.trainingGoal': '展示因果分离和复杂多故障诊断',
+    
     // General
     'general.loading': '加载中...',
     'general.error': '错误',
@@ -481,6 +544,7 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.prescriptive': 'Prescriptivo',
     'tab.verification': 'Verificar',
     'tab.examples': 'Ejemplos',
+    'tab.cases': 'Casos',
     
     // Metrics
     'metric.thrust': 'Empuje',
@@ -591,6 +655,26 @@ const translations: Record<Language, Record<string, string>> = {
     'interventionRisk': 'Riesgo Post-Intervención',
     'risk': 'Riesgo',
     
+    // Operation Cases
+    'operationCases.title': 'Casos de Operación Industrial',
+    'operationCases.description': '5 casos completos que ilustran los procesos IMSCHM desde el inicio de TBM hasta la toma de decisiones',
+    'operationCases.summaryTable': 'Resumen de Casos',
+    'case1.title': 'Caso 1: Línea Base de Operación Normal - Inicio a Estado Estable',
+    'case1.scenario': 'Inicio inicial de TBM y transición a operación de perforación estable',
+    'case1.trainingGoal': 'Establecer comprensión básica de salidas CVGG normales y relaciones causales saludables',
+    'case2.title': 'Caso 2: Detección de Desgaste de Rodamiento Gradual - Éxito de Alerta Temprana',
+    'case2.scenario': 'Detectar degradación temprana del rodamiento antes de falla catastrófica',
+    'case2.trainingGoal': 'Demostrar capacidad de alerta temprana - detección en severity=0.48 previene falla catastrófica',
+    'case3.title': 'Caso 3: Emergencia de Sobrecarga Térmica - Intervención Inmediata',
+    'case3.scenario': 'Pico térmico repentino que requiere respuesta de emergencia',
+    'case3.trainingGoal': 'Demostrar ruta de respuesta de emergencia - prioridad CRITICAL omite programación normal',
+    'case4.title': 'Caso 4: Diagnóstico de Fuga Hidráulica - Rastreo de Causa Raíz',
+    'case4.scenario': 'Identificar y rastrear fuga hidráulica a través de rutas causales',
+    'case4.trainingGoal': 'Demostrar rastreo de ruta causal desde síntoma a causa raíz usando embeddings CVGG',
+    'case5.title': 'Caso 5: Causas Competidoras Multi-Falla - Escenario de Decisión Compleja',
+    'case5.scenario': 'Múltiples fallas simultáneas que requieren respuesta priorizada',
+    'case5.trainingGoal': 'Demostrar diagnóstico complejo multi-falla con desenredo causal',
+    
     // General
     'general.loading': 'Cargando...',
     'general.error': 'Error',
@@ -629,6 +713,7 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.prescriptive': '⌿⍀⟒⌇☊⍀⟟⌿⏁',
     'tab.verification': '⎐⟒⍀⟟⎎⊬',
     'tab.examples': '⟒⌖⏃⋔⌿⌰⟒⌇',
+    'tab.cases': '☊⏃⌇⟒⌇',
     
     // Metrics
     'metric.thrust': '⏁⊑⍀⎍⌇⏁',
@@ -738,6 +823,26 @@ const translations: Record<Language, Record<string, string>> = {
     'baselineRisk': '⏚⏃⌇⟒⌰⟟⋏⟒ ⍀⟟⌇☍',
     'interventionRisk': '⌿⍜⌇⏁ ⍀⟟⌇☍',
     'risk': '⍀⟟⌇☍',
+    
+    // Operation Cases
+    'operationCases.title': '⍜⌿⟒⍀⏃⏁⟟⍜⋏ ☊⏃⌇⟒⌇',
+    'operationCases.description': '⎎⟟⎐⟒ ☊⏃⌇⟒⌇ ⎎⍀⍜⋔ ⏁⏚⋔ ⏁⍜ ⎅⟒☊⟟⌇⟟⍜⋏',
+    'operationCases.summaryTable': '☊⏃⌇⟒ ⌇⎍⋔⋔⏃⍀⊬',
+    'case1.title': '☊⏃⌇⟒ 1: ⋏⍜⍀⋔⏃⌰ ⏚⏃⌇⟒⌰⟟⋏⟒',
+    'case1.scenario': '⏁⏚⋔ ⌇⏁⏃⍀⏁⎍⌿ ⏁⍜ ⌇⏁⟒⏃⎅⊬ ⌇⏁⏃⏁⟒',
+    'case1.trainingGoal': '⟒⌇⏁⏃⏚⌰⟟⌇⊑ ⏚⏃⌇⟒⌰⟟⋏⟒ ⎍⋏⎅⟒⍀⌇⏁⏃⋏⎅⟟⋏☌',
+    'case2.title': '☊⏃⌇⟒ 2: ⏚⟒⏃⍀⟟⋏☌ ⍙⟒⏃⍀ ⎅⟒⏁⟒☊⏁⟟⍜⋏',
+    'case2.scenario': '⟒⏃⍀⌰⊬ ⍙⏃⍀⋏⟟⋏☌ ⌇⎍☊☊⟒⌇⌇',
+    'case2.trainingGoal': '⎅⟒⋔⍜⋏⌇⏁⍀⏃⏁⟒ ⟒⏃⍀⌰⊬ ⍙⏃⍀⋏⟟⋏☌',
+    'case3.title': '☊⏃⌇⟒ 3: ⏁⊑⟒⍀⋔⏃⌰ ⟒⋔⟒⍀☌⟒⋏☊⊬',
+    'case3.scenario': '⟟⋔⋔⟒⎅⟟⏃⏁⟒ ⟟⋏⏁⟒⍀⎐⟒⋏⏁⟟⍜⋏',
+    'case3.trainingGoal': '⟒⋔⟒⍀☌⟒⋏☊⊬ ⍀⟒⌇⌿⍜⋏⌇⟒ ⌿⏃⏁⊑⍙⏃⊬',
+    'case4.title': '☊⏃⌇⟒ 4: ⊑⊬⎅⍀⏃⎍⌰⟟☊ ⌰⟒⏃☍',
+    'case4.scenario': '⍀⍜⍜⏁ ☊⏃⎍⌇⟒ ⏁⍀⏃☊⟟⋏☌',
+    'case4.trainingGoal': '☊⏃⎍⌇⏃⌰ ⌿⏃⏁⊑⍙⏃⊬ ⏁⍀⏃☊⟟⋏☌',
+    'case5.title': '☊⏃⌇⟒ 5: ⋔⎍⌰⏁⟟-⎎⏃⎍⌰⏁',
+    'case5.scenario': '☊⍜⋔⌿⌰⟒⌖ ⎅⟒☊⟟⌇⟟⍜⋏',
+    'case5.trainingGoal': '⋔⎍⌰⏁⟟-⎎⏃⎍⌰⏁ ⎅⟟⏃☌⋏⍜⌇⟟⌇',
     
     // General
     'general.loading': '⌰⍜⏃⎅⟟⋏☌...',
