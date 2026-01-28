@@ -287,15 +287,24 @@ export function useEnhancedCVGG() {
   }, [modelState.isBuilt]);
 
   // Training loop with combined loss and actual gradient updates
-  // Optimized with batch progress logging and UI yielding
+  // Uses optimizer.minimize() for proper gradient tracking
   const train = useCallback(async (
     samples: TrainingSample[],
     config: TrainingConfig = DEFAULT_TRAINING_CONFIG
   ): Promise<boolean> => {
-    if (!modelRef.current || !modelState.isBuilt) {
-      console.warn('[useEnhancedCVGG] Model not ready for training');
+    // Check the actual model ref, not the state (which may be stale)
+    if (!modelRef.current) {
+      console.warn('[useEnhancedCVGG] Model not ready for training - no model ref');
       return false;
     }
+    
+    // Ensure model is built
+    if (!modelRef.current.getConfig()) {
+      console.warn('[useEnhancedCVGG] Model not configured');
+      return false;
+    }
+    
+    console.log('[useEnhancedCVGG] Train called, model exists:', !!modelRef.current);
     
     abortControllerRef.current = new AbortController();
     
@@ -316,17 +325,6 @@ export function useEnhancedCVGG() {
     
     console.log(`[CVGG] Starting training: ${samples.length} samples, ${epochs} epochs, batch size ${batchSize}`);
     console.log(`[CVGG] Total batches per epoch: ${numBatches}`);
-    
-    // Get trainable variables from model
-    const trainableVars = modelRef.current.getTrainableVariables();
-    
-    if (trainableVars.length === 0) {
-      console.error('[useEnhancedCVGG] No trainable variables found');
-      setModelState(prev => ({ ...prev, mode: 'idle' }));
-      return false;
-    }
-    
-    console.log(`[CVGG] Training with ${trainableVars.length} trainable variable groups`);
     
     // Create optimizer with appropriate learning rate
     const optimizer = tf.train.adam(learningRate, 0.9, 0.999, 1e-7);
@@ -358,44 +356,41 @@ export function useEnhancedCVGG() {
           const batchEnd = Math.min(batchStart + batchSize, shuffled.length);
           const batchSamples = shuffled.slice(batchStart, batchEnd);
           
-          // Accumulate gradients for batch
+          // Process each sample in batch
           let batchLoss = 0;
           let batchClassLoss = 0;
           let batchCausalLoss = 0;
           
           for (const sample of batchSamples) {
-            // Compute loss and gradients
-            const { lossValue, classLossValue, causalLossValue, grads } = 
-              await modelRef.current!.computeGradients(
-                sample.input,
-                sample.classLabel,
-                sample.observedOutcome,
-                sample.treatmentIndicator,
-                classificationWeight,
-                causalWeight,
-                CLASS_NAMES.length
-              );
-            
-            // Apply gradients
-            if (grads && grads.length > 0) {
-              optimizer.applyGradients(
-                grads.map((g, i) => ({ name: `var_${i}`, tensor: g }))
-              );
-              // Dispose gradients after applying
-              grads.forEach(g => g.dispose());
+            try {
+              // Use trainStep which properly handles gradients via optimizer.minimize()
+              const { lossValue, classLossValue, causalLossValue } = 
+                modelRef.current!.trainStep(
+                  optimizer,
+                  sample.input,
+                  sample.classLabel,
+                  sample.observedOutcome,
+                  sample.treatmentIndicator,
+                  classificationWeight,
+                  causalWeight,
+                  CLASS_NAMES.length
+                );
+              
+              batchLoss += lossValue;
+              batchClassLoss += classLossValue;
+              batchCausalLoss += causalLossValue;
+              
+              // Check accuracy
+              const output = await modelRef.current!.forward(sample.input);
+              const predictions = await output.classificationLogits.data();
+              const predictionsArray = Array.from(predictions);
+              const predictedClass = predictionsArray.indexOf(Math.max(...predictionsArray));
+              if (predictedClass === sample.classLabel) correctPredictions++;
+              totalSamples++;
+            } catch (sampleError) {
+              console.warn(`[CVGG] Error processing sample:`, sampleError);
+              totalSamples++;
             }
-            
-            batchLoss += lossValue;
-            batchClassLoss += classLossValue;
-            batchCausalLoss += causalLossValue;
-            
-            // Check accuracy
-            const output = await modelRef.current!.forward(sample.input);
-            const predictions = await output.classificationLogits.data();
-            const predictionsArray = Array.from(predictions);
-            const predictedClass = predictionsArray.indexOf(Math.max(...predictionsArray));
-            if (predictedClass === sample.classLabel) correctPredictions++;
-            totalSamples++;
           }
           
           epochLoss += batchLoss;
@@ -403,7 +398,7 @@ export function useEnhancedCVGG() {
           epochCausalLoss += batchCausalLoss;
           
           // Log batch progress
-          const batchAvgLoss = batchLoss / batchSamples.length;
+          const batchAvgLoss = batchSamples.length > 0 ? batchLoss / batchSamples.length : 0;
           console.log(`[CVGG] Epoch ${epoch + 1} - Batch ${batchIdx + 1}/${numBatches} - Loss: ${batchAvgLoss.toFixed(4)}`);
           
           // CRITICAL: Yield to UI thread after each batch to prevent freezing
@@ -411,10 +406,10 @@ export function useEnhancedCVGG() {
         }
         
         // Calculate epoch metrics
-        const avgLoss = epochLoss / totalSamples;
-        const avgClassLoss = epochClassLoss / totalSamples;
-        const avgCausalLoss = epochCausalLoss / totalSamples;
-        const accuracy = correctPredictions / totalSamples;
+        const avgLoss = totalSamples > 0 ? epochLoss / totalSamples : 0;
+        const avgClassLoss = totalSamples > 0 ? epochClassLoss / totalSamples : 0;
+        const avgCausalLoss = totalSamples > 0 ? epochCausalLoss / totalSamples : 0;
+        const accuracy = totalSamples > 0 ? correctPredictions / totalSamples : 0;
         const epochTime = ((performance.now() - epochStartTime) / 1000).toFixed(1);
         
         // Update progress
@@ -453,7 +448,7 @@ export function useEnhancedCVGG() {
       setModelState(prev => ({ ...prev, mode: 'idle' }));
       return false;
     }
-  }, [modelState.isBuilt]);
+  }, []);
 
   // Stop training
   const stopTraining = useCallback(() => {

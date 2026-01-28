@@ -162,14 +162,24 @@ const EnhancedCVGGPanel: React.FC<EnhancedCVGGPanelProps> = ({
   ]);
 
   const handleStartTraining = useCallback(async () => {
+    console.log('[EnhancedCVGGPanel] Starting training process...');
+    console.log('[EnhancedCVGGPanel] Model state:', modelState);
+    
     if (!modelState.isBuilt) {
+      console.log('[EnhancedCVGGPanel] Model not built, initializing...');
       await initializeModel();
+      // Wait a tick for state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
+    console.log('[EnhancedCVGGPanel] Generating', numSyntheticSamples, 'synthetic samples...');
     const samples = generateSyntheticSamples(numSyntheticSamples);
-    await train(samples, trainingConfig);
+    console.log('[EnhancedCVGGPanel] Generated', samples.length, 'samples, starting training...');
+    
+    const success = await train(samples, trainingConfig);
+    console.log('[EnhancedCVGGPanel] Training completed, success:', success);
   }, [
-    modelState.isBuilt,
+    modelState,
     initializeModel,
     generateSyntheticSamples,
     numSyntheticSamples,

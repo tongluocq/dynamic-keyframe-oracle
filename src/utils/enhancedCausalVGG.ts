@@ -795,20 +795,15 @@ export class EnhancedCausalVGG {
   }
   
   /**
-   * Get all trainable variables from all model components
+   * Get all trainable weights from all model components
+   * Returns the actual LayerVariable objects that can be used with optimizer
    */
-  getTrainableVariables(): tf.Variable[] {
-    const vars: tf.Variable[] = [];
+  getTrainableWeights(): tf.LayerVariable[] {
+    const weights: tf.LayerVariable[] = [];
     
     const collectFromModel = (model: tf.LayersModel | null) => {
       if (!model) return;
-      model.trainableWeights.forEach(w => {
-        // Access the underlying tensor and create a variable reference
-        const tensor = w.read();
-        if (tensor) {
-          vars.push(tf.variable(tensor, true, w.name));
-        }
-      });
+      weights.push(...model.trainableWeights);
     };
     
     collectFromModel(this.backboneModel);
@@ -817,11 +812,131 @@ export class EnhancedCausalVGG {
     collectFromModel(this.classifierModel);
     collectFromModel(this.causalModel);
     
-    return vars;
+    return weights;
   }
   
   /**
-   * Compute gradients for training with combined loss
+   * Get trainable variables (for backward compatibility)
+   */
+  getTrainableVariables(): tf.Variable[] {
+    // Return the underlying variables from LayerVariables
+    return this.getTrainableWeights().map(w => w.read() as unknown as tf.Variable);
+  }
+  
+  /**
+   * Train a single step using optimizer.minimize()
+   * This properly tracks gradients through the model
+   */
+  trainStep(
+    optimizer: tf.Optimizer,
+    input: EnhancedCVGGInput,
+    classLabel: number,
+    observedOutcome: number,
+    treatmentIndicator: number,
+    classificationWeight: number,
+    causalWeight: number,
+    numClasses: number
+  ): { lossValue: number; classLossValue: number; causalLossValue: number } {
+    if (!this.isBuilt) {
+      throw new Error('Model must be built before training');
+    }
+    
+    let lossValue = 0;
+    let classLossValue = 0;
+    let causalLossValue = 0;
+    
+    // Use optimizer.minimize which properly tracks gradients
+    optimizer.minimize(() => {
+      return tf.tidy(() => {
+        // Forward pass
+        let imageEmbedding: tf.Tensor2D;
+        let scalogramEmbedding: tf.Tensor2D;
+        let causalMetadataEncoding: tf.Tensor2D;
+        
+        // Process rock image
+        if (input.rockImage) {
+          imageEmbedding = this.backboneModel!.apply(input.rockImage, { training: true }) as tf.Tensor2D;
+        } else {
+          imageEmbedding = tf.zeros([1, this.config.embeddingDim]) as tf.Tensor2D;
+        }
+        
+        // Process signals to scalograms
+        if (input.cwruSignals && input.environmentalSignals) {
+          const scalograms = this.waveletTransformer.transformMultiChannelSignals(
+            input.cwruSignals,
+            input.environmentalSignals,
+            this.config.scalogramSize,
+            this.config.scalogramSize
+          );
+          scalogramEmbedding = this.scalogramBackboneModel!.apply(scalograms, { training: true }) as tf.Tensor2D;
+        } else {
+          scalogramEmbedding = tf.zeros([1, this.config.embeddingDim]) as tf.Tensor2D;
+        }
+        
+        // Encode causal metadata
+        if (input.causalMetadata) {
+          const metadataVector = this.causalMetadataEncoder.encode(input.causalMetadata);
+          causalMetadataEncoding = this.metadataEncoderModel!.apply(metadataVector, { training: true }) as tf.Tensor2D;
+        } else {
+          causalMetadataEncoding = tf.zeros([1, this.config.causalMetadataDim]) as tf.Tensor2D;
+        }
+        
+        // Combine embeddings
+        const combinedEmbedding = tf.concat([imageEmbedding, scalogramEmbedding], 1) as tf.Tensor2D;
+        
+        // Classification logits
+        const classificationInput = tf.concat([combinedEmbedding, causalMetadataEncoding], 1);
+        const classificationLogits = this.classifierModel!.apply(classificationInput, { training: true }) as tf.Tensor2D;
+        
+        // Causal outputs
+        const causalOutputs = this.causalModel!.apply([combinedEmbedding, causalMetadataEncoding], { training: true }) as tf.Tensor[];
+        
+        // Classification loss with label smoothing
+        const smoothing = 0.1;
+        const classLabels = tf.tensor1d([classLabel], 'int32');
+        const oneHot = tf.oneHot(classLabels, numClasses);
+        const smoothedLabels = tf.add(
+          tf.mul(oneHot, 1 - smoothing),
+          tf.scalar(smoothing / numClasses)
+        );
+        const classLoss = tf.losses.softmaxCrossEntropy(smoothedLabels, classificationLogits);
+        
+        // Causal loss
+        const ateValue = (causalOutputs[0] as tf.Tensor2D).flatten().slice([0], [1]);
+        const directValue = (causalOutputs[2] as tf.Tensor2D).flatten().slice([0], [1]);
+        const indirectValue = (causalOutputs[3] as tf.Tensor2D).flatten().slice([0], [1]);
+        
+        // DAG constraint: ATE ≈ direct + indirect
+        const dagConstraint = tf.square(tf.sub(ateValue, tf.add(directValue, indirectValue)));
+        
+        // Outcome prediction loss
+        const predictedOutcome = tf.mul(ateValue, tf.scalar(treatmentIndicator));
+        const outcomeLoss = tf.square(tf.sub(tf.scalar(observedOutcome), predictedOutcome));
+        
+        // Combined causal loss
+        const causalLoss = tf.add(dagConstraint, outcomeLoss).mean();
+        
+        // Store individual losses for logging
+        classLossValue = classLoss.dataSync()[0];
+        causalLossValue = causalLoss.dataSync()[0];
+        
+        // Combined total loss
+        const totalLoss = tf.add(
+          tf.mul(classLoss, tf.scalar(classificationWeight)),
+          tf.mul(causalLoss, tf.scalar(causalWeight))
+        ) as tf.Scalar;
+        
+        lossValue = totalLoss.dataSync()[0];
+        
+        return totalLoss;
+      });
+    }, true); // returnCost = true
+    
+    return { lossValue, classLossValue, causalLossValue };
+  }
+  
+  /**
+   * Compute gradients for training with combined loss (legacy compatibility)
    */
   async computeGradients(
     input: EnhancedCVGGInput,
@@ -841,91 +956,9 @@ export class EnhancedCausalVGG {
       await this.build();
     }
     
-    const trainableVars = this.getTrainableVariables();
-    
-    // Compute gradients using tf.variableGrads
-    const { value, grads } = tf.variableGrads(() => {
-      // Forward pass (inline to capture gradients)
-      let imageEmbedding: tf.Tensor2D;
-      let scalogramEmbedding: tf.Tensor2D;
-      let causalMetadataEncoding: tf.Tensor2D;
-      
-      // Process rock image
-      if (input.rockImage) {
-        imageEmbedding = this.backboneModel!.predict(input.rockImage) as tf.Tensor2D;
-      } else {
-        imageEmbedding = tf.zeros([1, this.config.embeddingDim]) as tf.Tensor2D;
-      }
-      
-      // Process signals to scalograms
-      if (input.cwruSignals && input.environmentalSignals) {
-        const scalograms = this.waveletTransformer.transformMultiChannelSignals(
-          input.cwruSignals,
-          input.environmentalSignals,
-          this.config.scalogramSize,
-          this.config.scalogramSize
-        );
-        scalogramEmbedding = this.scalogramBackboneModel!.predict(scalograms) as tf.Tensor2D;
-      } else {
-        scalogramEmbedding = tf.zeros([1, this.config.embeddingDim]) as tf.Tensor2D;
-      }
-      
-      // Encode causal metadata
-      if (input.causalMetadata) {
-        const metadataVector = this.causalMetadataEncoder.encode(input.causalMetadata);
-        causalMetadataEncoding = this.metadataEncoderModel!.predict(metadataVector) as tf.Tensor2D;
-      } else {
-        causalMetadataEncoding = tf.zeros([1, this.config.causalMetadataDim]) as tf.Tensor2D;
-      }
-      
-      // Combine embeddings
-      const combinedEmbedding = tf.concat([imageEmbedding, scalogramEmbedding], 1) as tf.Tensor2D;
-      
-      // Classification logits
-      const classificationInput = tf.concat([combinedEmbedding, causalMetadataEncoding], 1);
-      const classificationLogits = this.classifierModel!.predict(classificationInput) as tf.Tensor2D;
-      
-      // Causal outputs
-      const causalOutputs = this.causalModel!.predict([combinedEmbedding, causalMetadataEncoding]) as tf.Tensor[];
-      
-      // Classification loss with label smoothing
-      const smoothing = 0.1;
-      const classLabels = tf.tensor1d([classLabel], 'int32');
-      const oneHot = tf.oneHot(classLabels, numClasses);
-      const smoothedLabels = tf.add(
-        tf.mul(oneHot, 1 - smoothing),
-        tf.scalar(smoothing / numClasses)
-      );
-      const classLoss = tf.losses.softmaxCrossEntropy(smoothedLabels, classificationLogits);
-      
-      // Causal loss
-      const ateValue = (causalOutputs[0] as tf.Tensor2D).flatten().slice([0], [1]);
-      const directValue = (causalOutputs[2] as tf.Tensor2D).flatten().slice([0], [1]);
-      const indirectValue = (causalOutputs[3] as tf.Tensor2D).flatten().slice([0], [1]);
-      
-      // DAG constraint: ATE ≈ direct + indirect
-      const dagConstraint = tf.square(tf.sub(ateValue, tf.add(directValue, indirectValue)));
-      
-      // Outcome prediction loss
-      const predictedOutcome = tf.mul(ateValue, tf.scalar(treatmentIndicator));
-      const outcomeLoss = tf.square(tf.sub(tf.scalar(observedOutcome), predictedOutcome));
-      
-      // Combined causal loss
-      const causalLoss = tf.add(dagConstraint, outcomeLoss).mean();
-      
-      // Combined total loss
-      const totalLoss = tf.add(
-        tf.mul(classLoss, tf.scalar(classificationWeight)),
-        tf.mul(causalLoss, tf.scalar(causalWeight))
-      ) as tf.Scalar;
-      
-      return totalLoss;
-    });
-    
-    const lossValue = value.dataSync()[0];
-    
-    // Separately compute individual losses for logging
+    // Compute loss values from forward pass
     const output = await this.forward(input);
+    
     const classLossValue = tf.tidy(() => {
       const classLabels = tf.tensor1d([classLabel], 'int32');
       const oneHot = tf.oneHot(classLabels, numClasses);
@@ -936,16 +969,14 @@ export class EnhancedCausalVGG {
     const causalLossValue = Math.pow(ATE - (directEffect + indirectEffect), 2) +
       Math.pow(observedOutcome - treatmentIndicator * ATE, 2);
     
-    // Convert grads object to array
-    const gradArray = Object.values(grads);
+    const lossValue = classificationWeight * classLossValue + causalWeight * causalLossValue;
     
-    value.dispose();
-    
+    // Return empty grads array since we now use trainStep instead
     return {
       lossValue,
       classLossValue,
       causalLossValue,
-      grads: gradArray
+      grads: []
     };
   }
   
