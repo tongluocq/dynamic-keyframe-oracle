@@ -38,6 +38,7 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.verification': 'Verify',
     'tab.examples': 'Examples',
     'tab.cases': 'Cases',
+    'tab.knowledge': 'Knowledge',
     
     // Metrics
     'metric.thrust': 'Thrust',
@@ -168,6 +169,10 @@ const translations: Record<Language, Record<string, string>> = {
     'case5.scenario': 'Multiple simultaneous faults requiring prioritized response',
     'case5.trainingGoal': 'Demonstrate complex multi-fault diagnosis with causal disentanglement',
     
+    // Knowledge Base
+    'knowledgeBase.title': 'Causal Knowledge Base',
+    'knowledgeBase.description': 'Graph-native knowledge store for industrial causal relationships',
+    
     // General
     'general.loading': 'Loading...',
     'general.error': 'Error',
@@ -207,8 +212,11 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.verification': '検証',
     'tab.examples': '例',
     'tab.cases': '事例',
+    'tab.knowledge': '知識ベース',
     
-    // Metrics
+    // Knowledge Base
+    'knowledgeBase.title': '因果知識ベース',
+    'knowledgeBase.description': '産業因果関係のグラフネイティブ知識ストア',
     'metric.thrust': '推力',
     'metric.temperature': '温度',
     'metric.vibration': '振動',
@@ -376,8 +384,11 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.verification': '验证',
     'tab.examples': '示例',
     'tab.cases': '案例',
+    'tab.knowledge': '知识库',
     
-    // Metrics
+    // Knowledge Base
+    'knowledgeBase.title': '因果知识库',
+    'knowledgeBase.description': '工业因果关系的图原生知识存储',
     'metric.thrust': '推力',
     'metric.temperature': '温度',
     'metric.vibration': '振动',
@@ -545,8 +556,11 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.verification': 'Verificar',
     'tab.examples': 'Ejemplos',
     'tab.cases': 'Casos',
+    'tab.knowledge': 'Conocimiento',
     
-    // Metrics
+    // Knowledge Base
+    'knowledgeBase.title': 'Base de Conocimiento Causal',
+    'knowledgeBase.description': 'Almacén de conocimiento nativo de gráficos para relaciones causales industriales',
     'metric.thrust': 'Empuje',
     'metric.temperature': 'Temperatura',
     'metric.vibration': 'Vibración',
@@ -714,8 +728,11 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.verification': '⎐⟒⍀⟟⎎⊬',
     'tab.examples': '⟒⌖⏃⋔⌿⌰⟒⌇',
     'tab.cases': '☊⏃⌇⟒⌇',
+    'tab.knowledge': '☍⋏⍜⍙⌰⟒⎅☌⟒',
     
-    // Metrics
+    // Knowledge Base
+    'knowledgeBase.title': '☊⏃⎍⌇⏃⌰ ☍⋏⍜⍙⌰⟒⎅☌⟒ ⏚⏃⌇⟒',
+    'knowledgeBase.description': '☌⍀⏃⌿⊑ ⋏⏃⏁⟟⎐⟒ ⌇⏁⍜⍀⟒',
     'metric.thrust': '⏁⊑⍀⎍⌇⏁',
     'metric.temperature': '⏁⟒⋔⌿',
     'metric.vibration': '⎐⟟⏚⟒',
