@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield, BookOpen, FileText } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield, BookOpen, FileText, Database } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
@@ -19,11 +19,12 @@ import CausalInterventionPanel from '@/components/CausalInterventionPanel';
 import CausalVerificationPanel from '@/components/CausalVerificationPanel';
 import CausalExamplesPanel from '@/components/CausalExamplesPanel';
 import OperationCasesPanel from '@/components/OperationCasesPanel';
+import CausalKnowledgeBasePanel from '@/components/CausalKnowledgeBasePanel';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 
-type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases';
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases' | 'knowledge';
 
 // Function Status Card Component
 const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMode: ModelMode }> = ({ cvggResult, modelMode }) => {
@@ -355,6 +356,10 @@ const IndustrialMonitor = () => {
                 <FileText className="h-3 w-3 mr-1" />
                 {t('tab.cases')}
               </TabsTrigger>
+              <TabsTrigger value="knowledge" className="text-xs px-2">
+                <Database className="h-3 w-3 mr-1" />
+                {t('tab.knowledge')}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           
@@ -431,6 +436,14 @@ const IndustrialMonitor = () => {
       {/* Operation Cases Panel - Show when Cases mode is active */}
       {modelMode === 'cases' && (
         <OperationCasesPanel />
+      )}
+
+      {/* Causal Knowledge Base Panel - Show when Knowledge mode is active */}
+      {modelMode === 'knowledge' && (
+        <CausalKnowledgeBasePanel
+          causalGraph={causalGraph}
+          onImportComplete={(count) => console.log(`Imported ${count} causal relationships`)}
+        />
       )}
 
       {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
