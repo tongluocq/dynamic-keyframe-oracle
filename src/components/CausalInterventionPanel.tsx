@@ -4,6 +4,7 @@
  * Displays do-calculus interventions and their causal effects
  * Shows verification status for each intervention
  * Now includes Simple DAG visualization for intervention pathways
+ * Saves results to persistent storage
  */
 
 import React, { useState, useMemo } from 'react';
@@ -30,6 +31,7 @@ import {
   Activity,
   AlertTriangle,
   Info,
+  Save,
 } from 'lucide-react';
 import { SystemState, IndustrialDomain } from '@/types/industrial';
 import { InferenceResult } from '@/hooks/useEnhancedCVGG';
@@ -40,6 +42,8 @@ import {
   InterventionDefinition,
 } from '@/utils/causalInterventionEngine';
 import SimpleDAG, { buildInterventionDAG } from '@/components/SimpleDAG';
+import { saveOperationResult } from '@/utils/resultsStorage';
+import { useToast } from '@/hooks/use-toast';
 
 interface CausalInterventionPanelProps {
   currentState: SystemState | null;
@@ -58,6 +62,7 @@ const CausalInterventionPanel: React.FC<CausalInterventionPanelProps> = ({
   currentState,
   cvggResult,
 }) => {
+  const { toast } = useToast();
   const [results, setResults] = useState<InterventionResult[]>([]);
   const [selectedInterventions, setSelectedInterventions] = useState<Set<string>>(new Set());
   
@@ -85,6 +90,18 @@ const CausalInterventionPanel: React.FC<CausalInterventionPanelProps> = ({
       cvggResult || undefined
     );
     setResults(prev => [...newResults, ...prev].slice(0, 10));
+    
+    // Save each result to storage
+    newResults.forEach(result => {
+      saveOperationResult('intervention', result, {
+        modelMode: 'intervention',
+      });
+    });
+    
+    toast({
+      title: 'Interventions Executed & Saved',
+      description: `${newResults.length} intervention(s) executed and saved to results.`,
+    });
   };
 
   const executeAll = () => {
@@ -97,6 +114,18 @@ const CausalInterventionPanel: React.FC<CausalInterventionPanelProps> = ({
     );
     setResults(prev => [...newResults, ...prev].slice(0, 10));
     setSelectedInterventions(new Set(INTERVENTION_EXAMPLES.slice(0, 2).map(i => i.id)));
+    
+    // Save each result to storage
+    newResults.forEach(result => {
+      saveOperationResult('intervention', result, {
+        modelMode: 'intervention',
+      });
+    });
+    
+    toast({
+      title: 'Example Interventions Saved',
+      description: `${newResults.length} intervention results saved.`,
+    });
   };
 
   const clearResults = () => {

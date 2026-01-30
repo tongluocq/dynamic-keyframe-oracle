@@ -4,6 +4,7 @@
  * Interactive UI for "What if?" causal queries
  * Uses CVGG causal estimates + CounterfactualEngine
  * Now includes Simple DAG visualization for counterfactual pathways
+ * Saves results to persistent storage
  */
 
 import React, { useState, useMemo } from 'react';
@@ -29,6 +30,7 @@ import {
   CheckCircle,
   ArrowRight,
   GitBranch,
+  Save,
 } from 'lucide-react';
 import { SystemState, IndustrialDomain } from '@/types/industrial';
 import { InferenceResult } from '@/hooks/useEnhancedCVGG';
@@ -39,6 +41,8 @@ import {
   PRESET_INTERVENTIONS,
 } from '@/utils/counterfactualEngine';
 import SimpleDAG, { buildInterventionDAG } from '@/components/SimpleDAG';
+import { saveOperationResult } from '@/utils/resultsStorage';
+import { useToast } from '@/hooks/use-toast';
 
 interface CounterfactualQueryPanelProps {
   currentState: SystemState | null;
@@ -63,6 +67,7 @@ const CounterfactualQueryPanel: React.FC<CounterfactualQueryPanelProps> = ({
   currentState,
   cvggResult,
 }) => {
+  const { toast } = useToast();
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [customVariable, setCustomVariable] = useState<string>('thrust');
   const [customValue, setCustomValue] = useState<number>(10);
@@ -82,6 +87,16 @@ const CounterfactualQueryPanel: React.FC<CounterfactualQueryPanelProps> = ({
     const result = engine.evaluateIntervention(preset, currentState, cvggResult || undefined);
     setResults(prev => [result, ...prev.slice(0, 4)]); // Keep last 5
     setSelectedPreset(presetId);
+    
+    // Save to results storage
+    saveOperationResult('counterfactual', result, {
+      modelMode: 'counterfactual',
+    });
+    
+    toast({
+      title: 'What-If Query Saved',
+      description: `Counterfactual result for "${preset.description}" saved.`,
+    });
   };
 
   const runCustomQuery = () => {
@@ -99,6 +114,16 @@ const CounterfactualQueryPanel: React.FC<CounterfactualQueryPanelProps> = ({
 
     const result = engine.evaluateIntervention(query, currentState, cvggResult || undefined);
     setResults(prev => [result, ...prev.slice(0, 4)]);
+    
+    // Save to results storage
+    saveOperationResult('counterfactual', result, {
+      modelMode: 'counterfactual',
+    });
+    
+    toast({
+      title: 'Custom Query Saved',
+      description: `Counterfactual result saved to results panel.`,
+    });
   };
 
   const clearResults = () => {

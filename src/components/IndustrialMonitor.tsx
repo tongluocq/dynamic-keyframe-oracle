@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield, BookOpen, FileText, Database } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield, BookOpen, FileText, Database, Save } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
@@ -20,11 +20,13 @@ import CausalVerificationPanel from '@/components/CausalVerificationPanel';
 import CausalExamplesPanel from '@/components/CausalExamplesPanel';
 import OperationCasesPanel from '@/components/OperationCasesPanel';
 import CausalKnowledgeBasePanel from '@/components/CausalKnowledgeBasePanel';
+import OperationResultsPanel from '@/components/OperationResultsPanel';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
+import { saveOperationResult } from '@/utils/resultsStorage';
 
-type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases' | 'knowledge';
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases' | 'knowledge' | 'results';
 
 // Function Status Card Component
 const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMode: ModelMode }> = ({ cvggResult, modelMode }) => {
@@ -224,7 +226,17 @@ const IndustrialMonitor = () => {
     setCvggInferenceResult(result);
     // Add to inference history for visualizations (keep last 100)
     setInferenceHistory(prev => [...prev, result].slice(-100));
-  }, []);
+    
+    // Save to results storage
+    saveOperationResult('cvgg_inference', result, {
+      modelMode: 'enhanced-cvgg',
+      systemState: currentState ? {
+        hydraulic_pressure: currentState.hydraulic.pressure,
+        system_temp: currentState.thermal.system_temp,
+        mechanical_torque: currentState.mechanical.torque,
+      } : undefined,
+    });
+  }, [currentState]);
 
   // Counterfactual sweep handler
   const handleCounterfactualSweep = useCallback(async (pressureValues: number[]): Promise<{ pressure: number; effect: number }[]> => {
@@ -360,6 +372,10 @@ const IndustrialMonitor = () => {
                 <Database className="h-3 w-3 mr-1" />
                 {t('tab.knowledge')}
               </TabsTrigger>
+              <TabsTrigger value="results" className="text-xs px-2">
+                <Save className="h-3 w-3 mr-1" />
+                {t('tab.results') || 'Results'}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           
@@ -442,8 +458,20 @@ const IndustrialMonitor = () => {
       {modelMode === 'knowledge' && (
         <CausalKnowledgeBasePanel
           causalGraph={causalGraph}
-          onImportComplete={(count) => console.log(`Imported ${count} causal relationships`)}
+          onImportComplete={(count) => {
+            console.log(`Imported ${count} causal relationships`);
+            saveOperationResult('knowledge_import', {
+              operation: 'Import from Causal Graph',
+              nodesAffected: count,
+              edgesAffected: count,
+            });
+          }}
         />
+      )}
+
+      {/* Operation Results Panel - Show when Results mode is active */}
+      {modelMode === 'results' && (
+        <OperationResultsPanel />
       )}
 
       {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
