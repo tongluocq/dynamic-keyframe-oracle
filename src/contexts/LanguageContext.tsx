@@ -39,6 +39,14 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.examples': 'Examples',
     'tab.cases': 'Cases',
     'tab.knowledge': 'Knowledge',
+    'tab.results': 'Results',
+    
+    // Results Panel
+    'results.title': 'Operation Results',
+    'results.description': 'View, explain, and export all operation results from CVGG, interventions, counterfactuals, and more.',
+    'results.export': 'Export',
+    'results.clear': 'Clear All',
+    'results.saved': 'Result Saved',
     
     // Metrics
     'metric.thrust': 'Thrust',
@@ -213,6 +221,14 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.examples': '例',
     'tab.cases': '事例',
     'tab.knowledge': '知識ベース',
+    'tab.results': '結果',
+    
+    // Results Panel
+    'results.title': '操作結果',
+    'results.description': 'CVGG、介入、反事実などの全ての操作結果を表示、説明、エクスポート',
+    'results.export': 'エクスポート',
+    'results.clear': '全てクリア',
+    'results.saved': '結果を保存しました',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知識ベース',
@@ -385,6 +401,14 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.examples': '示例',
     'tab.cases': '案例',
     'tab.knowledge': '知识库',
+    'tab.results': '结果',
+    
+    // Results Panel
+    'results.title': '操作结果',
+    'results.description': '查看、解释和导出CVGG、干预、反事实等所有操作结果',
+    'results.export': '导出',
+    'results.clear': '全部清除',
+    'results.saved': '结果已保存',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知识库',
@@ -557,6 +581,14 @@ const translations: Record<Language, Record<string, string>> = {
     'tab.examples': 'Ejemplos',
     'tab.cases': 'Casos',
     'tab.knowledge': 'Conocimiento',
+    'tab.results': 'Resultados',
+    
+    // Results Panel
+    'results.title': 'Resultados de Operaciones',
+    'results.description': 'Ver, explicar y exportar todos los resultados de CVGG, intervenciones, contrafactuales y más',
+    'results.export': 'Exportar',
+    'results.clear': 'Limpiar Todo',
+    'results.saved': 'Resultado Guardado',
     
     // Knowledge Base
     'knowledgeBase.title': 'Base de Conocimiento Causal',

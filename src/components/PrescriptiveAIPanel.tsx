@@ -4,9 +4,10 @@
  * IMSCHM-level component that displays AI-generated recommendations
  * based on CVGG causal estimates and system state analysis.
  * Now includes Simple DAG visualization for recommendation impact pathways.
+ * Saves results to persistent storage.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ import {
   Thermometer,
   Droplets,
   Activity,
+  Save,
 } from 'lucide-react';
 import { SystemState, CausalRelation, IndustrialDomain } from '@/types/industrial';
 import { InferenceResult } from '@/hooks/useEnhancedCVGG';
@@ -40,6 +42,7 @@ import {
   DecisionContext,
 } from '@/utils/prescriptiveAI';
 import SimpleDAG, { SimpleDAGNode, SimpleDAGEdge } from '@/components/SimpleDAG';
+import { saveOperationResult } from '@/utils/resultsStorage';
 
 interface PrescriptiveAIPanelProps {
   currentState: SystemState | null;
@@ -110,6 +113,23 @@ const PrescriptiveAIPanel: React.FC<PrescriptiveAIPanelProps> = ({
     };
     return engine.analyze(context);
   }, [currentState, anomalies, activeFailures, causalGraph, cvggResult, inferenceHistory]);
+
+  // Save prescriptive output when it changes (debounced)
+  useEffect(() => {
+    if (prescriptiveOutput && prescriptiveOutput.recommendations.length > 0) {
+      // Only save if there are meaningful recommendations
+      const timer = setTimeout(() => {
+        saveOperationResult('prescriptive', prescriptiveOutput, {
+          modelMode: 'prescriptive',
+          systemState: currentState ? {
+            systemHealth: prescriptiveOutput.systemHealthScore,
+          } : undefined,
+        });
+      }, 1000); // Debounce to avoid too many saves
+      
+      return () => clearTimeout(timer);
+    }
+  }, [prescriptiveOutput.recommendations.length, prescriptiveOutput.systemHealthScore]);
 
   const toggleRecommendation = (id: string) => {
     setExpandedRecommendations(prev => {
