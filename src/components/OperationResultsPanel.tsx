@@ -44,6 +44,7 @@ import {
   Info,
   CheckCircle2,
   AlertTriangle,
+  FileDown,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -105,6 +106,10 @@ const OperationResultsPanel: React.FC = () => {
 
   const handleExportCSV = () => {
     storage.downloadCSV(filterType !== 'all' ? { type: filterType } : undefined);
+  };
+
+  const handleExportReport = () => {
+    storage.downloadMarkdownReport();
   };
 
   const handleClearAll = () => {
@@ -189,6 +194,10 @@ const OperationResultsPanel: React.FC = () => {
             <Button variant="outline" size="sm" onClick={handleExportCSV}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Export CSV
+            </Button>
+            <Button variant="default" size="sm" onClick={handleExportReport}>
+              <FileDown className="h-4 w-4 mr-2" />
+              Generate Report
             </Button>
             <Button variant="outline" size="sm" onClick={handleClearAll} className="text-destructive hover:text-destructive">
               <Trash2 className="h-4 w-4 mr-2" />

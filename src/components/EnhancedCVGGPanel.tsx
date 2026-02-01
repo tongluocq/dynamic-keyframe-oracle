@@ -36,6 +36,8 @@ import {
   DEFAULT_TRAINING_CONFIG
 } from '@/hooks/useEnhancedCVGG';
 import { SystemState } from '@/types/industrial';
+import { saveOperationResult } from '@/utils/resultsStorage';
+import { useToast } from '@/hooks/use-toast';
 
 interface EnhancedCVGGPanelProps {
   currentState: SystemState | null;
@@ -48,6 +50,7 @@ const EnhancedCVGGPanel: React.FC<EnhancedCVGGPanelProps> = ({
   sensorHistory,
   onInferenceResult
 }) => {
+  const { toast } = useToast();
   const {
     modelState,
     trainingProgress,
@@ -142,6 +145,16 @@ const EnhancedCVGGPanel: React.FC<EnhancedCVGGPanelProps> = ({
     if (result) {
       setLastResult(result);
       onInferenceResult?.(result);
+      
+      // Save inference result to storage
+      saveOperationResult('cvgg_inference', result, {
+        modelMode: 'inference',
+      });
+      
+      toast({
+        title: 'CVGG Inference Saved',
+        description: `Classification: ${result.classification.className} (${(result.classification.confidence * 100).toFixed(1)}% confidence)`,
+      });
     }
   }, [
     modelState.isBuilt,
@@ -158,7 +171,8 @@ const EnhancedCVGGPanel: React.FC<EnhancedCVGGPanelProps> = ({
     interventionType,
     temperature,
     workingLoad,
-    onInferenceResult
+    onInferenceResult,
+    toast
   ]);
 
   const handleStartTraining = useCallback(async () => {
