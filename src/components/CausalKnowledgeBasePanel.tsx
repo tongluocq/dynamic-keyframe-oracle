@@ -34,6 +34,8 @@ import {
 } from '@/utils/causalGraphRAG';
 import { CausalRelation } from '@/types/industrial';
 import SimpleDAG from './SimpleDAG';
+import { saveOperationResult } from '@/utils/resultsStorage';
+import { useToast } from '@/hooks/use-toast';
 
 interface CausalKnowledgeBasePanelProps {
   causalGraph?: Map<string, CausalRelation[]>;
@@ -53,6 +55,7 @@ const CausalKnowledgeBasePanel: React.FC<CausalKnowledgeBasePanelProps> = ({
   onImportComplete
 }) => {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const [stats, setStats] = useState(causalGraphRAG.getStats());
   const [searchQuery, setSearchQuery] = useState('');
   const [queryResult, setQueryResult] = useState<GraphQueryResult | null>(null);
@@ -75,14 +78,35 @@ const CausalKnowledgeBasePanel: React.FC<CausalKnowledgeBasePanelProps> = ({
       const count = causalGraphRAG.importFromCausalGraph(causalGraph);
       setStats(causalGraphRAG.getStats());
       onImportComplete?.(count);
+      
+      // Save to results storage
+      saveOperationResult('knowledge_import', {
+        operation: 'Import from Causal Graph',
+        nodesAffected: stats.totalNodes,
+        edgesAffected: count,
+      });
+      
+      toast({
+        title: 'Knowledge Imported',
+        description: `${count} causal relationships imported to knowledge base.`,
+      });
     }
-  }, [causalGraph, onImportComplete]);
+  }, [causalGraph, onImportComplete, stats.totalNodes, toast]);
 
   // Natural language query
   const handleQuery = useCallback(() => {
     if (!searchQuery.trim()) return;
     const result = causalGraphRAG.processNaturalLanguageQuery(searchQuery);
     setQueryResult(result);
+    
+    // Save query to results storage
+    saveOperationResult('knowledge_query', {
+      operation: 'Natural Language Query',
+      queryText: searchQuery,
+      queryResult: result.explanation,
+      nodesAffected: result.nodes.length,
+      edgesAffected: result.edges.length,
+    });
   }, [searchQuery]);
 
   // Export handlers
@@ -92,6 +116,8 @@ const CausalKnowledgeBasePanel: React.FC<CausalKnowledgeBasePanelProps> = ({
       let data: string;
       let filename: string;
       let mimeType: string;
+      let nodesCount = stats.totalNodes;
+      let edgesCount = stats.totalEdges;
 
       switch (selectedExportFormat) {
         case 'neo4j':
@@ -129,10 +155,23 @@ const CausalKnowledgeBasePanel: React.FC<CausalKnowledgeBasePanelProps> = ({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      
+      // Save export to results storage
+      saveOperationResult('knowledge_export', {
+        operation: `Export to ${selectedExportFormat.toUpperCase()}`,
+        nodesAffected: nodesCount,
+        edgesAffected: edgesCount,
+        exportFormat: selectedExportFormat,
+      });
+      
+      toast({
+        title: 'Knowledge Exported',
+        description: `Graph exported as ${filename}`,
+      });
     } finally {
       setIsExporting(false);
     }
-  }, [selectedExportFormat]);
+  }, [selectedExportFormat, stats.totalNodes, stats.totalEdges, toast]);
 
   // Get top relationships for display
   const topRelationships = useMemo(() => 
