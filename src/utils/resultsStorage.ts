@@ -618,6 +618,32 @@ This report documents all causal analysis operations performed by the Intelligen
     // Add key findings section
     report += `## Key Findings\n\n`;
     
+    // Training findings
+    const trainings = this.getResultsByType('cvgg_training') as CVGGTrainingResult[];
+    if (trainings.length > 0) {
+      const latestTraining = trainings[0];
+      const totalEpochs = trainings.reduce((sum, r) => sum + r.data.epochs, 0);
+      const avgAccuracy = trainings.reduce((sum, r) => sum + r.data.finalAccuracy, 0) / trainings.length;
+      report += `### CVGG Training Summary\n\n`;
+      report += `- **Training Sessions:** ${trainings.length}\n`;
+      report += `- **Total Epochs Completed:** ${totalEpochs}\n`;
+      report += `- **Average Final Accuracy:** ${(avgAccuracy * 100).toFixed(1)}%\n`;
+      report += `- **Latest Training:** ${latestTraining.data.epochs} epochs, ` +
+        `Loss: ${latestTraining.data.finalLoss.toFixed(4)}, ` +
+        `Accuracy: ${(latestTraining.data.finalAccuracy * 100).toFixed(1)}%\n\n`;
+      
+      // Add training history chart-like representation
+      if (latestTraining.data.trainingHistory && latestTraining.data.trainingHistory.length > 0) {
+        report += `**Latest Training History:**\n\n`;
+        report += `| Epoch | Loss | Accuracy |\n`;
+        report += `|-------|------|----------|\n`;
+        for (const h of latestTraining.data.trainingHistory) {
+          report += `| ${h.epoch} | ${h.loss.toFixed(4)} | ${(h.accuracy * 100).toFixed(1)}% |\n`;
+        }
+        report += `\n`;
+      }
+    }
+    
     const interventions = this.getResultsByType('intervention') as InterventionOperationResult[];
     if (interventions.length > 0) {
       const avgRiskReduction = interventions.reduce((sum, r) => 

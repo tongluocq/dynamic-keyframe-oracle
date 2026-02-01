@@ -192,13 +192,32 @@ const EnhancedCVGGPanel: React.FC<EnhancedCVGGPanelProps> = ({
     
     const success = await train(samples, trainingConfig);
     console.log('[EnhancedCVGGPanel] Training completed, success:', success);
+    
+    // Save training results if successful
+    if (success) {
+      const trainingResult = (window as any).__lastCVGGTrainingResult;
+      if (trainingResult) {
+        saveOperationResult('cvgg_training', trainingResult, {
+          modelMode: 'training',
+        });
+        
+        toast({
+          title: 'CVGG Training Saved',
+          description: `${trainingResult.epochs} epochs completed. Accuracy: ${(trainingResult.finalAccuracy * 100).toFixed(1)}%`,
+        });
+        
+        // Cleanup
+        delete (window as any).__lastCVGGTrainingResult;
+      }
+    }
   }, [
     modelState,
     initializeModel,
     generateSyntheticSamples,
     numSyntheticSamples,
     train,
-    trainingConfig
+    trainingConfig,
+    toast
   ]);
 
   return (
