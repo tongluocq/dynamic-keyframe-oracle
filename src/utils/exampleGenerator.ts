@@ -1,6 +1,62 @@
 // Actual Float Value Examples for IMSCHM Causal Analysis
 // These examples demonstrate concrete values for TBM device monitoring
 
+// ============================================
+// NEW: INPUT SIGNATURE INTERFACES
+// ============================================
+
+export interface SensorPattern {
+  channel: string;
+  pattern: string;
+  normalRange: string;
+  observedValue: string;
+  anomalyLevel: 'none' | 'low' | 'medium' | 'high';
+}
+
+export interface RockImageFeature {
+  feature: string;
+  description: string;
+}
+
+export interface CausalMetadataState {
+  activeInterventions: number;
+  confounderLevel: string;
+}
+
+export interface InputSignature {
+  sensorPatterns: SensorPattern[];
+  rockImageFeatures: RockImageFeature[];
+  causalMetadataState: CausalMetadataState;
+}
+
+// ============================================
+// NEW: CAUSAL PATHWAY INTERFACE
+// ============================================
+
+export interface CausalPathwayStep {
+  stage: string;
+  component: string;
+  input: string;
+  output: string;
+  transformation: string;
+}
+
+// ============================================
+// NEW: VARIABLE INTERACTION INTERFACE
+// ============================================
+
+export interface VariableInteraction {
+  from: string;
+  to: string;
+  mechanism: string;
+  strength: number;
+  direction: 'positive' | 'negative';
+}
+
+// ============================================
+// ENHANCED CAUSAL EFFECT EXAMPLE INTERFACE
+// ============================================
+
 export interface CausalEffectExample {
   id: string;
   title: string;
@@ -16,6 +72,12 @@ export interface CausalEffectExample {
   };
   interpretation: string;
   tbmContext: string;
+  // NEW: Enhanced fields for complete pathway explanation
+  inputSignature: InputSignature;
+  causalPathway: CausalPathwayStep[];
+  variableInteractions: VariableInteraction[];
+  // NEW: Why explanation connecting inputs to outputs
+  whyExplanation: string;
 }
 
 export interface CounterfactualExample {
@@ -117,7 +179,7 @@ export interface CausalInterventionExample {
 }
 
 // ============================================
-// CVGG CAUSAL EFFECT EXAMPLES (ATE/CATE)
+// CVGG CAUSAL EFFECT EXAMPLES (ATE/CATE) - ENHANCED
 // ============================================
 
 export const CAUSAL_EFFECT_EXAMPLES: CausalEffectExample[] = [
@@ -134,8 +196,42 @@ export const CAUSAL_EFFECT_EXAMPLES: CausalEffectExample[] = [
       confidence: 0.8547,
       pValue: 0.0023
     },
-    interpretation: 'For every 1-unit increase in thrust pressure, cutting force increases by 0.1823 units on average. The conditional effect (CATE=0.2156) is higher under this specific operating context.',
-    tbmContext: 'TBM Thrust System → Cutterhead: Hydraulic thrust cylinder pressure directly affects cutting efficiency. ATE=0.1823 indicates moderate positive correlation - within safe operating range.'
+    interpretation: 'For every 1-unit increase in thrust pressure, cutting force increases by 0.1823 units on average. The conditional effect (CATE=0.2156) is higher under this specific operating context, indicating stable proportional response within designed parameters.',
+    tbmContext: 'TBM Thrust System → Cutterhead: Hydraulic thrust cylinder pressure directly affects cutting efficiency. ATE=0.1823 indicates moderate positive correlation - within safe operating range. Direct effect (0.1347) is 74% of total effect, showing clean mechanical transmission.',
+    // NEW: Input Signature - What sensor data looks like for Normal condition
+    inputSignature: {
+      sensorPatterns: [
+        { channel: 'DE (Drive End)', pattern: 'Sinusoidal, low amplitude', normalRange: '0.1-0.3g', observedValue: '0.22g', anomalyLevel: 'none' },
+        { channel: 'FE (Fan End)', pattern: 'Periodic, consistent', normalRange: '0.05-0.2g', observedValue: '0.15g', anomalyLevel: 'none' },
+        { channel: 'BA (Base)', pattern: 'Baseline noise only', normalRange: '0.02-0.08g', observedValue: '0.05g', anomalyLevel: 'none' },
+        { channel: 'Temperature', pattern: 'Stable, gradual rise', normalRange: '45-65°C', observedValue: '58°C', anomalyLevel: 'none' },
+        { channel: 'Pressure', pattern: 'Consistent operating pressure', normalRange: '380-400 kN', observedValue: '392 kN', anomalyLevel: 'none' },
+        { channel: 'Humidity', pattern: 'Environmental baseline', normalRange: '30-60%', observedValue: '45%', anomalyLevel: 'none' }
+      ],
+      rockImageFeatures: [
+        { feature: 'Uniform texture', description: 'Consistent geological formation with homogeneous grain structure' },
+        { feature: 'Normal hardness', description: 'Expected cutting resistance matching design parameters (Mohs 5-6)' },
+        { feature: 'No fractures', description: 'Intact rock face without stress concentration points' }
+      ],
+      causalMetadataState: { activeInterventions: 0, confounderLevel: 'Low' }
+    },
+    // NEW: Causal Pathway - How inputs flow through CVGG to outputs
+    causalPathway: [
+      { stage: 'Input', component: 'Wavelet Transform', input: '6-channel sensor signals (1D)', output: '6× 128×128 scalograms (2D)', transformation: 'Morlet CWT: signal → time-frequency representation' },
+      { stage: 'Feature', component: 'VGG Backbone (Signals)', input: 'Scalograms', output: '256-dim signal embedding', transformation: 'Conv2D + MaxPool + ReLU layers extract vibration patterns' },
+      { stage: 'Feature', component: 'VGG Backbone (Rock)', input: 'Rock image 224×224', output: '256-dim rock embedding', transformation: 'Conv2D layers extract texture/geological features' },
+      { stage: 'Fusion', component: 'Combined Embedding', input: 'Signal + Rock + Metadata embeddings', output: '768-dim fused representation', transformation: 'Concatenation + Dense layer + BatchNorm' },
+      { stage: 'Causal', component: 'Causal Inference Head', input: '768-dim embedding + treatment indicators', output: 'ATE, CATE, DE, IE', transformation: 'Doubly-robust estimator with propensity weighting' }
+    ],
+    // NEW: Variable Interactions - How causal variables affect each other
+    variableInteractions: [
+      { from: 'Thrust Pressure', to: 'Cutting Force', mechanism: 'Hydraulic power transfer through thrust cylinders', strength: 0.75, direction: 'positive' },
+      { from: 'Cutting Force', to: 'Vibration', mechanism: 'Rock-disc impact generates mechanical oscillation', strength: 0.45, direction: 'positive' },
+      { from: 'Vibration', to: 'Temperature', mechanism: 'Friction heat from bearing loads', strength: 0.30, direction: 'positive' },
+      { from: 'Temperature', to: 'Lubricant', mechanism: 'Thermal viscosity regulation', strength: 0.25, direction: 'negative' }
+    ],
+    // NEW: Why Explanation - Connects inputs to outputs clearly
+    whyExplanation: 'NORMAL: All sensor readings within expected ranges (vibration 0.22g < 0.3g threshold, temperature 58°C < 65°C limit). Rock image shows uniform texture without hard inclusions. CVGG encodes this as stable operating state → low ATE (0.1823) because thrust changes have proportional, predictable effects. The 74% direct effect ratio indicates clean mechanical coupling without cascade amplification.'
   },
   {
     id: 'ce-fault-01',
@@ -150,8 +246,44 @@ export const CAUSAL_EFFECT_EXAMPLES: CausalEffectExample[] = [
       confidence: 0.9123,
       pValue: 0.0001
     },
-    interpretation: 'High ATE (0.4231) indicates abnormal vibration directly causes 42.31% increase in system risk. CATE=0.5872 shows effect is amplified in current fault condition.',
-    tbmContext: 'TBM Main Bearing → Risk Assessment: Detected bearing wear pattern. directEffect=0.3918 (mechanical failure risk) + indirectEffect=0.1954 (thermal cascade risk) = total risk elevation requiring immediate intervention.'
+    interpretation: 'High ATE (0.4231) indicates abnormal vibration directly causes 42.31% increase in system risk. CATE=0.5872 shows effect is amplified to 58.72% under current fault conditions due to degraded bearing state. This represents a 2.3× amplification compared to normal operating conditions.',
+    tbmContext: 'TBM Main Bearing → Risk Assessment: Detected bearing wear pattern with characteristic BPFO frequency at 89.3 Hz. directEffect=0.3918 (direct mechanical failure risk from bearing defect) + indirectEffect=0.1954 (thermal cascade risk through lubricant degradation and secondary component stress) = total 0.5872 risk elevation requiring immediate intervention.',
+    // NEW: Input Signature - What sensor data looks like for Fault condition
+    inputSignature: {
+      sensorPatterns: [
+        { channel: 'DE (Drive End)', pattern: 'High-frequency spikes, irregular envelope', normalRange: '0.1-0.3g', observedValue: '0.89g', anomalyLevel: 'high' },
+        { channel: 'FE (Fan End)', pattern: 'Harmonic overtones at BPFO frequencies', normalRange: '0.05-0.2g', observedValue: '0.45g', anomalyLevel: 'medium' },
+        { channel: 'BA (Base)', pattern: 'Cross-axis vibration coupling detected', normalRange: '0.02-0.08g', observedValue: '0.18g', anomalyLevel: 'medium' },
+        { channel: 'Temperature', pattern: 'Rapid thermal gradient (>2°C/min rise)', normalRange: '45-65°C', observedValue: '78°C', anomalyLevel: 'high' },
+        { channel: 'Pressure', pattern: 'Fluctuating with vibration harmonics', normalRange: '380-400 kN', observedValue: '415 kN', anomalyLevel: 'low' },
+        { channel: 'Vibration X/Y/Z', pattern: 'Cross-axis correlation anomaly', normalRange: 'r < 0.3', observedValue: 'r = 0.82', anomalyLevel: 'high' }
+      ],
+      rockImageFeatures: [
+        { feature: 'Hard inclusion detected', description: 'Unexpected high-hardness zone (Mohs 8+) causing impact loading' },
+        { feature: 'Fracture patterns visible', description: 'Stress concentration indicators at rock face discontinuities' },
+        { feature: 'Abrasive texture', description: 'High silica content increasing cutter wear rate' }
+      ],
+      causalMetadataState: { activeInterventions: 0, confounderLevel: 'High' }
+    },
+    // NEW: Causal Pathway - Same architecture, different activations
+    causalPathway: [
+      { stage: 'Input', component: 'Wavelet Transform', input: '6-channel signals with anomalies', output: 'Scalograms with high-energy bands', transformation: 'Morlet CWT reveals fault frequencies (BPFO, BPFI patterns)' },
+      { stage: 'Feature', component: 'VGG Backbone (Signals)', input: 'Anomalous scalograms', output: '256-dim fault-indicative embedding', transformation: 'Conv filters activate on defect patterns; high activations at 89.3 Hz band' },
+      { stage: 'Feature', component: 'VGG Backbone (Rock)', input: 'Rock image with inclusions', output: '256-dim stress-indicative embedding', transformation: 'Texture filters detect hardness variations and fracture edges' },
+      { stage: 'Fusion', component: 'Combined Embedding', input: 'Fault signals + Stress rock + High confounders', output: '768-dim fault representation', transformation: 'Fusion layer correlates vibration anomaly with geological stress' },
+      { stage: 'Causal', component: 'Causal Inference Head', input: 'Fault embedding + high-variance treatment', output: 'Elevated ATE/CATE/DE/IE', transformation: 'Propensity weights adjusted for confounder bias; higher treatment effect detected' }
+    ],
+    // NEW: Variable Interactions - Fault cascade loop
+    variableInteractions: [
+      { from: 'Bearing Wear', to: 'Vibration Amplitude', mechanism: 'Mechanical degradation causes irregular contact → spalling → impact pulses', strength: 0.92, direction: 'positive' },
+      { from: 'Vibration Amplitude', to: 'Thermal Load', mechanism: 'Friction cascade: excess vibration → bearing heat → temperature spike', strength: 0.68, direction: 'positive' },
+      { from: 'Thermal Load', to: 'Lubricant Viscosity', mechanism: 'Thermal thinning: oil viscosity drops exponentially with temperature', strength: 0.55, direction: 'negative' },
+      { from: 'Lubricant Viscosity', to: 'Bearing Wear', mechanism: 'Lubrication failure: thin oil → metal-to-metal contact → accelerated wear', strength: 0.78, direction: 'negative' },
+      { from: 'Rock Hardness', to: 'Cutting Force', mechanism: 'Hard inclusion requires higher thrust, amplifies stress', strength: 0.65, direction: 'positive' },
+      { from: 'Cutting Force', to: 'Vibration Amplitude', mechanism: 'Impact loading from hard rock zones', strength: 0.72, direction: 'positive' }
+    ],
+    // NEW: Why Explanation - Connects inputs to outputs clearly
+    whyExplanation: 'FAULT: Multiple sensor anomalies detected - DE vibration 0.89g is 3× normal (exceeds 0.3g threshold), temperature 78°C exceeds 65°C limit with rapid gradient, cross-axis correlation r=0.82 indicates bearing defect mode. Rock image shows hard inclusion causing impact loading. CVGG encodes this as degraded state → high ATE (0.4231) because vibration changes now trigger cascading failures. The fault creates a positive feedback loop: Bearing Wear → Vibration → Heat → Lubricant Loss → More Wear. CATE (0.5872) > ATE because the conditioning on current fault state reveals amplified effect. Direct effect is 67% of total, with 33% propagating through thermal cascade pathway.'
   }
 ];
 
