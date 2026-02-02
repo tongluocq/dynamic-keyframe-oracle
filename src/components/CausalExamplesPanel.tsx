@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle2, 
   Lightbulb, Brain, GitBranch, ArrowRight, Zap, Thermometer,
-  Activity, Target, DollarSign, Clock, Info, BarChart3
+  Activity, Target, DollarSign, Clock, Info, BarChart3,
+  ChevronDown, ChevronUp, Waves, CircleDot, ArrowRightLeft, Network
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -25,7 +27,10 @@ import {
   type CausalInterventionExample,
   type CounterfactualExample,
   type PrescriptiveExample,
-  type DecisionMakingExample
+  type DecisionMakingExample,
+  type InputSignature,
+  type CausalPathwayStep,
+  type VariableInteraction
 } from '@/utils/exampleGenerator';
 import {
   CausalEffectChart,
@@ -34,6 +39,7 @@ import {
   PrescriptiveChart,
   DecisionChart
 } from '@/components/ExampleCharts';
+import SimpleDAG, { buildInterventionDAG, SimpleDAGNode, SimpleDAGEdge } from '@/components/SimpleDAG';
 
 export const CausalExamplesPanel: React.FC = () => {
   const { t } = useLanguage();
@@ -181,6 +187,47 @@ export const CausalExamplesPanel: React.FC = () => {
 const CausalEffectCard: React.FC<{ example: CausalEffectExample }> = ({ example }) => {
   const { t } = useLanguage();
   const isNormal = example.condition === 'normal';
+  const [showInputDetails, setShowInputDetails] = useState(false);
+  const [showPathway, setShowPathway] = useState(false);
+  const [showInteractions, setShowInteractions] = useState(false);
+  
+  // Build DAG nodes and edges from variable interactions
+  const buildVariableInteractionDAG = (interactions: VariableInteraction[]): { nodes: SimpleDAGNode[], edges: SimpleDAGEdge[] } => {
+    const nodeMap = new Map<string, SimpleDAGNode>();
+    const edges: SimpleDAGEdge[] = [];
+    
+    interactions.forEach((interaction, idx) => {
+      // Add source node if not exists
+      if (!nodeMap.has(interaction.from)) {
+        nodeMap.set(interaction.from, {
+          id: interaction.from,
+          label: interaction.from,
+          type: idx === 0 ? 'intervention' : 'primary',
+          value: interaction.direction === 'positive' ? interaction.strength : -interaction.strength
+        });
+      }
+      // Add target node if not exists
+      if (!nodeMap.has(interaction.to)) {
+        nodeMap.set(interaction.to, {
+          id: interaction.to,
+          label: interaction.to,
+          type: 'secondary',
+          value: interaction.direction === 'positive' ? interaction.strength : -interaction.strength
+        });
+      }
+      // Add edge
+      edges.push({
+        from: interaction.from,
+        to: interaction.to,
+        strength: interaction.strength,
+        label: interaction.direction === 'positive' ? `+${(interaction.strength * 100).toFixed(0)}%` : `-${(interaction.strength * 100).toFixed(0)}%`
+      });
+    });
+    
+    return { nodes: Array.from(nodeMap.values()), edges };
+  };
+  
+  const dagData = buildVariableInteractionDAG(example.variableInteractions);
   
   return (
     <Card className={`border-l-4 ${isNormal ? 'border-l-green-500' : 'border-l-red-500'} bg-card/30`}>
@@ -205,7 +252,7 @@ const CausalEffectCard: React.FC<{ example: CausalEffectExample }> = ({ example 
         <div className="bg-background/50 rounded-lg p-3 border border-border/30">
           <div className="flex items-center gap-1 mb-2">
             <BarChart3 className="h-3 w-3 text-primary" />
-            <span className="text-xs font-semibold text-muted-foreground">Visualization</span>
+            <span className="text-xs font-semibold text-muted-foreground">Effect Decomposition</span>
           </div>
           <CausalEffectChart example={example} />
         </div>
@@ -241,6 +288,72 @@ const CausalEffectCard: React.FC<{ example: CausalEffectExample }> = ({ example 
           </div>
         </div>
 
+        {/* NEW: Why Explanation Box */}
+        <div className={`rounded-lg p-3 border ${isNormal ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'}`}>
+          <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
+            <Lightbulb className={`h-3 w-3 ${isNormal ? 'text-green-400' : 'text-red-400'}`} />
+            {isNormal ? 'Why Normal?' : 'Why Fault?'}
+          </h4>
+          <p className="text-xs text-muted-foreground leading-relaxed">{example.whyExplanation}</p>
+        </div>
+
+        {/* NEW: Collapsible Input Signature Section */}
+        <Collapsible open={showInputDetails} onOpenChange={setShowInputDetails}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between bg-background/50 rounded-lg p-2 hover:bg-background/70 transition-colors">
+              <div className="flex items-center gap-2">
+                <Waves className="h-4 w-4 text-blue-400" />
+                <span className="text-xs font-semibold">Sensor Input Patterns</span>
+              </div>
+              {showInputDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <InputSignatureTable signature={example.inputSignature} />
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* NEW: Collapsible Causal Pathway Section */}
+        <Collapsible open={showPathway} onOpenChange={setShowPathway}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between bg-background/50 rounded-lg p-2 hover:bg-background/70 transition-colors">
+              <div className="flex items-center gap-2">
+                <ArrowRightLeft className="h-4 w-4 text-purple-400" />
+                <span className="text-xs font-semibold">CVGG Processing Pathway</span>
+              </div>
+              {showPathway ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CausalPathwaySection pathway={example.causalPathway} />
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* NEW: Collapsible Variable Interactions DAG */}
+        <Collapsible open={showInteractions} onOpenChange={setShowInteractions}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between bg-background/50 rounded-lg p-2 hover:bg-background/70 transition-colors">
+              <div className="flex items-center gap-2">
+                <Network className="h-4 w-4 text-orange-400" />
+                <span className="text-xs font-semibold">Variable Interaction DAG</span>
+              </div>
+              {showInteractions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 space-y-3">
+              <SimpleDAG 
+                nodes={dagData.nodes} 
+                edges={dagData.edges} 
+                title="Causal Variable Interactions"
+                height={180}
+                showLegend={false}
+              />
+              <VariableInteractionTable interactions={example.variableInteractions} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
         {/* Interpretation */}
         <div className="space-y-2">
           <div className="flex items-start gap-2">
@@ -254,6 +367,157 @@ const CausalEffectCard: React.FC<{ example: CausalEffectExample }> = ({ example 
         </div>
       </CardContent>
     </Card>
+  );
+};
+
+// ============================================
+// NEW SUB-COMPONENTS FOR ENHANCED VISUALIZATION
+// ============================================
+
+const InputSignatureTable: React.FC<{ signature: InputSignature }> = ({ signature }) => {
+  const getAnomalyBadge = (level: 'none' | 'low' | 'medium' | 'high') => {
+    const styles = {
+      none: 'bg-green-500/20 text-green-400 border-green-500/30',
+      low: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      medium: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+      high: 'bg-red-500/20 text-red-400 border-red-500/30'
+    };
+    const labels = { none: 'NORMAL', low: 'LOW', medium: 'MEDIUM', high: 'HIGH' };
+    return <Badge variant="outline" className={`text-[10px] ${styles[level]}`}>{labels[level]}</Badge>;
+  };
+
+  return (
+    <div className="mt-2 space-y-3">
+      {/* Sensor Patterns Table */}
+      <div className="bg-background/30 rounded-lg p-2">
+        <h5 className="text-xs font-semibold mb-2 flex items-center gap-1">
+          <Activity className="h-3 w-3 text-blue-400" />
+          Sensor Readings
+        </h5>
+        <Table>
+          <TableHeader>
+            <TableRow className="text-[10px]">
+              <TableHead className="h-6 py-1">Channel</TableHead>
+              <TableHead className="h-6 py-1">Pattern</TableHead>
+              <TableHead className="h-6 py-1">Normal</TableHead>
+              <TableHead className="h-6 py-1">Observed</TableHead>
+              <TableHead className="h-6 py-1">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="text-[10px]">
+            {signature.sensorPatterns.map((sensor, idx) => (
+              <TableRow key={idx}>
+                <TableCell className="py-1 font-mono">{sensor.channel}</TableCell>
+                <TableCell className="py-1 text-muted-foreground">{sensor.pattern}</TableCell>
+                <TableCell className="py-1 font-mono text-green-400">{sensor.normalRange}</TableCell>
+                <TableCell className="py-1 font-mono font-bold">{sensor.observedValue}</TableCell>
+                <TableCell className="py-1">{getAnomalyBadge(sensor.anomalyLevel)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Rock Image Features */}
+      <div className="bg-background/30 rounded-lg p-2">
+        <h5 className="text-xs font-semibold mb-2 flex items-center gap-1">
+          <CircleDot className="h-3 w-3 text-purple-400" />
+          Rock Image Features
+        </h5>
+        <div className="space-y-1">
+          {signature.rockImageFeatures.map((feature, idx) => (
+            <div key={idx} className="flex items-start gap-2 text-[10px]">
+              <Badge variant="outline" className="text-[9px] bg-purple-500/10">{feature.feature}</Badge>
+              <span className="text-muted-foreground">{feature.description}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Causal Metadata State */}
+      <div className="flex gap-4 text-[10px]">
+        <div className="bg-background/30 rounded p-2">
+          <span className="text-muted-foreground">Active Interventions:</span>
+          <span className="ml-1 font-mono font-bold">{signature.causalMetadataState.activeInterventions}</span>
+        </div>
+        <div className="bg-background/30 rounded p-2">
+          <span className="text-muted-foreground">Confounder Level:</span>
+          <Badge variant="outline" className={`ml-1 text-[9px] ${
+            signature.causalMetadataState.confounderLevel === 'Low' ? 'text-green-400' : 
+            signature.causalMetadataState.confounderLevel === 'Medium' ? 'text-yellow-400' : 'text-red-400'
+          }`}>
+            {signature.causalMetadataState.confounderLevel}
+          </Badge>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CausalPathwaySection: React.FC<{ pathway: CausalPathwayStep[] }> = ({ pathway }) => {
+  return (
+    <div className="mt-2 bg-background/30 rounded-lg p-3">
+      <div className="space-y-2">
+        {pathway.map((step, idx) => (
+          <div key={idx} className="flex items-center gap-2">
+            {/* Stage Badge */}
+            <Badge variant="outline" className={`text-[9px] min-w-[50px] justify-center ${
+              step.stage === 'Input' ? 'bg-blue-500/10 text-blue-400' :
+              step.stage === 'Feature' ? 'bg-purple-500/10 text-purple-400' :
+              step.stage === 'Fusion' ? 'bg-orange-500/10 text-orange-400' :
+              'bg-green-500/10 text-green-400'
+            }`}>
+              {step.stage}
+            </Badge>
+            
+            {/* Arrow */}
+            <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+            
+            {/* Content */}
+            <div className="flex-1 bg-background/50 rounded p-2 text-[10px]">
+              <div className="font-semibold text-foreground">{step.component}</div>
+              <div className="flex items-center gap-1 text-muted-foreground mt-0.5">
+                <span className="text-blue-400">{step.input}</span>
+                <ArrowRight className="h-2 w-2" />
+                <span className="text-green-400">{step.output}</span>
+              </div>
+              <div className="text-muted-foreground/70 italic mt-0.5">{step.transformation}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const VariableInteractionTable: React.FC<{ interactions: VariableInteraction[] }> = ({ interactions }) => {
+  return (
+    <div className="bg-background/30 rounded-lg p-2">
+      <Table>
+        <TableHeader>
+          <TableRow className="text-[10px]">
+            <TableHead className="h-6 py-1">From</TableHead>
+            <TableHead className="h-6 py-1">To</TableHead>
+            <TableHead className="h-6 py-1">Mechanism</TableHead>
+            <TableHead className="h-6 py-1">Effect</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody className="text-[10px]">
+          {interactions.map((interaction, idx) => (
+            <TableRow key={idx}>
+              <TableCell className="py-1 font-mono text-blue-400">{interaction.from}</TableCell>
+              <TableCell className="py-1 font-mono text-purple-400">{interaction.to}</TableCell>
+              <TableCell className="py-1 text-muted-foreground">{interaction.mechanism}</TableCell>
+              <TableCell className="py-1">
+                <span className={`font-mono font-bold ${interaction.direction === 'positive' ? 'text-red-400' : 'text-green-400'}`}>
+                  {interaction.direction === 'positive' ? '+' : '-'}{(interaction.strength * 100).toFixed(0)}%
+                </span>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 
