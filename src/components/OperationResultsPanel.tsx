@@ -25,6 +25,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { cn } from '@/lib/utils';
+import {
   Database,
   Download,
   Trash2,
@@ -78,7 +87,9 @@ const OperationResultsPanel: React.FC = () => {
   const [results, setResults] = useState<StoredResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<StoredResult | null>(null);
   const [filterType, setFilterType] = useState<OperationType | 'all'>('all');
-  const [activeTab, setActiveTab] = useState<'list' | 'statistics'>('list');
+  const [sortColumn, setSortColumn] = useState<'timestamp' | 'type'>('timestamp');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [activeTab, setActiveTab] = useState<'list' | 'table' | 'statistics'>('list');
 
   // Subscribe to storage changes
   useEffect(() => {
@@ -94,6 +105,31 @@ const OperationResultsPanel: React.FC = () => {
     if (filterType === 'all') return results;
     return results.filter(r => r.type === filterType);
   }, [results, filterType]);
+
+  // Sorted results for table view
+  const sortedResults = useMemo(() => {
+    return [...filteredResults].sort((a, b) => {
+      if (sortColumn === 'timestamp') {
+        return sortDirection === 'desc' ? b.timestamp - a.timestamp : a.timestamp - b.timestamp;
+      }
+      if (sortColumn === 'type') {
+        return sortDirection === 'desc' 
+          ? b.type.localeCompare(a.type) 
+          : a.type.localeCompare(b.type);
+      }
+      return 0;
+    });
+  }, [filteredResults, sortColumn, sortDirection]);
+
+  // Sort handler
+  const handleSort = (column: 'timestamp' | 'type') => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
 
   // Statistics
   const statistics = useMemo(() => storage.getStatistics(), [results]);
@@ -225,9 +261,10 @@ const OperationResultsPanel: React.FC = () => {
                 <Activity className="h-4 w-4" />
                 <span>Results ({filteredResults.length})</span>
               </div>
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'list' | 'statistics')}>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'list' | 'table' | 'statistics')}>
                 <TabsList className="h-8">
                   <TabsTrigger value="list" className="text-xs px-2">List</TabsTrigger>
+                  <TabsTrigger value="table" className="text-xs px-2">Table</TabsTrigger>
                   <TabsTrigger value="statistics" className="text-xs px-2">Stats</TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -259,6 +296,17 @@ const OperationResultsPanel: React.FC = () => {
                   </div>
                 )}
               </ScrollArea>
+            ) : activeTab === 'table' ? (
+              <CompactTableView 
+                results={sortedResults}
+                selectedId={selectedResult?.id || null}
+                onSelect={(result) => setSelectedResult(result)}
+                onDelete={handleDeleteResult}
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+                formatRelativeTime={formatRelativeTime}
+              />
             ) : (
               <StatisticsView statistics={statistics} results={results} />
             )}
@@ -497,6 +545,177 @@ const MetricCard: React.FC<{ label: string; value: string | number }> = ({ label
     <div className="font-semibold mt-1">{value}</div>
   </div>
 );
+
+// Extract compact data for table view
+function extractCompactData(result: StoredResult): { metrics: string; configParams: string } {
+  switch (result.type) {
+    case 'cvgg_training': {
+      const r = result as CVGGTrainingResult;
+      return {
+        metrics: `Acc:${(r.data.finalAccuracy * 100).toFixed(1)}% Loss:${r.data.finalLoss.toFixed(3)}`,
+        configParams: `e:${r.data.epochs} lr:${r.data.config.learningRate} n:${r.data.config.samples}`
+      };
+    }
+    case 'cvgg_inference': {
+      const r = result as CVGGInferenceResult;
+      return {
+        metrics: `${r.data.classification.className} (${(r.data.classification.confidence * 100).toFixed(0)}%)`,
+        configParams: `ATE:${r.data.causalEffects.ATE.toFixed(3)} CATE:${r.data.causalEffects.CATE.toFixed(3)}`
+      };
+    }
+    case 'intervention': {
+      const r = result as InterventionOperationResult;
+      return {
+        metrics: `do(${r.data.intervention.variable}) Δ:${(r.data.riskAssessment.riskDelta * 100).toFixed(1)}%`,
+        configParams: `pre:${(r.data.riskAssessment.preInterventionRisk * 100).toFixed(0)}% post:${(r.data.riskAssessment.postInterventionRisk * 100).toFixed(0)}%`
+      };
+    }
+    case 'counterfactual': {
+      const r = result as CounterfactualOperationResult;
+      return {
+        metrics: `Effect:${(r.data.causalEffect * 100).toFixed(1)}% Conf:${(r.data.confidence * 100).toFixed(0)}%`,
+        configParams: `base:${(r.data.baselineOutcome * 100).toFixed(0)}% cf:${(r.data.counterfactualOutcome * 100).toFixed(0)}%`
+      };
+    }
+    case 'prescriptive': {
+      const r = result as PrescriptiveOperationResult;
+      return {
+        metrics: `Health:${r.data.systemHealthScore.toFixed(0)} Risk:${r.data.riskLevel}`,
+        configParams: `${r.data.recommendations.length} recs, ${r.data.topPriority?.priority || 'none'}`
+      };
+    }
+    case 'example':
+      return {
+        metrics: 'CVGG Example',
+        configParams: 'Normal/Fault patterns'
+      };
+    case 'case':
+      return {
+        metrics: 'Case Study',
+        configParams: 'L1/L2/L3 operations'
+      };
+    case 'knowledge_import':
+    case 'knowledge_export':
+    case 'knowledge_query':
+      return {
+        metrics: 'Knowledge Base',
+        configParams: 'Graph operation'
+      };
+    default:
+      return { metrics: '-', configParams: '-' };
+  }
+}
+
+// Compact Table View Component
+interface CompactTableViewProps {
+  results: StoredResult[];
+  selectedId: string | null;
+  onSelect: (result: StoredResult) => void;
+  onDelete: (id: string) => void;
+  sortColumn: 'timestamp' | 'type';
+  sortDirection: 'asc' | 'desc';
+  onSort: (column: 'timestamp' | 'type') => void;
+  formatRelativeTime: (ts: number) => string;
+}
+
+const CompactTableView: React.FC<CompactTableViewProps> = ({
+  results,
+  selectedId,
+  onSelect,
+  onDelete,
+  sortColumn,
+  sortDirection,
+  onSort,
+  formatRelativeTime,
+}) => {
+  if (results.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p className="font-medium">No results saved yet</p>
+        <p className="text-sm mt-1">
+          Run CVGG training, interventions, or other operations to see results here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <ScrollArea className="h-[500px]">
+      <Table>
+        <TableHeader className="sticky top-0 bg-background z-10">
+          <TableRow>
+            <TableHead 
+              className="w-[80px] cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => onSort('timestamp')}
+            >
+              <span className="flex items-center gap-1">
+                Time {sortColumn === 'timestamp' && (sortDirection === 'desc' ? '↓' : '↑')}
+              </span>
+            </TableHead>
+            <TableHead 
+              className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => onSort('type')}
+            >
+              <span className="flex items-center gap-1">
+                Type {sortColumn === 'type' && (sortDirection === 'desc' ? '↓' : '↑')}
+              </span>
+            </TableHead>
+            <TableHead>Key Metrics</TableHead>
+            <TableHead>Configuration</TableHead>
+            <TableHead className="w-[50px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {results.map((result) => {
+            const config = operationTypeConfig[result.type];
+            const { metrics, configParams } = extractCompactData(result);
+            
+            return (
+              <TableRow
+                key={result.id}
+                className={cn(
+                  "cursor-pointer h-10 text-xs transition-colors",
+                  selectedId === result.id && "bg-primary/10"
+                )}
+                onClick={() => onSelect(result)}
+              >
+                <TableCell className="py-1 font-mono text-muted-foreground text-xs">
+                  {formatRelativeTime(result.timestamp)}
+                </TableCell>
+                <TableCell className="py-1">
+                  <Badge variant="outline" className={cn("text-xs px-1.5 py-0.5", config.color)}>
+                    {config.icon}
+                    <span className="ml-1">{config.label.split(' ')[0]}</span>
+                  </Badge>
+                </TableCell>
+                <TableCell className="py-1 font-mono text-xs">
+                  {metrics}
+                </TableCell>
+                <TableCell className="py-1 text-muted-foreground font-mono text-xs">
+                  {configParams}
+                </TableCell>
+                <TableCell className="py-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 opacity-50 hover:opacity-100" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(result.id);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </ScrollArea>
+  );
+};
 
 // Statistics View Component
 const StatisticsView: React.FC<{
