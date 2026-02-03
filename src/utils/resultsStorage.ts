@@ -690,6 +690,494 @@ This report documents all causal analysis operations performed by the Intelligen
     const filename = `IMSCHM-Report-${new Date().toISOString().split('T')[0]}.md`;
     this.downloadFile(markdown, filename, 'text/markdown');
   }
+
+  /**
+   * Generate Academic Report from Examples and Cases
+   * Creates a comprehensive technical report documenting all IMSCHM 
+   * example instances and operation case studies
+   */
+  generateExampleCaseReport(): string {
+    const now = new Date();
+    
+    // Import example data dynamically to avoid circular dependencies
+    const exampleData = this.getExampleCaseData();
+    
+    let report = `# IMSCHM Academic Report: Examples & Operation Case Studies
+
+**Document Type:** Technical Benchmark Report  
+**Generated:** ${now.toISOString()}  
+**Version:** IMSCHM v1.0  
+
+---
+
+## Abstract
+
+This report documents the comprehensive examples and operation case studies included in the Intelligent Machine System Causal Health Monitor (IMSCHM) benchmark platform. The examples demonstrate concrete numerical outcomes from the CVGG (Causal VGG) neural network architecture, while the operation cases illustrate complete workflows from TBM (Tunnel Boring Machine) startup through fault detection, causal analysis, and decision making.
+
+The report covers Pearl's Causal Hierarchy implementation at all three levels:
+- **Level 1 (Observation):** Sensor monitoring and pattern recognition
+- **Level 2 (Intervention):** do-calculus operations for causal manipulation
+- **Level 3 (Counterfactual):** "What-If" scenarios and hypothetical reasoning
+
+---
+
+## Table of Contents
+
+1. [CVGG Causal Effect Examples (ATE/CATE)](#1-cvgg-causal-effect-examples)
+2. [Causal Intervention Examples (do-calculus)](#2-causal-intervention-examples)
+3. [Counterfactual Analysis Examples](#3-counterfactual-analysis-examples)
+4. [Prescriptive AI Examples](#4-prescriptive-ai-examples)
+5. [Decision Making vs Prescriptive AI](#5-decision-making-vs-prescriptive-ai)
+6. [Operation Case Studies](#6-operation-case-studies)
+7. [Causal Metrics Reference](#7-causal-metrics-reference)
+
+---
+
+## 1. CVGG Causal Effect Examples
+
+### 1.1 Normal Operation Condition
+
+**Title:** Thrust → Cutting Force Causal Relationship
+
+| Metric | Value | Interpretation |
+|--------|-------|----------------|
+| ATE (Average Treatment Effect) | 0.1823 | For every 1-unit thrust increase, cutting force increases by 0.1823 units |
+| CATE (Conditional ATE) | 0.2156 | Effect is 18% higher under current operating context |
+| Direct Effect | 0.1347 | 74% of total effect is direct mechanical transmission |
+| Indirect Effect | 0.0476 | 26% propagates through mediating variables |
+| Confidence | 0.8547 | High statistical confidence |
+| P-Value | 0.0023 | Statistically significant (p < 0.05) |
+
+**Input Signature (Normal):**
+- DE Accelerometer: 0.22g (within 0.1-0.3g range) ✓
+- FE Accelerometer: 0.15g (within 0.05-0.2g range) ✓
+- Temperature: 58°C (within 45-65°C range) ✓
+- Pressure: 392 kN (within 380-400 kN range) ✓
+
+**Causal Pathway:**
+\`\`\`
+Sensor Signals (6ch) → Wavelet Transform → Scalograms (128×128)
+                                              ↓
+Rock Image (224×224) → VGG Backbone → Combined Embedding (768-dim)
+                                              ↓
+                        Causal Inference Head → ATE, CATE, DE, IE
+\`\`\`
+
+**Variable Interaction Chain:**
+- Thrust Pressure → Cutting Force (strength: 0.75, positive)
+- Cutting Force → Vibration (strength: 0.45, positive)
+- Vibration → Temperature (strength: 0.30, positive)
+
+---
+
+### 1.2 Fault Condition
+
+**Title:** Vibration → System Risk Causal Relationship
+
+| Metric | Value | Interpretation |
+|--------|-------|----------------|
+| ATE | 0.4231 | 42.31% direct risk increase from abnormal vibration |
+| CATE | 0.5872 | 58.72% risk increase under fault condition (2.3× amplification) |
+| Direct Effect | 0.3918 | Direct mechanical failure risk component |
+| Indirect Effect | 0.1954 | Thermal cascade risk through lubricant degradation |
+| Confidence | 0.9123 | Very high statistical confidence |
+| P-Value | 0.0001 | Highly statistically significant |
+
+**Input Signature (Fault):**
+- DE Accelerometer: 0.89g (exceeds 0.3g threshold) ⚠️ HIGH ANOMALY
+- FE Accelerometer: 0.45g (exceeds 0.2g threshold) ⚠️ MEDIUM ANOMALY
+- Temperature: 78°C (exceeds 65°C limit) ⚠️ HIGH ANOMALY
+- Cross-axis Correlation: r=0.82 (exceeds 0.3 threshold) ⚠️ HIGH ANOMALY
+
+**Fault Feedback Loop:**
+\`\`\`
+Bearing Wear ──[+0.92]──→ Vibration Amplitude
+     ↑                           │
+     │                           ↓ [+0.68]
+     │                     Thermal Load
+     │                           │
+[−0.78]                          ↓ [−0.55]
+     │                     Lubricant Viscosity
+     └───────────────────────────┘
+\`\`\`
+
+---
+
+## 2. Causal Intervention Examples (do-calculus)
+
+### 2.1 Thrust Increase Intervention
+
+**Command:** \`do(Thrust = 396.0 kN)\`
+
+**Notation:** P(CuttingForce, Vibration, Risk | do(Thrust = 396.0))
+
+| Effect Type | Variable | Change |
+|-------------|----------|--------|
+| Primary | Cutting Force | +7.5% |
+| Primary | Penetration Rate | +12.3% |
+| Secondary | Vibration Amplitude | +5.2% |
+| Secondary | Bearing Stress | +8.1% |
+| Secondary | Thermal Load | +3.4% |
+
+**Risk Assessment:**
+- Baseline Risk: 23%
+- Post-Intervention Risk: 31%
+- Risk Delta: +8%
+- Confidence: 87%
+
+---
+
+### 2.2 Temperature Control Intervention
+
+**Command:** \`do(Temperature = 60.0°C)\`
+
+**Notation:** P(Lubricant, Bearing, Risk | do(Temperature = 60.0))
+
+| Effect Type | Variable | Change |
+|-------------|----------|--------|
+| Primary | Lubricant Viscosity | −12.0% |
+| Primary | Thermal Expansion | −8.5% |
+| Secondary | Bearing Friction | +3.2% |
+| Secondary | Seal Integrity | +5.7% |
+| Secondary | Cooling Load | −15.3% |
+
+**Risk Assessment:**
+- Baseline Risk: 38%
+- Post-Intervention Risk: 29%
+- Risk Delta: −9% (beneficial)
+- Confidence: 82%
+
+---
+
+## 3. Counterfactual Analysis Examples
+
+### 3.1 Thrust Pressure Increase Scenario
+
+**Query:** IF(Thrust = 360.0 kN → 396.0 kN) THEN ?
+
+| Metric | Value |
+|--------|-------|
+| Baseline Outcome | 32.47% risk |
+| Counterfactual Outcome | 40.12% risk |
+| Causal Effect | +7.65% |
+| Direct Effect | +5.47% |
+| Indirect Effect | +18.34% (through cascade) |
+| Confidence | 82.34% |
+| Risk Change | **INCREASED** |
+
+**TBM Context:** Direct risk increase from hydraulic stress plus indirect cascade effect through cutting force → vibration → thermal chain.
+
+---
+
+### 3.2 Temperature Reduction Scenario
+
+**Query:** IF(Temperature = 68.5°C → 55.0°C) THEN ?
+
+| Metric | Value |
+|--------|-------|
+| Baseline Outcome | 41.56% risk |
+| Counterfactual Outcome | 32.87% risk |
+| Causal Effect | −8.69% |
+| Direct Effect | −3.94% |
+| Indirect Effect | +13.12% (partial offset) |
+| Confidence | 78.56% |
+| Risk Change | **DECREASED** |
+
+**TBM Context:** Cooling intervention reduces direct thermal stress. Note: Some indirect effects remain positive due to cooling system power consumption impact.
+
+---
+
+## 4. Prescriptive AI Examples
+
+### 4.1 Critical Bearing Intervention
+
+**Priority:** CRITICAL  
+**Trigger:** High ATE (0.4231) detected from vibration → risk pathway
+
+**Recommendation:** Immediate bearing inspection and replacement
+
+| Metric | Value |
+|--------|-------|
+| Expected Risk Reduction | 42.31% |
+| Cost Saving | $42.31K |
+| Downtime Avoided | 10.15 hours |
+| Confidence | 87.23% |
+| Direct Effect | −39.18% |
+| Indirect Effect | −3.13% |
+
+**Action Command:** \`PRESCRIBE(action="replace_bearing", priority=CRITICAL, confidence=0.8723)\`
+
+---
+
+### 4.2 Preventive Cooling Optimization
+
+**Priority:** MEDIUM  
+**Trigger:** Moderate indirect effects (0.3156) through thermal pathway
+
+**Recommendation:** Adjust cooling system parameters
+
+| Metric | Value |
+|--------|-------|
+| Expected Risk Reduction | 30% |
+| Cost Saving | $40.00K |
+| Downtime Avoided | 5.50 hours |
+| Confidence | 75.12% |
+| Direct Effect | +8.23% |
+| Indirect Effect | +31.56% |
+
+**Note:** Direct effect is small, but indirect cascade through thermal system is significant.
+
+---
+
+## 5. Decision Making vs Prescriptive AI
+
+### 5.1 Bearing Replacement Decision
+
+**Context:** Multiple prescriptive recommendations available for bearing-related fault
+
+**Prescriptive AI Options:**
+| Action | Score | Risk Reduction |
+|--------|-------|----------------|
+| Replace bearing assembly | 0.92 | 52% |
+| Increase lubrication frequency | 0.67 | 28% |
+| Reduce operational speed | 0.45 | 15% |
+
+**Decision Made:**
+- **Selected Action:** Replace worn bearing assembly
+- **Execution Cost:** $8,500
+- **Expected Risk Reduction:** 52%
+- **Timeline:** 4-6 hours during scheduled maintenance
+- **Budget Constraint:** $10,000 (within limit)
+
+**Reasoning:** Highest score (0.92), best risk reduction (52%), within budget.
+
+---
+
+### 5.2 Thermal Management Decision
+
+**Context:** Competing recommendations for thermal system optimization
+
+**Prescriptive AI Options:**
+| Action | Score | Risk Reduction |
+|--------|-------|----------------|
+| Install additional cooling | 0.78 | 35% |
+| Reduce thrust pressure | 0.65 | 22% |
+| Switch to high-temp lubricant | 0.58 | 18% |
+
+**Decision Made:**
+- **Selected Action:** Install additional cooling unit
+- **Execution Cost:** $15,000
+- **Expected Risk Reduction:** 35%
+- **Timeline:** Next scheduled stop, 2-3 days
+- **Budget Constraint:** $20,000 (within limit)
+
+**Reasoning:** Best long-term ROI despite higher cost, addresses root cause.
+
+---
+
+## 6. Operation Case Studies
+
+### Case 1: Normal Operation Baseline - Startup to Steady State
+
+**Pearl Level:** L1 (Observation)  
+**Training Goal:** Establish baseline understanding of normal CVGG outputs and healthy causal relationships
+
+**Key Phases:**
+1. **TBM Startup (t=0 to t=60s):** Hydraulic pressure = 150 bar, System temp = 25°C, Thrust = 360 kN
+2. **Signal Monitoring (t=60s to t=300s):** 18 sensors across 5 domains at 10 Hz
+3. **Causal Discovery:** PC Algorithm produces DAG with 45 significant edges
+4. **CVGG Analysis:** ATE = 0.0823 (low), System Health = 94/100
+5. **Decision:** Continue normal operation, schedule routine maintenance at t+72h
+
+**Summary:**
+- ATE Range: 0.05 - 0.12
+- Risk Level: LOW
+- Final Decision: Continue normal operation
+
+---
+
+### Case 2: Gradual Bearing Wear Detection - Early Warning Success
+
+**Pearl Level:** L3 (Counterfactual)  
+**Training Goal:** Detection at severity=0.48 prevents catastrophic failure at severity>0.85
+
+**Key Phases:**
+1. **Initial Condition:** Bearing wear = 12%, Severity = 0.15
+2. **Progressive Degradation:** Severity increases 0.15 → 0.32 → 0.48 over 20 minutes
+3. **Anomaly Detection:** mechanical_vibration_x score = 0.67 (HIGH)
+4. **Counterfactual Query:** "What if bearing wear reaches 85%?" → 89.3% failure probability
+5. **Prescriptive Response:** CRITICAL bearing replacement recommendation
+
+**Summary:**
+- ATE Range: 0.15 - 0.42
+- Risk Level: MEDIUM → HIGH
+- Final Decision: Schedule preventive maintenance
+
+---
+
+### Case 3: Thermal Overload Emergency - Immediate Intervention
+
+**Pearl Level:** L2 (Intervention)  
+**Training Goal:** Demonstrate emergency response when thresholds exceeded
+
+**Key Phases:**
+1. **Thermal Cascade:** Temperature spikes from 65°C to 92°C
+2. **Multi-Domain Impact:** Lubricant viscosity drops, bearing friction increases
+3. **do-calculus Analysis:** do(Temperature = 65°C) shows 34% risk reduction
+4. **Emergency Intervention:** Activate cooling, reduce thrust by 20%
+5. **Recovery Monitoring:** Temperature stabilizes at 68°C within 5 minutes
+
+**Summary:**
+- ATE Range: 0.35 - 0.68
+- Risk Level: CRITICAL → MEDIUM
+- Final Decision: Emergency intervention activated
+
+---
+
+### Case 4: Hydraulic Leak Diagnosis - Root Cause Tracing
+
+**Pearl Level:** L2 (Intervention)  
+**Training Goal:** Trace multi-step causal chain to identify root cause
+
+**Key Phases:**
+1. **Symptom Detection:** Pressure fluctuations, flow rate anomalies
+2. **Causal Graph Analysis:** Trace pressure → flow → seal → contamination
+3. **Root Cause Identification:** Seal degradation causing micro-leaks
+4. **Intervention Planning:** do(seal_replacement) analysis
+5. **Repair Scheduling:** Plan replacement during next maintenance window
+
+**Summary:**
+- ATE Range: 0.22 - 0.45
+- Risk Level: MEDIUM
+- Final Decision: Schedule seal replacement
+
+---
+
+### Case 5: Multi-Fault Competing Causes - Complex Decision Scenario
+
+**Pearl Level:** L3 (Counterfactual)  
+**Training Goal:** Handle multiple simultaneous faults with competing causal explanations
+
+**Key Phases:**
+1. **Multiple Anomalies:** Vibration, thermal, and hydraulic anomalies detected simultaneously
+2. **Competing Hypotheses:** H1: Bearing failure, H2: Hydraulic issue, H3: Thermal cascade
+3. **Counterfactual Disambiguation:** Compare "What if bearing fixed?" vs "What if hydraulic fixed?"
+4. **Ranked Interventions:** Bearing (0.52 risk reduction) > Hydraulic (0.31) > Thermal (0.18)
+5. **Resource-Constrained Decision:** Sequential intervention plan within budget
+
+**Summary:**
+- ATE Range: 0.28 - 0.58
+- Risk Level: HIGH
+- Final Decision: Prioritized multi-stage intervention
+
+---
+
+## 7. Causal Metrics Reference
+
+| Metric | Symbol | Range | Unit | Interpretation |
+|--------|--------|-------|------|----------------|
+| Average Treatment Effect | ATE | -1.0 to +1.0 | ratio | Mean causal effect across all units |
+| Conditional ATE | CATE | -1.0 to +1.0 | ratio | Causal effect under specific conditions |
+| Direct Effect | DE | -1.0 to +1.0 | ratio | Immediate causal impact without mediators |
+| Indirect Effect | IE | -1.0 to +1.0 | ratio | Cascade effect through intermediate variables |
+| Confidence | conf | 0.0 to 1.0 | probability | Statistical confidence (>0.8 is high) |
+| Baseline Outcome | Y₀ | 0.0 to 1.0 | probability | Expected outcome without intervention |
+| Counterfactual Outcome | Y₁ | 0.0 to 1.0 | probability | Expected outcome with intervention |
+| Risk Reduction | ΔR | 0.0 to 1.0 | percentage | Expected decrease in failure risk |
+| P-Value | p | 0.0 to 1.0 | probability | Statistical significance (<0.05 is significant) |
+
+---
+
+## Appendix: CVGG Architecture
+
+\`\`\`
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        CVGG (Causal VGG) Architecture                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Sensor Signals (6ch)      Rock Images (224×224)     Causal Metadata    │
+│         │                         │                        │            │
+│         ▼                         ▼                        │            │
+│  ┌──────────────┐         ┌──────────────┐                │            │
+│  │   Wavelet    │         │     VGG      │                │            │
+│  │  Transform   │         │   Backbone   │                │            │
+│  │  (Morlet)    │         │   (Images)   │                │            │
+│  └──────┬───────┘         └──────┬───────┘                │            │
+│         │                        │                        │            │
+│         ▼                        ▼                        │            │
+│  ┌──────────────┐         ┌──────────────┐                │            │
+│  │     VGG      │         │    256-dim   │                │            │
+│  │   Backbone   │         │   Embedding  │                │            │
+│  │  (Signals)   │         └──────┬───────┘                │            │
+│  └──────┬───────┘                │                        │            │
+│         │                        │                        │            │
+│         ▼                        ▼                        ▼            │
+│  ┌──────────────┐    ┌───────────────────────────────────────┐         │
+│  │    256-dim   │────│          Combined Embedding           │         │
+│  │   Embedding  │    │             (768-dim)                 │         │
+│  └──────────────┘    └───────────────────┬───────────────────┘         │
+│                                          │                              │
+│                      ┌───────────────────┴───────────────────┐         │
+│                      ▼                                       ▼         │
+│            ┌──────────────────┐                 ┌──────────────────┐   │
+│            │  Classification  │                 │  Causal Inference│   │
+│            │      Head        │                 │       Head       │   │
+│            └────────┬─────────┘                 └────────┬─────────┘   │
+│                     │                                    │             │
+│                     ▼                                    ▼             │
+│            ┌──────────────────┐                 ┌──────────────────┐   │
+│            │  Class: Normal/  │                 │   ATE, CATE,     │   │
+│            │  Fault + Conf    │                 │   DE, IE         │   │
+│            └──────────────────┘                 └──────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+\`\`\`
+
+---
+
+*Report generated by IMSCHM v1.0 - Intelligent Machine System Causal Health Monitor*  
+*Framework: Pearl's Causal Hierarchy | Model: Enhanced Causal VGG*
+`;
+
+    return report;
+  }
+
+  /**
+   * Get example and case data for report generation
+   * This provides static data without requiring runtime imports
+   */
+  private getExampleCaseData() {
+    return {
+      causalEffectExamples: [
+        { condition: 'normal', ATE: 0.1823, CATE: 0.2156, directEffect: 0.1347, indirectEffect: 0.0476 },
+        { condition: 'fault', ATE: 0.4231, CATE: 0.5872, directEffect: 0.3918, indirectEffect: 0.1954 }
+      ],
+      interventionExamples: [
+        { command: 'do(Thrust = 396.0 kN)', riskChange: '+8%' },
+        { command: 'do(Temperature = 60.0°C)', riskChange: '-9%' }
+      ],
+      counterfactualExamples: [
+        { query: 'IF(Thrust = 360.0 kN → 396.0 kN)', effect: '+7.65%' },
+        { query: 'IF(Temperature = 68.5°C → 55.0°C)', effect: '-8.69%' }
+      ],
+      operationCases: [
+        { id: 1, title: 'Normal Operation Baseline', pearlLevel: 'L1', risk: 'LOW' },
+        { id: 2, title: 'Gradual Bearing Wear Detection', pearlLevel: 'L3', risk: 'MEDIUM→HIGH' },
+        { id: 3, title: 'Thermal Overload Emergency', pearlLevel: 'L2', risk: 'CRITICAL→MEDIUM' },
+        { id: 4, title: 'Hydraulic Leak Diagnosis', pearlLevel: 'L2', risk: 'MEDIUM' },
+        { id: 5, title: 'Multi-Fault Competing Causes', pearlLevel: 'L3', risk: 'HIGH' }
+      ]
+    };
+  }
+
+  /**
+   * Download Example & Case Report
+   */
+  downloadExampleCaseReport(): void {
+    const markdown = this.generateExampleCaseReport();
+    const filename = `IMSCHM-Examples-Cases-Report-${new Date().toISOString().split('T')[0]}.md`;
+    this.downloadFile(markdown, filename, 'text/markdown');
+  }
 }
 
 // Singleton instance

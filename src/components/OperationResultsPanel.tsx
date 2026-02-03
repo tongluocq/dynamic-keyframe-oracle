@@ -112,6 +112,10 @@ const OperationResultsPanel: React.FC = () => {
     storage.downloadMarkdownReport();
   };
 
+  const handleExportExampleCaseReport = () => {
+    storage.downloadExampleCaseReport();
+  };
+
   const handleClearAll = () => {
     if (confirm('Are you sure you want to clear all saved results? This cannot be undone.')) {
       storage.clearAll();
@@ -198,6 +202,10 @@ const OperationResultsPanel: React.FC = () => {
             <Button variant="default" size="sm" onClick={handleExportReport}>
               <FileDown className="h-4 w-4 mr-2" />
               Generate Report
+            </Button>
+            <Button variant="default" size="sm" onClick={handleExportExampleCaseReport} className="bg-purple-600 hover:bg-purple-700">
+              <BookOpen className="h-4 w-4 mr-2" />
+              Generate Example&Case
             </Button>
             <Button variant="outline" size="sm" onClick={handleClearAll} className="text-destructive hover:text-destructive">
               <Trash2 className="h-4 w-4 mr-2" />
