@@ -1,274 +1,315 @@
 
 
-# Plan: Enhance Examples Panel with Causal Pathway Visualization and Input-Output Explanation
+# Plan: Add Excel-Like Compact Table View for Results & Configuration
 
 ## Summary
 
-The current Examples panel shows CVGG ATE/CATE examples for Normal and Fault conditions, but the explanations are incomplete - they do not clearly describe:
-1. What sensor data variations differentiate Normal from Fault conditions
-2. How rock image features contribute to the classification
-3. The complete causal pathway from multi-modal inputs to the four output values (Direct, Indirect, ATE, CATE)
-4. How causal variables interact with each other
-
-This plan adds a **Causal Architecture DAG** visualization and enriched explanations that trace the complete information flow from sensor inputs through CVGG to causal effect outputs.
+Add a new **compact spreadsheet-style table view** to the Results panel that displays all operation results and their configuration parameters in a dense, Excel-like format. This will provide a more efficient way to scan through many results at once, with sortable columns and inline parameter visibility.
 
 ---
 
 ## What Will Be Built
 
-### 1. New Mermaid-Style DAG Visualization Component
+### 1. New "Table" Tab in Results Panel
 
-A new **CVGGArchitectureDAG** component that visualizes:
+Add a third view mode alongside the existing "List" and "Stats" tabs:
 
 ```text
-Input Layer                      CVGG Processing                    Output Layer
-+----------------------+    +------------------------+    +------------------+
-| Sensor Signals (6ch) |    | VGG Backbone          |    | Direct Effect    |
-| - DE, FE, BA accel   |--->| Scalogram Transform   |--->| Indirect Effect  |
-| - Temp, Press, Humid |    | Feature Extraction    |    | ATE              |
-+----------------------+    +------------------------+    | CATE             |
-                                       |                   +------------------+
-+----------------------+    +------------------------+
-| Rock Images (2D)     |--->| VGG Image Backbone    |--+
-| - Texture features   |    | Feature Extraction    |  |
-| - Geological context |    +------------------------+  |
-+----------------------+               |                |
-                                       v                v
-+----------------------+    +------------------------+
-| Causal Metadata      |    | Combined Embedding    |
-| - Interventions      |--->| Classification Head   |
-| - Confounders        |    | Causal Inference Head |
-| - Instrumental Vars  |    +------------------------+
-+----------------------+
++--------------------------------------------------+
+| Results (42)                    [List] [Table] [Stats] |
++--------------------------------------------------+
 ```
 
-### 2. Enhanced Example Data Structure
+### 2. Compact Table Structure
 
-Add new fields to `CausalEffectExample` in `exampleGenerator.ts`:
+A dense spreadsheet-style table with the following columns:
 
-- **inputSignature**: Describes what sensor patterns characterize this condition
-  - Normal: Lower amplitude vibrations, stable thermal readings
-  - Fault: High-frequency bearing vibration spikes, thermal gradient anomalies
-  
-- **causalPathway**: Array describing the causal chain from input to output
-  
-- **variableInteractions**: Describes how causal variables affect each other
+| Time | Type | Key Metrics | Config | Status |
+|------|------|-------------|--------|--------|
+| 2m ago | CVGG Train | Acc: 89.2%, Loss: 0.124 | epochs:5, lr:0.001, samples:50 | Done |
+| 5m ago | Intervention | do(pressure=400), Risk: -15.2% | domain: hydraulic | Verified |
+| 8m ago | What-If | Effect: +12.3%, Conf: 87% | baseline: 0.45 | Success |
+| 12m ago | Prescriptive | Health: 78, Risk: medium | 3 recommendations | Alert |
 
-### 3. Updated CausalEffectCard Component
+### 3. Feature Set
 
-Enhance the card in `CausalExamplesPanel.tsx` to include:
-
-- **Input Characteristics Section**: Shows what sensor/image patterns caused this condition
-- **Simple DAG Visualization**: Shows the causal pathway for this specific example
-- **Variable Interaction Table**: Shows how variables influence each other
+- **Sortable columns**: Click headers to sort by time, type, or key metrics
+- **Condensed row height**: ~32px per row vs current ~72px cards
+- **Inline parameters**: Show configuration values in a dedicated column
+- **Color-coded type badges**: Quick visual identification
+- **Hover expansion**: Show full details on row hover
+- **Row selection**: Click to view full explanation in side panel
+- **Sticky headers**: Keep column headers visible while scrolling
 
 ---
 
 ## Technical Details
 
-### File: `src/utils/exampleGenerator.ts`
+### File: `src/components/OperationResultsPanel.tsx`
 
-Add new fields to the `CausalEffectExample` interface:
+#### 1. Add new imports and state
 
 ```typescript
-interface InputSignature {
-  sensorPatterns: {
-    channel: string;
-    pattern: string;
-    normalRange: string;
-    observedValue: string;
-    anomalyLevel: 'none' | 'low' | 'medium' | 'high';
-  }[];
-  rockImageFeatures: {
-    feature: string;
-    description: string;
-  }[];
-  causalMetadataState: {
-    activeInterventions: number;
-    confounderLevel: string;
-  };
-}
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
-interface CausalPathway {
-  stage: string;
-  component: string;
-  input: string;
-  output: string;
-  transformation: string;
-}
+// Update activeTab type
+const [activeTab, setActiveTab] = useState<'list' | 'table' | 'statistics'>('list');
+const [sortColumn, setSortColumn] = useState<'timestamp' | 'type'>('timestamp');
+const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+```
 
-interface VariableInteraction {
-  from: string;
-  to: string;
-  mechanism: string;
-  strength: number;
-  direction: 'positive' | 'negative';
+#### 2. Add sorting logic
+
+```typescript
+const sortedResults = useMemo(() => {
+  return [...filteredResults].sort((a, b) => {
+    if (sortColumn === 'timestamp') {
+      return sortDirection === 'desc' ? b.timestamp - a.timestamp : a.timestamp - b.timestamp;
+    }
+    if (sortColumn === 'type') {
+      return sortDirection === 'desc' 
+        ? b.type.localeCompare(a.type) 
+        : a.type.localeCompare(b.type);
+    }
+    return 0;
+  });
+}, [filteredResults, sortColumn, sortDirection]);
+```
+
+#### 3. Add CompactTableView component
+
+```typescript
+const CompactTableView: React.FC<{
+  results: StoredResult[];
+  selectedId: string | null;
+  onSelect: (result: StoredResult) => void;
+  onDelete: (id: string) => void;
+  sortColumn: string;
+  sortDirection: 'asc' | 'desc';
+  onSort: (column: string) => void;
+}> = ({ results, selectedId, onSelect, onDelete, sortColumn, sortDirection, onSort }) => {
+  return (
+    <ScrollArea className="h-[500px]">
+      <Table>
+        <TableHeader className="sticky top-0 bg-background z-10">
+          <TableRow>
+            <TableHead className="w-[80px] cursor-pointer" onClick={() => onSort('timestamp')}>
+              Time {sortColumn === 'timestamp' && (sortDirection === 'desc' ? '↓' : '↑')}
+            </TableHead>
+            <TableHead className="w-[120px] cursor-pointer" onClick={() => onSort('type')}>
+              Type {sortColumn === 'type' && (sortDirection === 'desc' ? '↓' : '↑')}
+            </TableHead>
+            <TableHead>Key Metrics</TableHead>
+            <TableHead>Configuration</TableHead>
+            <TableHead className="w-[60px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {results.map((result) => (
+            <CompactTableRow 
+              key={result.id} 
+              result={result} 
+              isSelected={selectedId === result.id}
+              onSelect={onSelect}
+              onDelete={onDelete}
+            />
+          ))}
+        </TableBody>
+      </Table>
+    </ScrollArea>
+  );
+};
+```
+
+#### 4. Add CompactTableRow component
+
+```typescript
+const CompactTableRow: React.FC<{
+  result: StoredResult;
+  isSelected: boolean;
+  onSelect: (result: StoredResult) => void;
+  onDelete: (id: string) => void;
+}> = ({ result, isSelected, onSelect, onDelete }) => {
+  const config = operationTypeConfig[result.type];
+  const { metrics, configParams } = extractCompactData(result);
+  
+  return (
+    <TableRow 
+      className={cn(
+        "cursor-pointer h-8 text-xs",
+        isSelected && "bg-primary/10"
+      )}
+      onClick={() => onSelect(result)}
+    >
+      <TableCell className="py-1 font-mono text-muted-foreground">
+        {formatRelativeTime(result.timestamp)}
+      </TableCell>
+      <TableCell className="py-1">
+        <Badge variant="outline" className={cn("text-xs", config.color)}>
+          {config.icon}
+          <span className="ml-1">{config.label.split(' ')[0]}</span>
+        </Badge>
+      </TableCell>
+      <TableCell className="py-1 font-mono">
+        {metrics}
+      </TableCell>
+      <TableCell className="py-1 text-muted-foreground font-mono">
+        {configParams}
+      </TableCell>
+      <TableCell className="py-1">
+        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => {
+          e.stopPropagation();
+          onDelete(result.id);
+        }}>
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+};
+```
+
+#### 5. Add extractCompactData helper function
+
+```typescript
+function extractCompactData(result: StoredResult): { metrics: string; configParams: string } {
+  switch (result.type) {
+    case 'cvgg_training': {
+      const r = result as CVGGTrainingResult;
+      return {
+        metrics: `Acc:${(r.data.finalAccuracy*100).toFixed(1)}% Loss:${r.data.finalLoss.toFixed(3)}`,
+        configParams: `e:${r.data.epochs} lr:${r.data.config.learningRate} n:${r.data.config.samples}`
+      };
+    }
+    case 'cvgg_inference': {
+      const r = result as CVGGInferenceResult;
+      return {
+        metrics: `${r.data.classification.className} (${(r.data.classification.confidence*100).toFixed(0)}%)`,
+        configParams: `ATE:${r.data.causalEffects.ATE.toFixed(3)} CATE:${r.data.causalEffects.CATE.toFixed(3)}`
+      };
+    }
+    case 'intervention': {
+      const r = result as InterventionOperationResult;
+      return {
+        metrics: `do(${r.data.intervention.variable}) Δ:${(r.data.riskAssessment.riskDelta*100).toFixed(1)}%`,
+        configParams: `pre:${(r.data.riskAssessment.preInterventionRisk*100).toFixed(0)}% post:${(r.data.riskAssessment.postInterventionRisk*100).toFixed(0)}%`
+      };
+    }
+    case 'counterfactual': {
+      const r = result as CounterfactualOperationResult;
+      return {
+        metrics: `Effect:${(r.data.causalEffect*100).toFixed(1)}% Conf:${(r.data.confidence*100).toFixed(0)}%`,
+        configParams: `base:${(r.data.baselineOutcome*100).toFixed(0)}% cf:${(r.data.counterfactualOutcome*100).toFixed(0)}%`
+      };
+    }
+    case 'prescriptive': {
+      const r = result as PrescriptiveOperationResult;
+      return {
+        metrics: `Health:${r.data.systemHealthScore.toFixed(0)} Risk:${r.data.riskLevel}`,
+        configParams: `${r.data.recommendations.length} recs, priority:${r.data.topPriority?.priority || 'none'}`
+      };
+    }
+    // ... other cases
+    default:
+      return { metrics: '-', configParams: '-' };
+  }
 }
 ```
 
-### File: `src/components/CausalExamplesPanel.tsx`
-
-1. Add new **InputSignatureSection** sub-component
-2. Add **CausalPathwayDAG** using the existing `SimpleDAG` component
-3. Add **VariableInteractionTable** component
-4. Update `CausalEffectCard` to include these new sections
-
-### File: `src/utils/exampleGenerator.ts` - Updated Examples
-
-#### Normal Example Enhanced Data:
+#### 6. Update TabsList in main component
 
 ```typescript
-{
-  // ... existing fields ...
-  inputSignature: {
-    sensorPatterns: [
-      { channel: 'DE (Drive End)', pattern: 'Sinusoidal, low amplitude', 
-        normalRange: '0.1-0.3g', observedValue: '0.22g', anomalyLevel: 'none' },
-      { channel: 'FE (Fan End)', pattern: 'Periodic, consistent', 
-        normalRange: '0.05-0.2g', observedValue: '0.15g', anomalyLevel: 'none' },
-      { channel: 'Temperature', pattern: 'Stable, gradual rise', 
-        normalRange: '45-65C', observedValue: '58C', anomalyLevel: 'none' },
-      { channel: 'Pressure', pattern: 'Consistent operating pressure', 
-        normalRange: '380-400 kN', observedValue: '392 kN', anomalyLevel: 'none' },
-    ],
-    rockImageFeatures: [
-      { feature: 'Uniform texture', description: 'Consistent geological formation' },
-      { feature: 'Normal hardness', description: 'Expected cutting resistance' }
-    ],
-    causalMetadataState: { activeInterventions: 0, confounderLevel: 'Low' }
-  },
-  causalPathway: [
-    { stage: 'Input', component: 'Wavelet Transform', 
-      input: '6-channel signals', output: '128x128 scalograms', 
-      transformation: 'Morlet CWT' },
-    { stage: 'Feature', component: 'VGG Backbone', 
-      input: 'Scalograms + Rock image', output: '512-dim embedding', 
-      transformation: 'Conv2D layers' },
-    { stage: 'Causal', component: 'Causal Head', 
-      input: 'Embedding + Metadata', output: 'ATE/CATE/DE/IE', 
-      transformation: 'Treatment effect estimation' }
-  ],
-  variableInteractions: [
-    { from: 'Thrust Pressure', to: 'Cutting Force', mechanism: 'Hydraulic transfer', 
-      strength: 0.75, direction: 'positive' },
-    { from: 'Cutting Force', to: 'Vibration', mechanism: 'Mechanical coupling', 
-      strength: 0.45, direction: 'positive' },
-    { from: 'Vibration', to: 'Temperature', mechanism: 'Friction heat', 
-      strength: 0.30, direction: 'positive' }
-  ]
-}
-```
+<Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'list' | 'table' | 'statistics')}>
+  <TabsList className="h-8">
+    <TabsTrigger value="list" className="text-xs px-2">List</TabsTrigger>
+    <TabsTrigger value="table" className="text-xs px-2">Table</TabsTrigger>
+    <TabsTrigger value="statistics" className="text-xs px-2">Stats</TabsTrigger>
+  </TabsList>
+</Tabs>
 
-#### Fault Example Enhanced Data:
-
-```typescript
-{
-  // ... existing fields ...
-  inputSignature: {
-    sensorPatterns: [
-      { channel: 'DE (Drive End)', pattern: 'High-frequency spikes, irregular', 
-        normalRange: '0.1-0.3g', observedValue: '0.89g', anomalyLevel: 'high' },
-      { channel: 'FE (Fan End)', pattern: 'Harmonic overtones present', 
-        normalRange: '0.05-0.2g', observedValue: '0.45g', anomalyLevel: 'medium' },
-      { channel: 'Temperature', pattern: 'Rapid thermal gradient', 
-        normalRange: '45-65C', observedValue: '78C', anomalyLevel: 'high' },
-      { channel: 'Vibration X/Y/Z', pattern: 'Cross-axis correlation anomaly', 
-        normalRange: 'Uncorrelated', observedValue: 'r=0.82', anomalyLevel: 'high' },
-    ],
-    rockImageFeatures: [
-      { feature: 'Hard inclusion detected', description: 'Unexpected high-hardness zone' },
-      { feature: 'Fracture patterns', description: 'Stress concentration indicators' }
-    ],
-    causalMetadataState: { activeInterventions: 0, confounderLevel: 'High' }
-  },
-  variableInteractions: [
-    { from: 'Bearing Wear', to: 'Vibration Amplitude', mechanism: 'Mechanical degradation', 
-      strength: 0.92, direction: 'positive' },
-    { from: 'Vibration', to: 'Thermal Load', mechanism: 'Friction cascade', 
-      strength: 0.68, direction: 'positive' },
-    { from: 'Thermal Load', to: 'Lubricant Viscosity', mechanism: 'Thermal thinning', 
-      strength: 0.55, direction: 'negative' },
-    { from: 'Lubricant Viscosity', to: 'Bearing Wear', mechanism: 'Lubrication failure', 
-      strength: 0.78, direction: 'negative' }
-  ]
-}
+{/* Content area */}
+{activeTab === 'list' && <ResultsList ... />}
+{activeTab === 'table' && <CompactTableView ... />}
+{activeTab === 'statistics' && <StatisticsView ... />}
 ```
 
 ---
 
 ## Visual Design
 
-### Input Signature Section
+### Table View Layout
+
 ```text
-+----------------------------------------------+
-| Sensor Input Patterns                        |
-+----------------------------------------------+
-| Channel          | Observed | Status        |
-+------------------+----------+---------------+
-| DE Accelerometer | 0.89g    | [HIGH ANOMALY]|
-| FE Accelerometer | 0.45g    | [MED ANOMALY] |
-| Temperature      | 78 C     | [HIGH ANOMALY]|
-| Pressure         | 392 kN   | [NORMAL]      |
-+------------------+----------+---------------+
++---------------------------------------------------------------------------------+
+| Time ↓    | Type         | Key Metrics                    | Configuration      |
++---------------------------------------------------------------------------------+
+| 2m ago    | [🧠 CVGG]    | Acc:89.2% Loss:0.124          | e:5 lr:0.001 n:50  |
+| 5m ago    | [⚡ do()]    | do(pressure) Δ:-15.2%         | pre:45% post:30%   |
+| 8m ago    | [❓ What-If] | Effect:+12.3% Conf:87%        | base:45% cf:57%    |
+| 12m ago   | [💡 AI]      | Health:78 Risk:medium         | 3 recs, high       |
+| 15m ago   | [🧠 Infer]   | Normal (94%)                  | ATE:0.12 CATE:0.15 |
+| 18m ago   | [📕 Case]    | Case 3: Thermal Overload      | L2 intervention    |
++---------------------------------------------------------------------------------+
 ```
 
-### Causal Pathway DAG (using SimpleDAG)
-Shows: Input Variables -> Mediators -> CVGG Processing -> Effect Outputs
+### Row Density Comparison
 
-### Variable Interaction Flow
-```text
-Bearing Wear ----[+0.92]----> Vibration Amplitude
-       |                            |
-       |                            v [+0.68]
-       |                       Thermal Load
-       |                            |
-       +----[-0.78]-----> Lubricant <--[-0.55]--+
-                          Viscosity
-```
+Current List View: ~72px per item (icon, title, badge, description)
+New Table View: ~32px per item (single row with all data)
+
+**Result**: Display 2-3x more results in the same viewport height
 
 ---
 
 ## Implementation Steps
 
-1. **Update `exampleGenerator.ts`**
-   - Extend `CausalEffectExample` interface with new fields
-   - Add `inputSignature`, `causalPathway`, and `variableInteractions` to both examples
-   - Add helper functions for formatting
+1. **Import Table components**
+   - Add imports for Table, TableHeader, TableBody, TableRow, TableCell, TableHead
 
-2. **Create new sub-components in `CausalExamplesPanel.tsx`**
-   - `InputSignatureTable`: Displays sensor patterns with anomaly badges
-   - `CausalPathwaySection`: Uses SimpleDAG to visualize the pathway
-   - `VariableInteractionFlow`: Shows variable-to-variable causal links
+2. **Add sorting state and logic**
+   - Add sortColumn and sortDirection state
+   - Create sortedResults memoized computation
 
-3. **Enhance `CausalEffectCard`**
-   - Add collapsible sections for detailed input analysis
-   - Integrate SimpleDAG for inline causal pathway visualization
-   - Add "Why Fault?" / "Why Normal?" explanation text
+3. **Create extractCompactData helper**
+   - Extract key metrics and config for each operation type
+   - Return condensed string representations
 
-4. **Update text explanations**
-   - Rewrite `interpretation` and `tbmContext` with clearer cause-effect language
-   - Add explicit statements about which input variations cause which output changes
+4. **Create CompactTableView component**
+   - Scrollable table with sticky headers
+   - Sortable columns with click handlers
+   - Compact row rendering
+
+5. **Create CompactTableRow component**
+   - Dense row with inline badges
+   - Hover highlight and selection state
+   - Delete action button
+
+6. **Update main panel tabs**
+   - Add "Table" tab option
+   - Render CompactTableView when selected
+   - Maintain selection sync with detail panel
 
 ---
 
-## Expected Outcome
+## Benefits
 
-After implementation, the Examples panel will clearly show:
+1. **Space Efficiency**: See 2-3x more results at once
+2. **Quick Scanning**: Consistent column layout for fast comparison
+3. **Parameter Visibility**: Configuration values immediately visible
+4. **Sortable**: Organize by time or type
+5. **Excel-Familiar**: Users can scan like a spreadsheet
+6. **Maintains Detail Panel**: Click any row to see full explanation
 
-1. **What input data variations differentiate Normal from Fault**:
-   - Specific sensor amplitude differences (e.g., DE 0.22g vs 0.89g)
-   - Rock image feature differences
-   - Confounder state differences
+---
 
-2. **How inputs flow through CVGG to produce outputs**:
-   - Visual DAG showing Input -> Scalogram -> VGG -> Embedding -> Causal Head -> Effects
-   
-3. **How causal variables interact**:
-   - Bearing Wear -> Vibration -> Thermal -> Lubricant feedback loop (fault case)
-   - Thrust -> Cutting Force -> Vibration stable chain (normal case)
+## Files to Modify
 
-4. **Why each output value is what it is**:
-   - ATE=0.4231 because high vibration (0.89g vs normal 0.22g) has strong causal effect
-   - CATE=0.5872 is higher because fault condition amplifies the effect
-   - Direct Effect (0.3918) vs Indirect Effect (0.1954) shows 66% direct mechanical path
+- **`src/components/OperationResultsPanel.tsx`**: Add CompactTableView, extractCompactData, sorting logic, and new tab
 
