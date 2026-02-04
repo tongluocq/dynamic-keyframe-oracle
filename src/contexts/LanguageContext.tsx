@@ -47,6 +47,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.export': 'Export',
     'results.clear': 'Clear All',
     'results.saved': 'Result Saved',
+    'results.generateExampleCase': 'Generate Example&Case',
+    'results.generateDatasetReport': 'Generate Dataset Report',
     
     // Metrics
     'metric.thrust': 'Thrust',
@@ -229,6 +231,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.export': 'エクスポート',
     'results.clear': '全てクリア',
     'results.saved': '結果を保存しました',
+    'results.generateExampleCase': '例&事例を生成',
+    'results.generateDatasetReport': 'データセットレポート生成',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知識ベース',
@@ -409,6 +413,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.export': '导出',
     'results.clear': '全部清除',
     'results.saved': '结果已保存',
+    'results.generateExampleCase': '生成示例&案例',
+    'results.generateDatasetReport': '生成数据集报告',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知识库',
@@ -589,6 +595,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.export': 'Exportar',
     'results.clear': 'Limpiar Todo',
     'results.saved': 'Resultado Guardado',
+    'results.generateExampleCase': 'Generar Ejemplo&Caso',
+    'results.generateDatasetReport': 'Generar Informe Dataset',
     
     // Knowledge Base
     'knowledgeBase.title': 'Base de Conocimiento Causal',
