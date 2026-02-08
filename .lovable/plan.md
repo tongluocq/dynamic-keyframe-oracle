@@ -1,38 +1,89 @@
 
-# Plan: Add Dataset Simulation Report Generation
+
+# Plan: Generate Academic Thesis Chapter Report from Results and Examples
 
 ## Summary
 
-Create a new academic report function that documents the IMSCHM dataset simulation procedure, emphasizing the multi-system physics-based simulation architecture and its rationality for causal AI benchmarking. This report will be accessible via a new button in the Results panel alongside the existing "Generate Report" and "Generate Example&Case" buttons.
+Add a new report generation function that produces a structured academic thesis chapter document, organized around the **algorithmic innovations** of CVGG and IMSCHM. The report will draw content from the existing Examples panel instances (CVGG Effects, do-calculus, Counterfactual, Prescriptive AI, Decision vs Prescriptive) and the 5 Operation Cases, presenting them as experimental validation evidence.
+
+This report is distinct from the existing "Generate Report" (operational summary) and "Generate Dataset Report" (simulation methodology). It is specifically structured as a **thesis chapter draft** with academic formatting.
 
 ---
 
-## What Will Be Built
+## Thesis Chapter Outline (Option A: Algorithm-Centric)
 
-### New Report: "Dataset Simulation Methodology Report"
+The generated report will follow this structure:
 
-A comprehensive technical document covering:
+```text
+Chapter X: Innovative Causal AI for Complex TBM Industrial Health Monitoring
 
-1. **Multi-System Simulation Architecture**
-   - 5-domain physics model (Hydraulic, Mechanical, Thermal, Electrical, Cutting)
-   - Cross-domain causal relationships with mathematical formulations
-   - State variable definitions with engineering units
+X.1 Introduction and Problem Statement
+    - Why correlation-based approaches fail in multi-domain industrial systems
+    - The gap: no existing framework covers L1+L2+L3 causal reasoning for TBM
 
-2. **Data Generation Pipeline**
-   - Sensor signal simulation (6-channel CWRU-style accelerometers + environmental)
-   - 2D rock image integration from TBM industrial field
-   - Wavelet transform to scalogram conversion
-   - Causal metadata injection (interventions, confounders, instrumental variables)
+X.2 Innovative Causal Algorithm Design
+    X.2.1 CausalVGG (CVGG) Architecture
+        - Dual VGG backbone (rock image + signal scalogram)
+        - Causal Metadata Bypass Encoder
+        - Classification Head + Causal Inference Head
+        - DAG-constrained combined loss function
+    X.2.2 Hybrid Causal Discovery Framework
+        - PC Algorithm for constraint-based structure learning
+        - Granger Causality for temporal precedence
+        - Transfer Entropy for information flow
+        - 4-method consensus fusion with conflict detection
+    X.2.3 Pearl's Causal Hierarchy Implementation
+        - L1: Observation and anomaly detection
+        - L2: do-Calculus Intervention Engine
+        - L3: Counterfactual Query Engine
+    X.2.4 Prescriptive AI and Decision Support
+        - Causal-effect-driven recommendation ranking
+        - Budget-constrained decision optimization
 
-3. **Rationality for Causal AI**
-   - Why synthetic data with known ground-truth causality is essential for benchmarking
-   - Physics-grounded equations prevent "cheat-sheet" trivial discovery
-   - Verification suite proving non-trivial causal structure
+X.3 IMSCHM System Implementation
+    X.3.1 Multi-System Physics Simulation Architecture
+        - 5-domain model (Hydraulic, Mechanical, Thermal, Electrical, Cutting)
+        - 25+ state variables with cross-domain causal equations
+    X.3.2 Data Generation Pipeline
+        - CWRU-style sensor signal simulation
+        - Wavelet transform to 2D scalograms
+        - Rock image integration from TBM field operations
+    X.3.3 Causal Knowledge Management (Graph RAG)
+        - Graph-native topology preserving causal edges
+        - Multi-hop reasoning across Pearl's hierarchy levels
 
-4. **Causal Verification Evidence**
-   - 6-test verification framework results
-   - CWRU bearing dataset comparison
-   - Time lag and confounder challenge results
+X.4 Experimental Results and Analysis
+    X.4.1 CVGG Causal Effect Analysis
+        - Normal condition: ATE=0.1823, CATE=0.2156, DE=0.1347, IE=0.0476
+        - Fault condition: ATE=0.4231, CATE=0.5872, DE=0.3918, IE=0.1954
+        - Input signature comparison (sensor patterns, rock features)
+        - Variable interaction analysis (feedback loops)
+    X.4.2 do-Calculus Intervention Results
+        - do(Thrust = 396.0 kN): primary and secondary effects
+        - do(Temperature = 60C): risk reduction from 0.38 to 0.29
+    X.4.3 Counterfactual Query Results
+        - "What if thrust increases by 10%?" - causal effect quantification
+        - "What if temperature maintained at 55C?" - risk change analysis
+    X.4.4 Prescriptive AI and Decision Making Comparison
+        - Recommendation ranking by causal impact
+        - Decision optimization under budget constraints
+    X.4.5 Operation Case Studies
+        - Case 1: Normal Operation Baseline (L1, ATE=0.05-0.12)
+        - Case 2: Bearing Wear Early Warning (L3, detection at severity=0.48)
+        - Case 3: Thermal Overload Emergency (L2, auto-execute intervention)
+        - Case 4: Hydraulic Leak Root Cause Tracing (L2+L3)
+        - Case 5: Multi-Fault Competing Causes (complex decision)
+    X.4.6 Dataset Verification Evidence
+        - 6-test suite results
+        - CWRU bearing data comparison
+
+X.5 Discussion
+    X.5.1 Algorithmic Innovation Summary
+    X.5.2 Comparison with Traditional Approaches
+    X.5.3 Limitations and Future Work
+
+X.6 Conclusion
+```
 
 ---
 
@@ -40,297 +91,99 @@ A comprehensive technical document covering:
 
 ### File: `src/utils/resultsStorage.ts`
 
-Add new method `generateDatasetSimulationReport()`:
+Add two new methods:
 
-```typescript
-/**
- * Generate Academic Report on Dataset Simulation Methodology
- * Documents the multi-system physics-based simulation procedure
- * and its rationality for causal AI benchmarking
- */
-generateDatasetSimulationReport(): string {
-  const now = new Date();
-  
-  let report = `# IMSCHM Dataset Simulation Methodology Report
+**`generateThesisChapterReport(): string`** - Generates the complete Markdown document with:
 
-**Document Type:** Technical Methodology Report  
-**Generated:** ${now.toISOString()}  
-**Purpose:** Document multi-system simulation procedure and causal AI rationality
+- All content drawn from the actual example data in `exampleGenerator.ts`
+- CVGG architecture description from `enhancedCausalVGG.ts` structure
+- Physics equations from `causalDatasetVerification.ts` PHYSICS_GROUNDINGS
+- Intervention examples from `causalInterventionEngine.ts`
+- Counterfactual examples from `counterfactualEngine.ts`
+- Prescriptive/Decision examples from `prescriptiveAI.ts`
+- 5 operation case summaries from `OperationCasesPanel.tsx`
+- Verification evidence framework from `causalDatasetVerification.ts`
 
----
+The report emphasizes **algorithmic innovation** by analyzing:
+1. How CVGG's dual-backbone processes multi-modal inputs differently for Normal vs Fault
+2. How the causal metadata bypass encoder handles interventions/confounders
+3. How the DAG-constrained loss (ATE = DE + IE) enforces causal structure
+4. How the 4-method consensus fusion resolves conflicting discoveries
+5. How Results and Examples provide quantitative validation
 
-## Abstract
-
-This report documents the synthetic dataset generation methodology for the 
-IMSCHM benchmark platform. The simulation implements a physics-based 
-multi-domain industrial system model that generates sensor data with 
-verifiable ground-truth causal relationships...
-
-## 1. Multi-System Simulation Architecture
-
-### 1.1 Five-Domain Physical Model
-
-The simulator models five interconnected industrial subsystems:
-
-| Domain | State Variables | Engineering Units |
-|--------|-----------------|-------------------|
-| Hydraulic | pressure, flow_rate, temperature, viscosity, contamination | bar, L/min, °C, cSt, % |
-| Mechanical | vibration_x/y/z, torque, speed, wear_level | mm/s, Nm, rpm, % |
-| Thermal | ambient_temp, system_temp, heat_dissipation, gradient | °C, W, °C/m |
-| Electrical | voltage, current, power, frequency, phase_shift | V, A, W, Hz, ° |
-| Cutting | tool_wear, cutting_force, surface_quality, chip_formation | %, N, Ra, - |
-
-### 1.2 Cross-Domain Causal Equations
-
-The following physics-grounded equations govern cross-domain interactions:
-
-**Hydraulic-Mechanical Bridge:**
-\`\`\`
-Torque = 100 + (Pressure - 150) × 0.5 + ε
-\`\`\`
-Physical Basis: Pascal's Law (F = P × A), Torque = Force × radius
-
-**Electrical-Thermal Bridge:**
-\`\`\`
-Heat = Power × 0.02 (Joule heating)
-System_Temp = Ambient + Heat + Friction_Heat - Dissipation
-\`\`\`
-Physical Basis: Joule's First Law (Q = I²Rt)
-
-... [continues with all physics equations from PhysicsSimulator]
-
-## 2. Data Generation Pipeline
-
-### 2.1 Sensor Signal Generation
-
-The system generates 6-channel sensor signals:
-
-**CWRU-Style Channels (DE, FE, BA):**
-- Simulated accelerometer signals based on CWRU bearing dataset characteristics
-- RMS values calibrated to match real-world measurements (0.1-0.8 mm/s range)
-- Includes characteristic fault frequencies (BPFO, BPFI patterns)
-
-**Environmental Channels (Temperature, Pressure, Humidity):**
-- Physics-driven evolution based on thermal equations
-- Realistic noise injection (CV: 2-15%)
-
-### 2.2 Rock Image Integration
-
-2D rock images from TBM industrial field operations are integrated:
-- Geological texture features (hardness, fracture patterns)
-- Abrasive content indicators
-- VGG backbone extracts 256-dim embeddings
-
-### 2.3 Causal Metadata Injection
-
-Structured intervention and confounder data:
-- Intervention types: pressure_spike, speed_adjustment, load_change, thermal_shock
-- Confounders: ambient temperature, working load
-- Instrumental variables for IV estimation
-
-## 3. Rationality for Causal AI Benchmarking
-
-### 3.1 Why Synthetic Data with Known Ground Truth?
-
-**The Fundamental Problem:** In real industrial data, true causal relationships 
-are unknown. Discovered "causal" links may be:
-- Spurious correlations from confounders
-- Reverse causation
-- Mediated effects misidentified as direct
-
-**The Solution:** Synthetic data with physics-grounded ground truth enables:
-- Quantitative accuracy measurement of causal discovery algorithms
-- Direct comparison against known DAG structure
-- Controlled injection of confounders and interventions
-
-### 3.2 Non-Trivial Causality Guarantee
-
-The simulation is NOT a "cheat-sheet" because:
-
-1. **Stochastic Noise:** All variables include 5% Gaussian noise preventing 
-   deterministic reverse-engineering
-
-2. **Time Lags:** Cross-domain effects have realistic propagation delays
-   (1-10 steps based on physical inertia)
-
-3. **Hidden Confounders:** Ambient temperature affects multiple domains 
-   without direct measurement
-
-4. **Non-Linear Thresholds:** Saturation and threshold behaviors create 
-   complex patterns
-
-5. **Multi-Path Mediation:** Effects propagate through multiple intermediate 
-   variables
-
-### 3.3 Verification Suite Evidence
-
-The CausalDatasetVerifier runs 6 tests proving non-trivial structure:
-
-| Test | Purpose | Evidence |
-|------|---------|----------|
-| Non-Trivial Discovery | Direct > mediated correlation | Causal paths show 20-40% stronger correlation |
-| Time Lag Verification | Thermal inertia delays | Best correlation at lag 3-5 steps |
-| Noise Realism | Industrial-grade CV | 3-12% coefficient of variation |
-| Confounder Challenge | Spurious < causal | Ambient→X paths dominate spurious links |
-| Intervention Response | Slope matches physics | Pressure→Torque slope within 30% of expected |
-| CWRU Comparison | Realistic RMS range | Simulated RMS matches CWRU: 0.1-0.8 mm/s |
-
-## 4. Failure Mode Injection
-
-### 4.1 Five Failure Scenarios
-
-| ID | Name | Domain | Progression | Causal Chain |
-|----|------|--------|-------------|--------------|
-| hydraulic_leak | Hydraulic System Leak | hydraulic | gradual | P→F, P→T (cross-domain) |
-| bearing_wear | Bearing Wear | mechanical | gradual | W→Vx, W→Vy, Vx→SQ |
-| thermal_overload | Thermal Overload | thermal | sudden | E_P→T, T→μ, T→V |
-| voltage_fluctuation | Voltage Fluctuation | electrical | intermittent | V→P, V→S |
-| tool_wear_excessive | Excessive Tool Wear | cutting | gradual | TW→CF, CF→T, TW→SQ |
-
-### 4.2 Progression Models
-
-\`\`\`
-Gradual: severity += 0.001 × Δt × (1 + severity)  // Exponential growth
-Sudden:  severity += 0.0005 × Δt (before threshold), 0.1 × Δt (after)
-Intermittent: severity += sin(t × 0.001) × 0.1 + 0.0002 × Δt
-\`\`\`
-
-## 5. Causal Graph Ground Truth
-
-### 5.1 Known DAG Structure
-
-\`\`\`
-                    Electrical
-                        │
-                        ▼
-Hydraulic ◄───────► Mechanical
-     │                  │
-     ▼                  ▼
-  Thermal ◄────────► Cutting
-     │
-     ▼
-[Ambient Confounder]
-\`\`\`
-
-### 5.2 Edge Weights and Lags
-
-| Cause | Effect | Weight | Lag (steps) | Physical Basis |
-|-------|--------|--------|-------------|----------------|
-| Pressure | Torque | 0.5 | 1 | Pascal's Law |
-| Torque | Vibration | 0.6 | 2 | Rotordynamics |
-| Power | Temperature | 0.8 | 5 | Joule heating |
-| Temperature | Viscosity | -0.7 | 3 | Arrhenius |
-| Vibration | Surface Quality | -0.4 | 2 | Dynamic machining |
-| Tool Wear | Cutting Force | 0.6 | 1 | Taylor equation |
-
-## 6. Conclusion
-
-The IMSCHM dataset simulation provides a rigorous benchmark for causal AI 
-algorithms by implementing:
-
-1. **Physics-Grounded Causality:** Equations derived from engineering first principles
-2. **Multi-System Complexity:** 5 domains with 25+ state variables
-3. **Realistic Challenges:** Noise, lags, confounders, non-linearities
-4. **Verifiable Ground Truth:** Known DAG for algorithm accuracy measurement
-5. **Industrial Relevance:** CWRU-calibrated, TBM-contextualized
-
-This enables fair comparison of causal discovery and inference methods 
-without the ambiguity inherent in purely observational industrial data.
-
----
-
-## References
-
-1. Merritt, H.E. (1967). Hydraulic Control Systems. Wiley.
-2. Bird, R.B. et al. (2007). Transport Phenomena. Wiley.
-3. Randall, R.B. (2011). Vibration-based Condition Monitoring.
-4. CWRU Bearing Data Center. Case Western Reserve University.
-5. Pearl, J. (2009). Causality: Models, Reasoning, and Inference.
-
----
-
-*Report generated by IMSCHM v1.0 - Dataset Simulation Methodology Documentation*
-`;
-
-  return report;
-}
-```
-
-Add download method:
-
-```typescript
-downloadDatasetSimulationReport(): void {
-  const markdown = this.generateDatasetSimulationReport();
-  const filename = `IMSCHM-Dataset-Simulation-Report-${new Date().toISOString().split('T')[0]}.md`;
-  this.downloadFile(markdown, filename, 'text/markdown');
-}
-```
-
----
+**`downloadThesisChapterReport(): void`** - Triggers browser download of the `.md` file.
 
 ### File: `src/components/OperationResultsPanel.tsx`
 
-Add new button in the action bar:
+Add a new button alongside existing report buttons:
 
-```typescript
-<Button
-  variant="outline"
-  size="sm"
-  onClick={() => resultsStorage.downloadDatasetSimulationReport()}
-  className="text-xs bg-emerald-50 hover:bg-emerald-100 border-emerald-300"
->
-  <Database className="h-4 w-4 mr-1 text-emerald-600" />
-  Generate Dataset Report
-</Button>
-```
+- Label: "Generate Thesis Chapter" (with translations)
+- Icon: `GraduationCap` from lucide-react
+- Color theme: Indigo (to distinguish from purple Example&Case and emerald Dataset)
+- onClick: calls `resultsStorage.downloadThesisChapterReport()`
+
+### File: `src/contexts/LanguageContext.tsx`
+
+Add translations for the button label in English, Chinese, Japanese, and Spanish.
 
 ---
 
-## Report Structure Summary
+## Key Content Sections in Detail
 
-The generated report will have these sections:
+### X.2.1 CVGG Architecture Analysis (from code)
+
+The report will document the actual architecture:
+- Image VGG Backbone: 5 blocks (64->128->256->512->512 filters), GAP, 256-dim embedding
+- Scalogram VGG Backbone: Same architecture, 6-channel input for CWRU signals
+- Metadata Encoder: 37-dim input -> 128 -> 64 -> 64-dim (tanh) output, bypassing conv
+- Classification Head: 576-dim -> 512 -> 256 -> 10 classes (softmax)
+- Causal Head: 512+64 concat -> 256 -> 128 -> 4 outputs (ATE, CATE, DE, IE) + 32-dim confounder proxy
+
+### X.4.1 Normal vs Fault Comparison Table (from Examples)
 
 ```text
-1. Abstract
-2. Multi-System Simulation Architecture
-   2.1 Five-Domain Physical Model (table of 25+ variables)
-   2.2 Cross-Domain Causal Equations (6 physics formulations)
-3. Data Generation Pipeline
-   3.1 Sensor Signal Generation (CWRU-style)
-   3.2 Rock Image Integration (TBM field data)
-   3.3 Causal Metadata Injection
-4. Rationality for Causal AI Benchmarking
-   4.1 Why Synthetic Data with Ground Truth
-   4.2 Non-Trivial Causality Guarantee (5 mechanisms)
-   4.3 Verification Suite Evidence (6-test table)
-5. Failure Mode Injection
-   5.1 Five Failure Scenarios (table)
-   5.2 Progression Models (equations)
-6. Causal Graph Ground Truth
-   6.1 Known DAG Structure (ASCII diagram)
-   6.2 Edge Weights and Lags (table)
-7. Conclusion
-8. References
+| Metric          | Normal     | Fault      | Amplification |
+|-----------------|------------|------------|---------------|
+| ATE             | 0.1823     | 0.4231     | 2.32x         |
+| CATE            | 0.2156     | 0.5872     | 2.72x         |
+| Direct Effect   | 0.1347     | 0.3918     | 2.91x         |
+| Indirect Effect | 0.0476     | 0.1954     | 4.11x         |
+| Confidence      | 0.8547     | 0.9123     | +6.7%         |
+| p-Value         | 0.0023     | 0.0001     | 23x           |
+| DE/Total Ratio  | 73.9%      | 66.7%      | -7.2%         |
+```
+
+### X.4.5 Case Study Summary Table (from Cases)
+
+```text
+| Case | Scenario              | Pearl Level | ATE Range   | Risk    | Decision              |
+|------|-----------------------|-------------|-------------|---------|----------------------|
+| 1    | Normal Baseline       | L1          | 0.05-0.12   | LOW     | Continue operation   |
+| 2    | Bearing Wear          | L3          | 0.35-0.50   | MED-HI  | Schedule inspection  |
+| 3    | Thermal Overload      | L2          | 0.55-0.75   | CRIT    | Emergency stop       |
+| 4    | Hydraulic Leak        | L2+L3       | 0.25-0.45   | MEDIUM  | Root cause repair    |
+| 5    | Multi-Fault           | L1+L2+L3    | 0.45-0.85   | HIGH    | Prioritized response |
 ```
 
 ---
 
 ## Implementation Steps
 
-1. **Add `generateDatasetSimulationReport()` to `resultsStorage.ts`**
-   - Comprehensive Markdown generation with all physics equations
-   - Include verification suite integration
-   - Reference `PhysicsSimulator` and `FailureSimulator` data
+1. **Add `generateThesisChapterReport()` to `resultsStorage.ts`**
+   - Import example data from `exampleGenerator.ts`
+   - Import physics groundings from `causalDatasetVerification.ts`
+   - Build comprehensive Markdown with all sections
+   - Include tables, code blocks, and ASCII diagrams
 
-2. **Add `downloadDatasetSimulationReport()` method**
-   - File download trigger
+2. **Add `downloadThesisChapterReport()` method**
+   - File download with timestamped filename
 
 3. **Add UI button in `OperationResultsPanel.tsx`**
+   - GraduationCap icon with indigo color theme
    - Place alongside existing report buttons
-   - Use Database icon with emerald color theme
 
-4. **Add translation keys for button label**
-   - English, Chinese, Japanese, Spanish support
+4. **Add translations in `LanguageContext.tsx`**
+   - English, Chinese, Japanese, Spanish for button label
 
 ---
 
@@ -338,21 +191,21 @@ The generated report will have these sections:
 
 | File | Changes |
 |------|---------|
-| `src/utils/resultsStorage.ts` | Add `generateDatasetSimulationReport()` and `downloadDatasetSimulationReport()` methods |
-| `src/components/OperationResultsPanel.tsx` | Add new button with Database icon |
-| `src/contexts/LanguageContext.tsx` | Add translation for "Generate Dataset Report" label |
+| `src/utils/resultsStorage.ts` | Add `generateThesisChapterReport()` and `downloadThesisChapterReport()` methods |
+| `src/components/OperationResultsPanel.tsx` | Add "Generate Thesis Chapter" button with GraduationCap icon |
+| `src/contexts/LanguageContext.tsx` | Add translations for new button label |
 
 ---
 
 ## Expected Outcome
 
-After implementation, users can click "Generate Dataset Report" in the Results panel to download a comprehensive Markdown document that:
+Users click "Generate Thesis Chapter" in the Results panel to download a comprehensive academic Markdown document that:
 
-1. Documents the complete 5-domain physics simulation architecture
-2. Lists all 25+ state variables with engineering units
-3. Presents the 6 cross-domain causal equations with physical basis
-4. Explains why synthetic data with known ground truth is essential for causal AI
-5. Provides verification evidence from the 6-test suite
-6. Documents the 5 failure modes and progression models
-7. Presents the ground-truth DAG with edge weights and lags
-8. Includes academic references for all physics formulations
+1. Presents CVGG and IMSCHM algorithmic innovations in thesis-ready structure
+2. Analyzes Normal vs Fault CVGG outputs with concrete float values from Examples
+3. Documents do-calculus and counterfactual results with specific intervention outcomes
+4. Summarizes all 5 operation cases with ATE ranges and decision outcomes
+5. Includes dataset verification evidence and physics equation grounding
+6. Emphasizes what is algorithmically innovative about the approach
+7. Provides quantitative comparison tables suitable for academic publication
+
