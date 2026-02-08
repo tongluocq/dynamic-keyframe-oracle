@@ -54,6 +54,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   FileDown,
+  GraduationCap,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -156,6 +157,12 @@ const OperationResultsPanel: React.FC = () => {
     storage.downloadDatasetSimulationReport();
   };
 
+  const handleExportThesisChapter = () => {
+    import('@/utils/thesisChapterReport').then(({ downloadThesisChapterReport }) => {
+      downloadThesisChapterReport();
+    });
+  };
+
   const handleClearAll = () => {
     if (confirm('Are you sure you want to clear all saved results? This cannot be undone.')) {
       storage.clearAll();
@@ -250,6 +257,10 @@ const OperationResultsPanel: React.FC = () => {
             <Button variant="default" size="sm" onClick={handleExportDatasetReport} className="bg-emerald-600 hover:bg-emerald-700">
               <Database className="h-4 w-4 mr-2" />
               {t('results.generateDatasetReport') || 'Generate Dataset Report'}
+            </Button>
+            <Button variant="default" size="sm" onClick={handleExportThesisChapter} className="bg-indigo-600 hover:bg-indigo-700">
+              <GraduationCap className="h-4 w-4 mr-2" />
+              {t('results.generateThesisChapter') || 'Generate Thesis Chapter'}
             </Button>
             <Button variant="outline" size="sm" onClick={handleClearAll} className="text-destructive hover:text-destructive">
               <Trash2 className="h-4 w-4 mr-2" />
