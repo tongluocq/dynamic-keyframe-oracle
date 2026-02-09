@@ -158,8 +158,9 @@ const OperationResultsPanel: React.FC = () => {
   };
 
   const handleExportThesisChapter = () => {
+    const currentResults = storage.getResults();
     import('@/utils/thesisChapterReport').then(({ downloadThesisChapterReport }) => {
-      downloadThesisChapterReport();
+      downloadThesisChapterReport(currentResults);
     });
   };
 
