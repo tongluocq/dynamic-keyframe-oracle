@@ -67,6 +67,7 @@ import {
   CounterfactualOperationResult,
   PrescriptiveOperationResult,
 } from '@/utils/resultsStorage';
+import DatasetDemoPanel from '@/components/DatasetDemoPanel';
 
 const operationTypeConfig: Record<OperationType, { icon: React.ReactNode; label: string; color: string }> = {
   cvgg_training: { icon: <Brain className="h-4 w-4" />, label: 'CVGG Training', color: 'text-blue-400' },
@@ -356,6 +357,9 @@ const OperationResultsPanel: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dataset Demo */}
+      <DatasetDemoPanel />
     </div>
   );
 };
