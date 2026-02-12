@@ -158,6 +158,12 @@ const OperationResultsPanel: React.FC = () => {
     storage.downloadDatasetSimulationReport();
   };
 
+  const handleExportEDAReport = () => {
+    import('@/utils/edaReportGenerator').then(({ downloadEDAReport }) => {
+      downloadEDAReport();
+    });
+  };
+
   const handleExportThesisChapter = () => {
     const currentResults = storage.getResults();
     import('@/utils/thesisChapterReport').then(({ downloadThesisChapterReport }) => {
@@ -259,6 +265,10 @@ const OperationResultsPanel: React.FC = () => {
             <Button variant="default" size="sm" onClick={handleExportDatasetReport} className="bg-emerald-600 hover:bg-emerald-700">
               <Database className="h-4 w-4 mr-2" />
               {t('results.generateDatasetReport') || 'Generate Dataset Report'}
+            </Button>
+            <Button variant="default" size="sm" onClick={handleExportEDAReport} className="bg-teal-600 hover:bg-teal-700">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              {t('results.generateEDA') || 'Generate EDA Report'}
             </Button>
             <Button variant="default" size="sm" onClick={handleExportThesisChapter} className="bg-indigo-600 hover:bg-indigo-700">
               <GraduationCap className="h-4 w-4 mr-2" />
