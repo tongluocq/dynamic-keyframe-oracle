@@ -604,6 +604,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateExampleCase': 'Generar Ejemplo&Caso',
     'results.generateDatasetReport': 'Generar Informe Dataset',
     'results.generateThesisChapter': 'Generar Capítulo de Tesis',
+    'results.generateAcademicReport': 'Generar Informe IMSCHM',
     
     // Knowledge Base
     'knowledgeBase.title': 'Base de Conocimiento Causal',
