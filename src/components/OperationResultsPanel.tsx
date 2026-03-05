@@ -171,6 +171,13 @@ const OperationResultsPanel: React.FC = () => {
     });
   };
 
+  const handleExportAcademicReport = () => {
+    const currentResults = storage.getResults();
+    import('@/utils/imschmAcademicReport').then(({ downloadIMSCHMAcademicReport }) => {
+      downloadIMSCHMAcademicReport(currentResults);
+    });
+  };
+
   const handleClearAll = () => {
     if (confirm('Are you sure you want to clear all saved results? This cannot be undone.')) {
       storage.clearAll();
