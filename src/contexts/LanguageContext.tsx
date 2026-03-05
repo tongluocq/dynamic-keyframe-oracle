@@ -50,6 +50,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateExampleCase': 'Generate Example&Case',
     'results.generateDatasetReport': 'Generate Dataset Report',
     'results.generateThesisChapter': 'Generate Thesis Chapter',
+    'results.generateAcademicReport': 'Generate IMSCHM Report',
     
     // Metrics
     'metric.thrust': 'Thrust',
@@ -235,6 +236,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateExampleCase': '例&事例を生成',
     'results.generateDatasetReport': 'データセットレポート生成',
     'results.generateThesisChapter': '論文チャプター生成',
+    'results.generateAcademicReport': 'IMSCHM学術レポート生成',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知識ベース',
@@ -418,6 +420,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateExampleCase': '生成示例&案例',
     'results.generateDatasetReport': '生成数据集报告',
     'results.generateThesisChapter': '生成论文章节',
+    'results.generateAcademicReport': '生成IMSCHM学术报告',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知识库',
@@ -601,6 +604,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateExampleCase': 'Generar Ejemplo&Caso',
     'results.generateDatasetReport': 'Generar Informe Dataset',
     'results.generateThesisChapter': 'Generar Capítulo de Tesis',
+    'results.generateAcademicReport': 'Generar Informe IMSCHM',
     
     // Knowledge Base
     'knowledgeBase.title': 'Base de Conocimiento Causal',
