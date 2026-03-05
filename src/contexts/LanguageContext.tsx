@@ -420,6 +420,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateExampleCase': '生成示例&案例',
     'results.generateDatasetReport': '生成数据集报告',
     'results.generateThesisChapter': '生成论文章节',
+    'results.generateAcademicReport': '生成IMSCHM学术报告',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知识库',
