@@ -236,6 +236,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateExampleCase': '例&事例を生成',
     'results.generateDatasetReport': 'データセットレポート生成',
     'results.generateThesisChapter': '論文チャプター生成',
+    'results.generateAcademicReport': 'IMSCHM学術レポート生成',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知識ベース',
