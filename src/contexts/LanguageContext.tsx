@@ -50,6 +50,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateExampleCase': 'Generate Example&Case',
     'results.generateDatasetReport': 'Generate Dataset Report',
     'results.generateThesisChapter': 'Generate Thesis Chapter',
+    'results.generateAcademicReport': 'Generate IMSCHM Report',
     
     // Metrics
     'metric.thrust': 'Thrust',
