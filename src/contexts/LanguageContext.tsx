@@ -51,6 +51,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateDatasetReport': 'Generate Dataset Report',
     'results.generateThesisChapter': 'Generate Thesis Chapter',
     'results.generateAcademicReport': 'Generate IMSCHM Report',
+    'results.generateComparison': 'CVGG vs IMSCHM',
     
     // Metrics
     'metric.thrust': 'Thrust',
