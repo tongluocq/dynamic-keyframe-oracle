@@ -178,6 +178,13 @@ const OperationResultsPanel: React.FC = () => {
     });
   };
 
+  const handleExportComparisonReport = () => {
+    const currentResults = storage.getResults();
+    import('@/utils/cvggImschmComparisonReport').then(({ downloadCVGGIMSCHMComparisonReport }) => {
+      downloadCVGGIMSCHMComparisonReport(currentResults);
+    });
+  };
+
   const handleClearAll = () => {
     if (confirm('Are you sure you want to clear all saved results? This cannot be undone.')) {
       storage.clearAll();
