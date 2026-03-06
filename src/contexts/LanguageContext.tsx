@@ -423,6 +423,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateDatasetReport': '生成数据集报告',
     'results.generateThesisChapter': '生成论文章节',
     'results.generateAcademicReport': '生成IMSCHM学术报告',
+    'results.generateComparison': 'CVGG与IMSCHM对比',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知识库',
