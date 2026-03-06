@@ -238,6 +238,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateDatasetReport': 'データセットレポート生成',
     'results.generateThesisChapter': '論文チャプター生成',
     'results.generateAcademicReport': 'IMSCHM学術レポート生成',
+    'results.generateComparison': 'CVGG対IMSCHM比較',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知識ベース',
