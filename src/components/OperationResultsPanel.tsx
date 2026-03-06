@@ -178,6 +178,13 @@ const OperationResultsPanel: React.FC = () => {
     });
   };
 
+  const handleExportComparisonReport = () => {
+    const currentResults = storage.getResults();
+    import('@/utils/cvggImschmComparisonReport').then(({ downloadCVGGIMSCHMComparisonReport }) => {
+      downloadCVGGIMSCHMComparisonReport(currentResults);
+    });
+  };
+
   const handleClearAll = () => {
     if (confirm('Are you sure you want to clear all saved results? This cannot be undone.')) {
       storage.clearAll();
@@ -284,6 +291,10 @@ const OperationResultsPanel: React.FC = () => {
             <Button variant="default" size="sm" onClick={handleExportAcademicReport} className="bg-rose-600 hover:bg-rose-700">
               <FileText className="h-4 w-4 mr-2" />
               {t('results.generateAcademicReport') || 'Generate IMSCHM Report'}
+            </Button>
+            <Button variant="default" size="sm" onClick={handleExportComparisonReport} className="bg-amber-600 hover:bg-amber-700">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              {t('results.generateComparison') || 'CVGG vs IMSCHM'}
             </Button>
             <Button variant="outline" size="sm" onClick={handleClearAll} className="text-destructive hover:text-destructive">
               <Trash2 className="h-4 w-4 mr-2" />

@@ -51,6 +51,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateDatasetReport': 'Generate Dataset Report',
     'results.generateThesisChapter': 'Generate Thesis Chapter',
     'results.generateAcademicReport': 'Generate IMSCHM Report',
+    'results.generateComparison': 'CVGG vs IMSCHM',
     
     // Metrics
     'metric.thrust': 'Thrust',
@@ -237,6 +238,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateDatasetReport': 'データセットレポート生成',
     'results.generateThesisChapter': '論文チャプター生成',
     'results.generateAcademicReport': 'IMSCHM学術レポート生成',
+    'results.generateComparison': 'CVGG対IMSCHM比較',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知識ベース',
@@ -421,6 +423,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateDatasetReport': '生成数据集报告',
     'results.generateThesisChapter': '生成论文章节',
     'results.generateAcademicReport': '生成IMSCHM学术报告',
+    'results.generateComparison': 'CVGG与IMSCHM对比',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知识库',
@@ -605,6 +608,7 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateDatasetReport': 'Generar Informe Dataset',
     'results.generateThesisChapter': 'Generar Capítulo de Tesis',
     'results.generateAcademicReport': 'Generar Informe IMSCHM',
+    'results.generateComparison': 'CVGG vs IMSCHM',
     
     // Knowledge Base
     'knowledgeBase.title': 'Base de Conocimiento Causal',
