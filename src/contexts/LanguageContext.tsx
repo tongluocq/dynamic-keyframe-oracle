@@ -624,6 +624,11 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateThesisChapter': 'Generar Capítulo de Tesis',
     'results.generateAcademicReport': 'Generar Informe IMSCHM',
     'results.generateComparison': 'CVGG vs IMSCHM',
+    'results.summary': 'Resumen',
+    'results.pipelinePerformance': 'Rendimiento de Pipeline de Extremo a Extremo',
+    'results.causalComparison': 'Comparación de Efectos Causales',
+    'results.systemHealth': 'Panel de Salud del Sistema',
+    'results.downloadSummary': 'Descargar Resumen de Rendimiento',
     
     // Knowledge Base
     'knowledgeBase.title': 'Base de Conocimiento Causal',

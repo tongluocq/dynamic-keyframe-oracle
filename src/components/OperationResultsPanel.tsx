@@ -829,4 +829,148 @@ const StatisticsView: React.FC<{
   );
 };
 
+// Performance Summary View Component
+const PerformanceSummaryView: React.FC<{ results: StoredResult[] }> = ({ results }) => {
+  const { t } = useLanguage();
+  const summary = useMemo(() => getPerformanceSummary(), [results]);
+
+  const formatTime = (ts: number | null) => {
+    if (!ts) return '--';
+    return new Date(ts).toLocaleTimeString();
+  };
+
+  return (
+    <ScrollArea className="h-[500px] pr-2">
+      <div className="space-y-4">
+        {/* Table 1: Pipeline Performance */}
+        <div>
+          <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
+            <Activity className="h-4 w-4 text-primary" />
+            {t('results.pipelinePerformance') || 'End-to-End Pipeline Performance'}
+          </h4>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Stage</TableHead>
+                <TableHead className="text-xs">Pearl</TableHead>
+                <TableHead className="text-xs">Metric</TableHead>
+                <TableHead className="text-xs">Value</TableHead>
+                <TableHead className="text-xs">Status</TableHead>
+                <TableHead className="text-xs">Time</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {summary.pipelineStages.map((stage) => (
+                <TableRow key={stage.stage} className="h-8">
+                  <TableCell className="py-1 text-xs font-medium">{stage.stage}</TableCell>
+                  <TableCell className="py-1">
+                    <Badge variant="outline" className="text-xs">{stage.pearlLevel}</Badge>
+                  </TableCell>
+                  <TableCell className="py-1 text-xs text-muted-foreground">{stage.keyMetric}</TableCell>
+                  <TableCell className="py-1 text-xs font-mono font-semibold">{stage.value}</TableCell>
+                  <TableCell className="py-1">
+                    {stage.status === 'done' ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30" />
+                    )}
+                  </TableCell>
+                  <TableCell className="py-1 text-xs text-muted-foreground font-mono">
+                    {formatTime(stage.timestamp)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <Separator />
+
+        {/* Table 2: Causal Effects Comparison */}
+        <div>
+          <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            {t('results.causalComparison') || 'Causal Effects Comparison'}
+          </h4>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Metric</TableHead>
+                <TableHead className="text-xs">CVGG Inference</TableHead>
+                <TableHead className="text-xs">Intervention</TableHead>
+                <TableHead className="text-xs">Counterfactual</TableHead>
+                <TableHead className="text-xs">Trend</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {summary.causalEffects.map((row) => (
+                <TableRow key={row.metric} className="h-8">
+                  <TableCell className="py-1 text-xs font-medium">{row.metric}</TableCell>
+                  <TableCell className="py-1 text-xs font-mono">{row.cvggInference}</TableCell>
+                  <TableCell className="py-1 text-xs font-mono">{row.intervention}</TableCell>
+                  <TableCell className="py-1 text-xs font-mono">{row.counterfactual}</TableCell>
+                  <TableCell className="py-1 text-xs">
+                    <Badge variant={row.trend.includes('Decreasing') ? 'default' : row.trend.includes('Increasing') ? 'destructive' : 'outline'} className="text-xs">
+                      {row.trend}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <Separator />
+
+        {/* Table 3: System Health KPIs */}
+        <div>
+          <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
+            <Brain className="h-4 w-4 text-primary" />
+            {t('results.systemHealth') || 'System Health Dashboard'}
+          </h4>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-muted/30 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-primary">{summary.systemHealth.totalOperations}</div>
+              <div className="text-xs text-muted-foreground">Total Ops</div>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-primary">{summary.systemHealth.pipelineCompletion}</div>
+              <div className="text-xs text-muted-foreground">Pipeline</div>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-primary">{summary.systemHealth.latestHealthScore}</div>
+              <div className="text-xs text-muted-foreground">Health</div>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3 text-center">
+              <div className={cn("text-lg font-bold", 
+                summary.systemHealth.latestRiskLevel === 'LOW' ? 'text-green-500' :
+                summary.systemHealth.latestRiskLevel === 'MEDIUM' ? 'text-yellow-500' :
+                summary.systemHealth.latestRiskLevel === 'HIGH' || summary.systemHealth.latestRiskLevel === 'CRITICAL' ? 'text-red-500' :
+                'text-muted-foreground'
+              )}>
+                {summary.systemHealth.latestRiskLevel}
+              </div>
+              <div className="text-xs text-muted-foreground">Risk Level</div>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold font-mono">{summary.systemHealth.avgATE}</div>
+              <div className="text-xs text-muted-foreground">Avg ATE</div>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold font-mono">{summary.systemHealth.avgConfidence}</div>
+              <div className="text-xs text-muted-foreground">Avg Confidence</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Download button */}
+        <Button variant="outline" size="sm" className="w-full" onClick={() => downloadPerformanceSummary()}>
+          <FileDown className="h-4 w-4 mr-2" />
+          {t('results.downloadSummary') || 'Download Performance Summary'}
+        </Button>
+      </div>
+    </ScrollArea>
+  );
+};
+
 export default OperationResultsPanel;
