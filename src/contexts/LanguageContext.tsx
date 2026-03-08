@@ -244,6 +244,11 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateThesisChapter': '論文チャプター生成',
     'results.generateAcademicReport': 'IMSCHM学術レポート生成',
     'results.generateComparison': 'CVGG対IMSCHM比較',
+    'results.summary': 'サマリー',
+    'results.pipelinePerformance': 'エンドツーエンドパイプライン性能',
+    'results.causalComparison': '因果効果比較',
+    'results.systemHealth': 'システム健全性ダッシュボード',
+    'results.downloadSummary': '性能サマリーをダウンロード',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知識ベース',
