@@ -66,6 +66,9 @@ import {
   InterventionOperationResult,
   CounterfactualOperationResult,
   PrescriptiveOperationResult,
+  getPerformanceSummary,
+  downloadPerformanceSummary,
+  PerformanceSummary,
 } from '@/utils/resultsStorage';
 import DatasetDemoPanel from '@/components/DatasetDemoPanel';
 
