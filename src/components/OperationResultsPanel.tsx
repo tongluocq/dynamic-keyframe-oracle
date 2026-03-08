@@ -328,7 +328,9 @@ const OperationResultsPanel: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {activeTab === 'list' ? (
+            {activeTab === 'summary' ? (
+              <PerformanceSummaryView results={results} />
+            ) : activeTab === 'list' ? (
               <ScrollArea className="h-[500px] pr-4">
                 {filteredResults.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
