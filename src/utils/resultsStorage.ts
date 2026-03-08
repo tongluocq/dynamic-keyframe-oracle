@@ -1677,6 +1677,16 @@ export function getPerformanceSummary(): PerformanceSummary {
   const storage = getResultsStorage();
   const results = storage.getResults();
 
+  // Safe number formatter - prevents NaN display
+  const safeFixed = (val: any, digits: number = 4): string => {
+    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val)) return '--';
+    return val.toFixed(digits);
+  };
+  const safePct = (val: any, digits: number = 1): string => {
+    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val)) return '--';
+    return `${(val * 100).toFixed(digits)}%`;
+  };
+
   // Helper: get latest result of a type
   const latest = (type: OperationType): StoredResult | undefined =>
     results.find(r => r.type === type);
@@ -1688,12 +1698,23 @@ export function getPerformanceSummary(): PerformanceSummary {
   const counterfactualResult = latest('counterfactual') as CounterfactualOperationResult | undefined;
   const prescriptiveResult = latest('prescriptive') as PrescriptiveOperationResult | undefined;
 
+  // Safe deep access helpers
+  const infATE = inferenceResult?.data?.causalEffects?.ATE;
+  const intRiskDelta = interventionResult?.data?.riskAssessment?.riskDelta;
+  const intTotalEffect = interventionResult?.data?.causalEffects?.totalEffect;
+  const intRiskPost = interventionResult?.data?.riskAssessment?.postInterventionRisk;
+  const intRiskPre = interventionResult?.data?.riskAssessment?.preInterventionRisk;
+  const cfEffect = counterfactualResult?.data?.causalEffect;
+  const cfConfidence = counterfactualResult?.data?.confidence;
+  const infConfidence = inferenceResult?.data?.classification?.confidence;
+  const infAnomaly = inferenceResult?.data?.anomalyScore;
+
   const pipelineStages: PipelineStageResult[] = [
     {
       stage: 'CVGG Training',
       pearlLevel: '--',
       keyMetric: 'Accuracy',
-      value: trainingResult ? `${(trainingResult.data.finalAccuracy * 100).toFixed(1)}%` : '--',
+      value: trainingResult?.data?.finalAccuracy != null ? safePct(trainingResult.data.finalAccuracy) : '--',
       status: trainingResult ? 'done' : 'not_run',
       timestamp: trainingResult?.timestamp || null,
     },
@@ -1701,7 +1722,7 @@ export function getPerformanceSummary(): PerformanceSummary {
       stage: 'CVGG Inference',
       pearlLevel: 'L1',
       keyMetric: 'ATE',
-      value: inferenceResult ? inferenceResult.data.causalEffects.ATE.toFixed(4) : '--',
+      value: infATE != null ? safeFixed(infATE) : '--',
       status: inferenceResult ? 'done' : 'not_run',
       timestamp: inferenceResult?.timestamp || null,
     },
@@ -1709,9 +1730,7 @@ export function getPerformanceSummary(): PerformanceSummary {
       stage: 'do() Intervention',
       pearlLevel: 'L2',
       keyMetric: 'Risk Reduction',
-      value: interventionResult
-        ? `${(interventionResult.data.riskAssessment.riskDelta * 100).toFixed(1)}%`
-        : '--',
+      value: intRiskDelta != null ? `${safeFixed(intRiskDelta * 100, 1)}%` : '--',
       status: interventionResult ? 'done' : 'not_run',
       timestamp: interventionResult?.timestamp || null,
     },
@@ -1719,9 +1738,7 @@ export function getPerformanceSummary(): PerformanceSummary {
       stage: 'Counterfactual',
       pearlLevel: 'L3',
       keyMetric: 'Causal Effect',
-      value: counterfactualResult
-        ? `${(counterfactualResult.data.causalEffect * 100).toFixed(1)}%`
-        : '--',
+      value: cfEffect != null ? `${safeFixed(cfEffect * 100, 1)}%` : '--',
       status: counterfactualResult ? 'done' : 'not_run',
       timestamp: counterfactualResult?.timestamp || null,
     },
@@ -1729,8 +1746,8 @@ export function getPerformanceSummary(): PerformanceSummary {
       stage: 'Prescriptive AI',
       pearlLevel: 'L1+L2+L3',
       keyMetric: 'Health Score',
-      value: prescriptiveResult
-        ? `${prescriptiveResult.data.systemHealthScore.toFixed(0)}/100`
+      value: prescriptiveResult?.data?.systemHealthScore != null
+        ? `${safeFixed(prescriptiveResult.data.systemHealthScore, 0)}/100`
         : '--',
       status: prescriptiveResult ? 'done' : 'not_run',
       timestamp: prescriptiveResult?.timestamp || null,
@@ -1738,13 +1755,8 @@ export function getPerformanceSummary(): PerformanceSummary {
   ];
 
   // --- Table 2: Causal Effects Comparison ---
-  const infATE = inferenceResult?.data.causalEffects.ATE;
-  const intRiskPost = interventionResult?.data.riskAssessment.postInterventionRisk;
-  const intRiskPre = interventionResult?.data.riskAssessment.preInterventionRisk;
-  const cfEffect = counterfactualResult?.data.causalEffect;
-
-  const getTrend = (vals: (number | undefined)[]): string => {
-    const defined = vals.filter((v): v is number => v !== undefined);
+  const getTrend = (vals: (number | undefined | null)[]): string => {
+    const defined = vals.filter((v): v is number => v != null && typeof v === 'number' && !isNaN(v));
     if (defined.length < 2) return '--';
     const last = defined[defined.length - 1];
     const first = defined[0];
@@ -1756,41 +1768,26 @@ export function getPerformanceSummary(): PerformanceSummary {
   const causalEffects: CausalEffectRow[] = [
     {
       metric: 'ATE',
-      cvggInference: infATE !== undefined ? infATE.toFixed(4) : '--',
-      intervention: interventionResult
-        ? `${(interventionResult.data.causalEffects.totalEffect).toFixed(4)}`
-        : '--',
-      counterfactual: cfEffect !== undefined ? cfEffect.toFixed(4) : '--',
-      trend: getTrend([infATE, interventionResult?.data.causalEffects.totalEffect, cfEffect]),
+      cvggInference: infATE != null ? safeFixed(infATE) : '--',
+      intervention: intTotalEffect != null ? safeFixed(intTotalEffect) : '--',
+      counterfactual: cfEffect != null ? safeFixed(cfEffect) : '--',
+      trend: getTrend([infATE, intTotalEffect, cfEffect]),
     },
     {
       metric: 'Risk Level',
-      cvggInference: inferenceResult
-        ? `${(inferenceResult.data.anomalyScore * 100).toFixed(1)}%`
-        : '--',
-      intervention: intRiskPost !== undefined ? `${(intRiskPost * 100).toFixed(1)}% (post)` : '--',
-      counterfactual: counterfactualResult
-        ? counterfactualResult.data.riskChange
-        : '--',
-      trend: getTrend([
-        inferenceResult?.data.anomalyScore,
-        intRiskPost,
-        counterfactualResult?.data.counterfactualOutcome,
-      ]),
+      cvggInference: infAnomaly != null ? safePct(infAnomaly) : '--',
+      intervention: intRiskPost != null ? `${safePct(intRiskPost)} (post)` : '--',
+      counterfactual: counterfactualResult?.data?.riskChange || '--',
+      trend: getTrend([infAnomaly, intRiskPost, counterfactualResult?.data?.counterfactualOutcome]),
     },
     {
       metric: 'Confidence',
-      cvggInference: inferenceResult
-        ? `${(inferenceResult.data.classification.confidence * 100).toFixed(1)}%`
+      cvggInference: infConfidence != null ? safePct(infConfidence) : '--',
+      intervention: intRiskPre != null && interventionResult?.data?.riskAssessment?.riskDelta != null
+        ? safePct(1 - Math.abs(interventionResult.data.riskAssessment.riskDelta))
         : '--',
-      intervention: intRiskPre !== undefined ? `${((1 - Math.abs(interventionResult!.data.riskAssessment.riskDelta)) * 100).toFixed(1)}%` : '--',
-      counterfactual: counterfactualResult
-        ? `${(counterfactualResult.data.confidence * 100).toFixed(1)}%`
-        : '--',
-      trend: getTrend([
-        inferenceResult?.data.classification.confidence,
-        counterfactualResult?.data.confidence,
-      ]),
+      counterfactual: cfConfidence != null ? safePct(cfConfidence) : '--',
+      trend: getTrend([infConfidence, cfConfidence]),
     },
   ];
 
@@ -1798,18 +1795,20 @@ export function getPerformanceSummary(): PerformanceSummary {
   const completedStages = pipelineStages.filter(s => s.status === 'done').length;
   const allATEs = results
     .filter(r => r.type === 'cvgg_inference')
-    .map(r => (r as CVGGInferenceResult).data.causalEffects.ATE);
+    .map(r => (r as CVGGInferenceResult).data?.causalEffects?.ATE)
+    .filter((v): v is number => v != null && !isNaN(v));
   const allConf = results
     .filter(r => r.type === 'cvgg_inference')
-    .map(r => (r as CVGGInferenceResult).data.classification.confidence);
+    .map(r => (r as CVGGInferenceResult).data?.classification?.confidence)
+    .filter((v): v is number => v != null && !isNaN(v));
 
   const systemHealth: SystemHealthKPI = {
     totalOperations: results.length,
     pipelineCompletion: `${completedStages}/5`,
-    latestHealthScore: prescriptiveResult
-      ? `${prescriptiveResult.data.systemHealthScore.toFixed(0)}/100`
+    latestHealthScore: prescriptiveResult?.data?.systemHealthScore != null
+      ? `${safeFixed(prescriptiveResult.data.systemHealthScore, 0)}/100`
       : '--',
-    latestRiskLevel: prescriptiveResult
+    latestRiskLevel: prescriptiveResult?.data?.riskLevel
       ? prescriptiveResult.data.riskLevel.toUpperCase()
       : '--',
     avgATE: allATEs.length > 0
