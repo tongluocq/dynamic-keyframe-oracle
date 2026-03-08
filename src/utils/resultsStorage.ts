@@ -1637,6 +1637,242 @@ export function getResultsStorage(): ResultsStorage {
   return storageInstance;
 }
 
+// Performance Summary Types
+export interface PipelineStageResult {
+  stage: string;
+  pearlLevel: string;
+  keyMetric: string;
+  value: string;
+  status: 'done' | 'not_run';
+  timestamp: number | null;
+}
+
+export interface CausalEffectRow {
+  metric: string;
+  cvggInference: string;
+  intervention: string;
+  counterfactual: string;
+  trend: string;
+}
+
+export interface SystemHealthKPI {
+  totalOperations: number;
+  pipelineCompletion: string;
+  latestHealthScore: string;
+  latestRiskLevel: string;
+  avgATE: string;
+  avgConfidence: string;
+}
+
+export interface PerformanceSummary {
+  pipelineStages: PipelineStageResult[];
+  causalEffects: CausalEffectRow[];
+  systemHealth: SystemHealthKPI;
+}
+
+/**
+ * Get integrated performance summary from all stored results
+ */
+export function getPerformanceSummary(): PerformanceSummary {
+  const storage = getResultsStorage();
+  const results = storage.getResults();
+
+  // Helper: get latest result of a type
+  const latest = (type: OperationType): StoredResult | undefined =>
+    results.find(r => r.type === type);
+
+  // --- Table 1: Pipeline Stages ---
+  const trainingResult = latest('cvgg_training') as CVGGTrainingResult | undefined;
+  const inferenceResult = latest('cvgg_inference') as CVGGInferenceResult | undefined;
+  const interventionResult = latest('intervention') as InterventionOperationResult | undefined;
+  const counterfactualResult = latest('counterfactual') as CounterfactualOperationResult | undefined;
+  const prescriptiveResult = latest('prescriptive') as PrescriptiveOperationResult | undefined;
+
+  const pipelineStages: PipelineStageResult[] = [
+    {
+      stage: 'CVGG Training',
+      pearlLevel: '--',
+      keyMetric: 'Accuracy',
+      value: trainingResult ? `${(trainingResult.data.finalAccuracy * 100).toFixed(1)}%` : '--',
+      status: trainingResult ? 'done' : 'not_run',
+      timestamp: trainingResult?.timestamp || null,
+    },
+    {
+      stage: 'CVGG Inference',
+      pearlLevel: 'L1',
+      keyMetric: 'ATE',
+      value: inferenceResult ? inferenceResult.data.causalEffects.ATE.toFixed(4) : '--',
+      status: inferenceResult ? 'done' : 'not_run',
+      timestamp: inferenceResult?.timestamp || null,
+    },
+    {
+      stage: 'do() Intervention',
+      pearlLevel: 'L2',
+      keyMetric: 'Risk Reduction',
+      value: interventionResult
+        ? `${(interventionResult.data.riskAssessment.riskDelta * 100).toFixed(1)}%`
+        : '--',
+      status: interventionResult ? 'done' : 'not_run',
+      timestamp: interventionResult?.timestamp || null,
+    },
+    {
+      stage: 'Counterfactual',
+      pearlLevel: 'L3',
+      keyMetric: 'Causal Effect',
+      value: counterfactualResult
+        ? `${(counterfactualResult.data.causalEffect * 100).toFixed(1)}%`
+        : '--',
+      status: counterfactualResult ? 'done' : 'not_run',
+      timestamp: counterfactualResult?.timestamp || null,
+    },
+    {
+      stage: 'Prescriptive AI',
+      pearlLevel: 'L1+L2+L3',
+      keyMetric: 'Health Score',
+      value: prescriptiveResult
+        ? `${prescriptiveResult.data.systemHealthScore.toFixed(0)}/100`
+        : '--',
+      status: prescriptiveResult ? 'done' : 'not_run',
+      timestamp: prescriptiveResult?.timestamp || null,
+    },
+  ];
+
+  // --- Table 2: Causal Effects Comparison ---
+  const infATE = inferenceResult?.data.causalEffects.ATE;
+  const intRiskPost = interventionResult?.data.riskAssessment.postInterventionRisk;
+  const intRiskPre = interventionResult?.data.riskAssessment.preInterventionRisk;
+  const cfEffect = counterfactualResult?.data.causalEffect;
+
+  const getTrend = (vals: (number | undefined)[]): string => {
+    const defined = vals.filter((v): v is number => v !== undefined);
+    if (defined.length < 2) return '--';
+    const last = defined[defined.length - 1];
+    const first = defined[0];
+    if (last < first - 0.02) return '↓ Decreasing';
+    if (last > first + 0.02) return '↑ Increasing';
+    return '→ Stable';
+  };
+
+  const causalEffects: CausalEffectRow[] = [
+    {
+      metric: 'ATE',
+      cvggInference: infATE !== undefined ? infATE.toFixed(4) : '--',
+      intervention: interventionResult
+        ? `${(interventionResult.data.causalEffects.totalEffect).toFixed(4)}`
+        : '--',
+      counterfactual: cfEffect !== undefined ? cfEffect.toFixed(4) : '--',
+      trend: getTrend([infATE, interventionResult?.data.causalEffects.totalEffect, cfEffect]),
+    },
+    {
+      metric: 'Risk Level',
+      cvggInference: inferenceResult
+        ? `${(inferenceResult.data.anomalyScore * 100).toFixed(1)}%`
+        : '--',
+      intervention: intRiskPost !== undefined ? `${(intRiskPost * 100).toFixed(1)}% (post)` : '--',
+      counterfactual: counterfactualResult
+        ? counterfactualResult.data.riskChange
+        : '--',
+      trend: getTrend([
+        inferenceResult?.data.anomalyScore,
+        intRiskPost,
+        counterfactualResult?.data.counterfactualOutcome,
+      ]),
+    },
+    {
+      metric: 'Confidence',
+      cvggInference: inferenceResult
+        ? `${(inferenceResult.data.classification.confidence * 100).toFixed(1)}%`
+        : '--',
+      intervention: intRiskPre !== undefined ? `${((1 - Math.abs(interventionResult!.data.riskAssessment.riskDelta)) * 100).toFixed(1)}%` : '--',
+      counterfactual: counterfactualResult
+        ? `${(counterfactualResult.data.confidence * 100).toFixed(1)}%`
+        : '--',
+      trend: getTrend([
+        inferenceResult?.data.classification.confidence,
+        counterfactualResult?.data.confidence,
+      ]),
+    },
+  ];
+
+  // --- Table 3: System Health KPI ---
+  const completedStages = pipelineStages.filter(s => s.status === 'done').length;
+  const allATEs = results
+    .filter(r => r.type === 'cvgg_inference')
+    .map(r => (r as CVGGInferenceResult).data.causalEffects.ATE);
+  const allConf = results
+    .filter(r => r.type === 'cvgg_inference')
+    .map(r => (r as CVGGInferenceResult).data.classification.confidence);
+
+  const systemHealth: SystemHealthKPI = {
+    totalOperations: results.length,
+    pipelineCompletion: `${completedStages}/5`,
+    latestHealthScore: prescriptiveResult
+      ? `${prescriptiveResult.data.systemHealthScore.toFixed(0)}/100`
+      : '--',
+    latestRiskLevel: prescriptiveResult
+      ? prescriptiveResult.data.riskLevel.toUpperCase()
+      : '--',
+    avgATE: allATEs.length > 0
+      ? (allATEs.reduce((a, b) => a + b, 0) / allATEs.length).toFixed(4)
+      : '--',
+    avgConfidence: allConf.length > 0
+      ? `${((allConf.reduce((a, b) => a + b, 0) / allConf.length) * 100).toFixed(1)}%`
+      : '--',
+  };
+
+  return { pipelineStages, causalEffects, systemHealth };
+}
+
+/**
+ * Generate performance summary as Markdown for download
+ */
+export function generatePerformanceSummaryMarkdown(): string {
+  const summary = getPerformanceSummary();
+  const now = new Date().toISOString();
+
+  let md = `# IMSCHM Performance Summary\n\n`;
+  md += `Generated: ${now}\n\n`;
+
+  // Table 1
+  md += `## End-to-End Pipeline Performance\n\n`;
+  md += `| Pipeline Stage | Pearl Level | Key Metric | Value | Status | Timestamp |\n`;
+  md += `|---|---|---|---|---|---|\n`;
+  for (const s of summary.pipelineStages) {
+    const ts = s.timestamp ? new Date(s.timestamp).toLocaleTimeString() : '--';
+    md += `| ${s.stage} | ${s.pearlLevel} | ${s.keyMetric} | ${s.value} | ${s.status === 'done' ? '✅ Done' : '⬜ Not Run'} | ${ts} |\n`;
+  }
+
+  // Table 2
+  md += `\n## Causal Effects Comparison\n\n`;
+  md += `| Metric | CVGG Inference | Intervention | Counterfactual | Trend |\n`;
+  md += `|---|---|---|---|---|\n`;
+  for (const r of summary.causalEffects) {
+    md += `| ${r.metric} | ${r.cvggInference} | ${r.intervention} | ${r.counterfactual} | ${r.trend} |\n`;
+  }
+
+  // Table 3
+  md += `\n## System Health Dashboard\n\n`;
+  md += `| KPI | Value |\n`;
+  md += `|---|---|\n`;
+  md += `| Total Operations | ${summary.systemHealth.totalOperations} |\n`;
+  md += `| Pipeline Completion | ${summary.systemHealth.pipelineCompletion} |\n`;
+  md += `| Latest Health Score | ${summary.systemHealth.latestHealthScore} |\n`;
+  md += `| Latest Risk Level | ${summary.systemHealth.latestRiskLevel} |\n`;
+  md += `| Average ATE | ${summary.systemHealth.avgATE} |\n`;
+  md += `| Average Confidence | ${summary.systemHealth.avgConfidence} |\n`;
+
+  return md;
+}
+
+/**
+ * Download performance summary as Markdown
+ */
+export function downloadPerformanceSummary(): void {
+  const md = generatePerformanceSummaryMarkdown();
+  const storage = getResultsStorage();
+  storage.downloadFile(md, `imschm-performance-summary-${new Date().toISOString().split('T')[0]}.md`, 'text/markdown');
+}
+
 /**
  * Helper hook-style function to add results from components
  */

@@ -52,6 +52,11 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateThesisChapter': 'Generate Thesis Chapter',
     'results.generateAcademicReport': 'Generate IMSCHM Report',
     'results.generateComparison': 'CVGG vs IMSCHM',
+    'results.summary': 'Summary',
+    'results.pipelinePerformance': 'End-to-End Pipeline Performance',
+    'results.causalComparison': 'Causal Effects Comparison',
+    'results.systemHealth': 'System Health Dashboard',
+    'results.downloadSummary': 'Download Performance Summary',
     
     // Metrics
     'metric.thrust': 'Thrust',
@@ -239,6 +244,11 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateThesisChapter': '論文チャプター生成',
     'results.generateAcademicReport': 'IMSCHM学術レポート生成',
     'results.generateComparison': 'CVGG対IMSCHM比較',
+    'results.summary': 'サマリー',
+    'results.pipelinePerformance': 'エンドツーエンドパイプライン性能',
+    'results.causalComparison': '因果効果比較',
+    'results.systemHealth': 'システム健全性ダッシュボード',
+    'results.downloadSummary': '性能サマリーをダウンロード',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知識ベース',
@@ -424,6 +434,11 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateThesisChapter': '生成论文章节',
     'results.generateAcademicReport': '生成IMSCHM学术报告',
     'results.generateComparison': 'CVGG与IMSCHM对比',
+    'results.summary': '综合概览',
+    'results.pipelinePerformance': '端到端流水线性能',
+    'results.causalComparison': '因果效应对比',
+    'results.systemHealth': '系统健康仪表盘',
+    'results.downloadSummary': '下载性能摘要',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知识库',
@@ -609,6 +624,11 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateThesisChapter': 'Generar Capítulo de Tesis',
     'results.generateAcademicReport': 'Generar Informe IMSCHM',
     'results.generateComparison': 'CVGG vs IMSCHM',
+    'results.summary': 'Resumen',
+    'results.pipelinePerformance': 'Rendimiento de Pipeline de Extremo a Extremo',
+    'results.causalComparison': 'Comparación de Efectos Causales',
+    'results.systemHealth': 'Panel de Salud del Sistema',
+    'results.downloadSummary': 'Descargar Resumen de Rendimiento',
     
     // Knowledge Base
     'knowledgeBase.title': 'Base de Conocimiento Causal',
