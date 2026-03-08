@@ -317,8 +317,9 @@ const OperationResultsPanel: React.FC = () => {
                 <Activity className="h-4 w-4" />
                 <span>Results ({filteredResults.length})</span>
               </div>
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'list' | 'table' | 'statistics')}>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'summary' | 'list' | 'table' | 'statistics')}>
                 <TabsList className="h-8">
+                  <TabsTrigger value="summary" className="text-xs px-2">{t('results.summary') || 'Summary'}</TabsTrigger>
                   <TabsTrigger value="list" className="text-xs px-2">List</TabsTrigger>
                   <TabsTrigger value="table" className="text-xs px-2">Table</TabsTrigger>
                   <TabsTrigger value="statistics" className="text-xs px-2">Stats</TabsTrigger>
