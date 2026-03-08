@@ -434,6 +434,11 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateThesisChapter': '生成论文章节',
     'results.generateAcademicReport': '生成IMSCHM学术报告',
     'results.generateComparison': 'CVGG与IMSCHM对比',
+    'results.summary': '综合概览',
+    'results.pipelinePerformance': '端到端流水线性能',
+    'results.causalComparison': '因果效应对比',
+    'results.systemHealth': '系统健康仪表盘',
+    'results.downloadSummary': '下载性能摘要',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知识库',
