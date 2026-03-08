@@ -52,6 +52,11 @@ const translations: Record<Language, Record<string, string>> = {
     'results.generateThesisChapter': 'Generate Thesis Chapter',
     'results.generateAcademicReport': 'Generate IMSCHM Report',
     'results.generateComparison': 'CVGG vs IMSCHM',
+    'results.summary': 'Summary',
+    'results.pipelinePerformance': 'End-to-End Pipeline Performance',
+    'results.causalComparison': 'Causal Effects Comparison',
+    'results.systemHealth': 'System Health Dashboard',
+    'results.downloadSummary': 'Download Performance Summary',
     
     // Metrics
     'metric.thrust': 'Thrust',
