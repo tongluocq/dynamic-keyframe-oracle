@@ -259,7 +259,18 @@ export class CounterfactualEngine {
     }
     
     const deltaValue = newValue - currentValue;
-    const relativeDelta = currentValue !== 0 ? deltaValue / currentValue : deltaValue;
+    // Safely compute relativeDelta - avoid division by zero and handle edge cases
+    let relativeDelta: number;
+    if (currentValue !== 0 && isFinite(currentValue)) {
+      relativeDelta = deltaValue / currentValue;
+    } else if (deltaValue !== 0) {
+      // If currentValue is 0, use a reasonable default based on the delta
+      relativeDelta = deltaValue > 0 ? 0.1 : -0.1; // 10% effect estimate
+    } else {
+      relativeDelta = 0;
+    }
+    // Clamp relativeDelta to reasonable bounds
+    relativeDelta = Math.max(-1, Math.min(1, relativeDelta));
     
     // Calculate direct effect
     const directEffect = this.calculateDirectEffect(query.variable, relativeDelta, cvggResult);
