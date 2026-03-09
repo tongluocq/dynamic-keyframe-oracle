@@ -375,6 +375,289 @@ const CausalKnowledgeBasePanel: React.FC<CausalKnowledgeBasePanelProps> = ({
             </div>
           </TabsContent>
 
+          {/* Architecture Tab */}
+          <TabsContent value="architecture" className="space-y-4">
+            <ScrollArea className="h-[500px]">
+              <div className="space-y-6 pr-3">
+
+                {/* CVGG Core Architecture */}
+                <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-primary" />
+                    CVGG Core — Causal VGG Neural Engine
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    The numerical causal engine responsible for estimating ATE, CATE, Direct and Indirect Effects using DAG-constrained loss.
+                  </p>
+
+                  {/* CVGG Architecture Diagram */}
+                  <div className="bg-background/60 border rounded-lg p-3 font-mono text-[10px] leading-relaxed overflow-x-auto">
+                    <pre className="text-muted-foreground whitespace-pre">{`┌──────────────────────────────────────────────────────────────────┐
+│                    CVGG Core Architecture                        │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────┐   ┌─────────────┐   ┌──────────────────┐       │
+│  │ Rock Image  │   │  Signal     │   │ Causal Metadata  │       │
+│  │ (2D input)  │   │ Scalogram   │   │ (T, Z, IV)       │       │
+│  └──────┬──────┘   └──────┬──────┘   └────────┬─────────┘       │
+│         │                 │                    │                  │
+│  ┌──────▼──────┐   ┌──────▼──────┐   ┌────────▼─────────┐       │
+│  │ VGG Backbone│   │ VGG Backbone│   │ Metadata Encoder │       │
+│  │ (Rock)      │   │ (Signal)    │   │ Dense(64→32)     │       │
+│  │ Conv×7 + BN │   │ Conv×7 + BN │   └────────┬─────────┘       │
+│  └──────┬──────┘   └──────┬──────┘            │                  │
+│         │                 │                    │                  │
+│         └────────┬────────┘                    │                  │
+│                  │ Concatenate                 │                  │
+│           ┌──────▼──────┐                      │                  │
+│           │ Fusion Layer│◄─────────────────────┘                  │
+│           │ Dense(256)  │                                        │
+│           └──────┬──────┘                                        │
+│                  │                                                │
+│         ┌────────┴────────┐                                      │
+│         │                 │                                      │
+│  ┌──────▼──────┐   ┌──────▼──────────┐                           │
+│  │Classification│   │ Causal Inference│                          │
+│  │    Head     │   │     Head        │                           │
+│  │ Fault Type  │   │ ATE, CATE,      │                          │
+│  │ Detection   │   │ DE, IE          │                          │
+│  └─────────────┘   └─────────────────┘                           │
+│                                                                  │
+│  Loss = L_class + L_causal + λ·|ATE-(DE+IE)|²                   │
+│                    ▲ DAG Consistency Constraint                   │
+└──────────────────────────────────────────────────────────────────┘`}</pre>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-muted/30 rounded p-2">
+                      <span className="font-medium text-primary">Inputs:</span>
+                      <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-0.5">
+                        <li>CWRU accelerometer (DE, FE, Base)</li>
+                        <li>Environmental (temp, pressure, humidity)</li>
+                        <li>Rock images (geological context)</li>
+                        <li>Causal metadata (T, Z, IV)</li>
+                      </ul>
+                    </div>
+                    <div className="bg-muted/30 rounded p-2">
+                      <span className="font-medium text-primary">Outputs:</span>
+                      <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-0.5">
+                        <li>ATE (Average Treatment Effect)</li>
+                        <li>CATE (Conditional ATE)</li>
+                        <li>Direct Effect (DE)</li>
+                        <li>Indirect Effect (IE)</li>
+                        <li>Fault classification</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* IMSCHM Application Architecture */}
+                <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-chart-1" />
+                    IMSCHM — Industrial Monitoring & Causal Health Management
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Application layer wrapping the CVGG core with simulation, reasoning engines, prescriptive AI, and decision-support dashboard.
+                  </p>
+
+                  {/* IMSCHM Pipeline Diagram */}
+                  <div className="bg-background/60 border rounded-lg p-3 font-mono text-[10px] leading-relaxed overflow-x-auto">
+                    <pre className="text-muted-foreground whitespace-pre">{`┌─────────────────────────────────────────────────────────────────┐
+│                  IMSCHM 8-Stage Pipeline                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ① Physics     ② Failure      ③ Causal        ④ Neural         │
+│  Simulator  →  Injection   →  Discovery    →  Encoder          │
+│  (raw data)    (fault scen.)  (PC/Granger/TE) (feature map)    │
+│                                                                 │
+│  ⑤ CVGG        ⑥ Intervention  ⑦ Prescriptive  ⑧ Visualization│
+│  Inference  →  & Counterfact→  AI Engine    →  & Dashboard     │
+│  (ATE/CATE)    (do-calculus)   (recommends)    (decision)      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Pearl's Ladder of Causation:                                   │
+│  L1 Observation → L2 Intervention → L3 Counterfactual          │
+│                                                                 │
+│  Two-Layer Design:                                              │
+│  ┌─────────────────────┐  ┌──────────────────────────────┐     │
+│  │     CVGG Core       │  │   IMSCHM Application Layer   │     │
+│  │ • Numerical engine  │  │ • Simulation & failure mgmt  │     │
+│  │ • ATE/CATE/DE/IE    │  │ • Counterfactual reasoning   │     │
+│  │ • DAG-constrained   │  │ • Prescriptive decisions     │     │
+│  │ • Classification    │  │ • Dashboard & reporting      │     │
+│  └─────────────────────┘  └──────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────┘`}</pre>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="bg-muted/30 rounded p-2">
+                      <span className="font-medium text-chart-1">5 Domains:</span>
+                      <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-0.5">
+                        <li>Hydraulic</li>
+                        <li>Mechanical</li>
+                        <li>Thermal</li>
+                        <li>Electrical</li>
+                        <li>Cutting</li>
+                      </ul>
+                    </div>
+                    <div className="bg-muted/30 rounded p-2">
+                      <span className="font-medium text-chart-2">Causal Methods:</span>
+                      <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-0.5">
+                        <li>PC Algorithm</li>
+                        <li>Granger Causality</li>
+                        <li>Transfer Entropy</li>
+                        <li>do-calculus</li>
+                      </ul>
+                    </div>
+                    <div className="bg-muted/30 rounded p-2">
+                      <span className="font-medium text-chart-4">Outputs:</span>
+                      <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-0.5">
+                        <li>8 specialized reports</li>
+                        <li>DAG visualizations</li>
+                        <li>Prescriptive actions</li>
+                        <li>Session history</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comparison with Other Causality Projects */}
+                <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <GitBranch className="h-4 w-4 text-chart-2" />
+                    Comparison: CVGG/IMSCHM vs Other Causality Frameworks
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Feature</TableHead>
+                          <TableHead className="text-xs">CVGG/IMSCHM</TableHead>
+                          <TableHead className="text-xs">DoWhy</TableHead>
+                          <TableHead className="text-xs">CausalNex</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {[
+                          ['Deep Learning Core', '✅ Dual VGG + Causal Head', '❌ Statistical only', '⚠️ BN structure learning'],
+                          ['DAG Constraint Loss', '✅ |ATE-(DE+IE)|²', '❌ N/A', '⚠️ NOTEARS penalty'],
+                          ['do-Calculus Engine', '✅ Full L1-L3', '✅ Backdoor/Frontdoor', '❌ Limited'],
+                          ['Counterfactual', '✅ SCM-based', '✅ Linear SCM', '❌ Not supported'],
+                          ['Industrial Domains', '✅ 5-domain multi-sensor', '❌ Generic', '❌ Generic'],
+                          ['Prescriptive AI', '✅ Action recommendation', '❌ Not included', '❌ Not included'],
+                          ['Real-time Monitoring', '✅ Live dashboard', '❌ Offline', '❌ Offline'],
+                          ['Report Generation', '✅ 8 specialized reports', '❌ Manual', '❌ Manual'],
+                        ].map(([feature, imschm, dowhy, causalnex], idx) => (
+                          <TableRow key={idx}>
+                            <TableCell className="text-xs font-medium">{feature}</TableCell>
+                            <TableCell className="text-xs">{imschm}</TableCell>
+                            <TableCell className="text-xs">{dowhy}</TableCell>
+                            <TableCell className="text-xs">{causalnex}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+
+                {/* GitHub Repository File System Guide */}
+                <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <FileCode className="h-4 w-4 text-chart-3" />
+                    GitHub Repository — File System Guide
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Explanation of the project's file organization, categorized by purpose.
+                  </p>
+
+                  {/* Code Files */}
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-semibold text-primary flex items-center gap-1">
+                      <Circle className="h-2 w-2 fill-primary" /> Application Code (src/)
+                    </h5>
+                    <div className="bg-background/60 border rounded p-2 text-xs space-y-1 font-mono">
+                      <div><span className="text-primary">src/components/</span> <span className="text-muted-foreground">— React UI panels (dashboard, CVGG, interventions, etc.)</span></div>
+                      <div><span className="text-primary">src/utils/</span> <span className="text-muted-foreground">— Core engines & algorithms:</span></div>
+                      <div className="pl-4 text-muted-foreground">
+                        <div>enhancedCausalVGG.ts — CVGG neural model (train/infer)</div>
+                        <div>causalInference.ts — PC algorithm, structure learning</div>
+                        <div>causalInterventionEngine.ts — do-calculus intervention</div>
+                        <div>counterfactualEngine.ts — SCM counterfactual queries</div>
+                        <div>prescriptiveAI.ts — Action recommendation engine</div>
+                        <div>physicsSimulator.ts — Multi-domain sensor simulation</div>
+                        <div>failureSimulator.ts — Fault injection scenarios</div>
+                        <div>neuralCausalEncoder.ts — Neural encoder (VGG-inspired)</div>
+                        <div>datasetSimulation.ts — Dataset generation</div>
+                        <div>causalGraphRAG.ts — Graph RAG knowledge store</div>
+                      </div>
+                      <div><span className="text-primary">src/contexts/</span> <span className="text-muted-foreground">— Language context (EN/JA/ZH/ES)</span></div>
+                      <div><span className="text-primary">src/types/</span> <span className="text-muted-foreground">— TypeScript type definitions</span></div>
+                      <div><span className="text-primary">src/hooks/</span> <span className="text-muted-foreground">— Custom React hooks (CVGG orchestration)</span></div>
+                    </div>
+                  </div>
+
+                  {/* Report Files */}
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-semibold text-chart-2 flex items-center gap-1">
+                      <Circle className="h-2 w-2 fill-chart-2" /> Report Generators (src/utils/*Report*.ts)
+                    </h5>
+                    <div className="bg-background/60 border rounded p-2 text-xs space-y-1 font-mono">
+                      <div><span className="text-chart-2">edaReportGenerator.ts</span> <span className="text-muted-foreground">— EDA with causal diagnostics report</span></div>
+                      <div><span className="text-chart-2">cvggImschmComparisonReport.ts</span> <span className="text-muted-foreground">— CVGG vs IMSCHM comparison</span></div>
+                      <div><span className="text-chart-2">imschmAcademicReport.ts</span> <span className="text-muted-foreground">— Full academic paper draft</span></div>
+                      <div><span className="text-chart-2">thesisChapterReport.ts</span> <span className="text-muted-foreground">— Thesis chapter generator</span></div>
+                      <div><span className="text-chart-2">exampleGenerator.ts</span> <span className="text-muted-foreground">— Operation case examples</span></div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Reports are generated on-demand in the browser and downloaded as Markdown files. They are NOT stored permanently in the repo.
+                    </p>
+                  </div>
+
+                  {/* Documentation (Permanent) */}
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-semibold text-chart-4 flex items-center gap-1">
+                      <Circle className="h-2 w-2 fill-chart-4" /> Documentation (Permanent in Repo)
+                    </h5>
+                    <div className="bg-background/60 border rounded p-2 text-xs space-y-1 font-mono">
+                      <div><span className="text-chart-4">NEURAL_CAUSAL_ARCHITECTURE.md</span> <span className="text-muted-foreground">— Neural encoder architecture spec</span></div>
+                      <div><span className="text-chart-4">TECHNICAL_REPORT_IMSCHM.md</span> <span className="text-muted-foreground">— Full technical report</span></div>
+                      <div><span className="text-chart-4">.lovable/plan.md</span> <span className="text-muted-foreground">— Development plan & roadmap</span></div>
+                      <div><span className="text-chart-4">README.md</span> <span className="text-muted-foreground">— Project overview & setup</span></div>
+                    </div>
+                  </div>
+
+                  {/* Session/History Data */}
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-semibold text-chart-1 flex items-center gap-1">
+                      <Circle className="h-2 w-2 fill-chart-1" /> Session & History Data (Runtime Only)
+                    </h5>
+                    <div className="bg-background/60 border rounded p-2 text-xs space-y-1 font-mono">
+                      <div><span className="text-chart-1">resultsStorage.ts</span> <span className="text-muted-foreground">— In-memory session history (lost on reload)</span></div>
+                      <div><span className="text-chart-1">causalGraphRAG.ts</span> <span className="text-muted-foreground">— Knowledge graph (in-memory, exportable)</span></div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Session data lives in browser memory only. Use the Export tab to save knowledge graphs as JSON/Neo4j/GraphML before closing.
+                    </p>
+                  </div>
+
+                  {/* Config Files */}
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <Circle className="h-2 w-2 fill-muted-foreground" /> Configuration & Build
+                    </h5>
+                    <div className="bg-background/60 border rounded p-2 text-xs space-y-1 font-mono">
+                      <div><span className="text-muted-foreground">package.json, tsconfig.json, vite.config.ts</span> — Build config</div>
+                      <div><span className="text-muted-foreground">tailwind.config.ts, postcss.config.js</span> — Styling</div>
+                      <div><span className="text-muted-foreground">components.json</span> — shadcn/ui component registry</div>
+                      <div><span className="text-muted-foreground">index.html</span> — Entry point</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </ScrollArea>
+
           {/* Query Tab */}
           <TabsContent value="query" className="space-y-4">
             <div className="flex gap-2">
