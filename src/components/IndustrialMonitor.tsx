@@ -378,6 +378,10 @@ const IndustrialMonitor = () => {
                 <Save className="h-3 w-3 mr-1" />
                 {t('tab.results') || 'Results'}
               </TabsTrigger>
+              <TabsTrigger value="roadmap" className="text-xs px-2">
+                <Rocket className="h-3 w-3 mr-1" />
+                Roadmap
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           
