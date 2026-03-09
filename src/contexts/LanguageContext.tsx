@@ -443,6 +443,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.causalComparison': '因果效应对比',
     'results.systemHealth': '系统健康仪表盘',
     'results.downloadSummary': '下载性能摘要',
+    'results.workflowGuide': '推荐工作流程',
+    'results.workflowHint': '请按此顺序操作: 启动 → 注入故障 → CVGG训练 → 运行推理 → 执行do()/What-If → 获取建议',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知识库',
