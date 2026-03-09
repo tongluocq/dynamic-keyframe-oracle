@@ -480,6 +480,11 @@ const IndustrialMonitor = () => {
         <OperationResultsPanel />
       )}
 
+      {/* Roadmap Panel - Show when Roadmap mode is active */}
+      {modelMode === 'roadmap' && (
+        <RoadmapPanel />
+      )}
+
       {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
       {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && modelMode !== 'verification' && (
         <CausalVisualizationPanel
