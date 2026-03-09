@@ -829,6 +829,17 @@ const StatisticsView: React.FC<{
   );
 };
 
+// Workflow steps for the guide
+const WORKFLOW_STEPS = [
+  { step: 1, name: 'Start', icon: '▶️', description: 'Start simulation' },
+  { step: 2, name: 'Inject', icon: '⚠️', description: 'Inject failure mode' },
+  { step: 3, name: 'Train', icon: '🧠', description: 'CVGG Training' },
+  { step: 4, name: 'Infer', icon: '📊', description: 'CVGG Inference (L1)' },
+  { step: 5, name: 'do()', icon: '⚡', description: 'Intervention (L2)' },
+  { step: 6, name: 'What-If', icon: '❓', description: 'Counterfactual (L3)' },
+  { step: 7, name: 'Prescribe', icon: '💡', description: 'Prescriptive AI' },
+];
+
 // Performance Summary View Component
 const PerformanceSummaryView: React.FC<{ results: StoredResult[] }> = ({ results }) => {
   const { t } = useLanguage();
@@ -839,9 +850,65 @@ const PerformanceSummaryView: React.FC<{ results: StoredResult[] }> = ({ results
     return new Date(ts).toLocaleTimeString();
   };
 
+  // Determine completed steps based on pipeline stages
+  const completedSteps = useMemo(() => {
+    const completed = new Set<number>();
+    completed.add(1); // Start is always considered done if viewing results
+    summary.pipelineStages.forEach(stage => {
+      if (stage.status === 'done') {
+        if (stage.stage === 'CVGG Training') completed.add(3);
+        if (stage.stage === 'CVGG Inference') completed.add(4);
+        if (stage.stage === 'Intervention') { completed.add(2); completed.add(5); }
+        if (stage.stage === 'Counterfactual') { completed.add(2); completed.add(6); }
+        if (stage.stage === 'Prescriptive') completed.add(7);
+      }
+    });
+    return completed;
+  }, [summary.pipelineStages]);
+
   return (
     <ScrollArea className="h-[500px] pr-2">
       <div className="space-y-4">
+        {/* Workflow Sequence Guide */}
+        <div className="bg-muted/30 rounded-lg p-3">
+          <h4 className="text-xs font-semibold flex items-center gap-2 mb-2 text-muted-foreground">
+            <ChevronRight className="h-3 w-3" />
+            {t('results.workflowGuide') || 'Recommended Workflow Sequence'}
+          </h4>
+          <div className="flex items-center gap-1 overflow-x-auto pb-1">
+            {WORKFLOW_STEPS.map((ws, idx) => (
+              <React.Fragment key={ws.step}>
+                <div 
+                  className={cn(
+                    "flex flex-col items-center min-w-[52px] p-1.5 rounded-md transition-all",
+                    completedSteps.has(ws.step) 
+                      ? "bg-primary/20 border border-primary/40" 
+                      : "bg-background border border-border opacity-60"
+                  )}
+                  title={ws.description}
+                >
+                  <span className="text-sm">{ws.icon}</span>
+                  <span className="text-[10px] font-medium mt-0.5">{ws.name}</span>
+                  {completedSteps.has(ws.step) && (
+                    <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5" />
+                  )}
+                </div>
+                {idx < WORKFLOW_STEPS.length - 1 && (
+                  <ChevronRight className={cn(
+                    "h-3 w-3 flex-shrink-0",
+                    completedSteps.has(ws.step) && completedSteps.has(WORKFLOW_STEPS[idx + 1].step)
+                      ? "text-primary"
+                      : "text-muted-foreground/40"
+                  )} />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2 italic">
+            {t('results.workflowHint') || 'Follow this sequence: Start → Inject Failure → Train CVGG → Run Inference → Execute do()/What-If → Get Recommendations'}
+          </p>
+        </div>
+
         {/* Table 1: Pipeline Performance */}
         <div>
           <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
