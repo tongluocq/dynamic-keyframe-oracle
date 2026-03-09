@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from '@/components/ui/table';
@@ -23,7 +24,8 @@ import {
   Database, Search, Download, RefreshCw, Network, Brain, 
   ArrowRight, FileJson, FileCode, FileText, Trash2, Upload,
   Circle, GitBranch, Activity, Zap, Info, Shield, CheckCircle2, 
-  AlertTriangle, XCircle, ExternalLink, Target, Award, TrendingUp
+  AlertTriangle, XCircle, ExternalLink, Target, Award, TrendingUp,
+  Terminal, Lightbulb
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { 
@@ -37,6 +39,7 @@ import { CausalRelation } from '@/types/industrial';
 import SimpleDAG from './SimpleDAG';
 import { saveOperationResult } from '@/utils/resultsStorage';
 import { useToast } from '@/hooks/use-toast';
+import { getSystemDiagnostics, type DiagnosticEntry, type TrustScore } from '@/utils/systemDiagnostics';
 
 interface CausalKnowledgeBasePanelProps {
   causalGraph?: Map<string, CausalRelation[]>;
