@@ -57,6 +57,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.causalComparison': 'Causal Effects Comparison',
     'results.systemHealth': 'System Health Dashboard',
     'results.downloadSummary': 'Download Performance Summary',
+    'results.workflowGuide': 'Recommended Workflow Sequence',
+    'results.workflowHint': 'Follow this sequence: Start → Inject Failure → Train CVGG → Run Inference → Execute do()/What-If → Get Recommendations',
     
     // Metrics
     'metric.thrust': 'Thrust',
