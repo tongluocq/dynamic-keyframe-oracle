@@ -656,7 +656,8 @@ const CausalKnowledgeBasePanel: React.FC<CausalKnowledgeBasePanelProps> = ({
                 </div>
 
               </div>
-            </ScrollArea>
+             </ScrollArea>
+          </TabsContent>
 
           {/* Query Tab */}
           <TabsContent value="query" className="space-y-4">
