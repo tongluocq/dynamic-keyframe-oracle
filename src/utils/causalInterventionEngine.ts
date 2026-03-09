@@ -177,7 +177,17 @@ export class CausalInterventionEngine {
       newValue = currentValue * (1 + intervention.targetValue / 100);
     }
     
-    const relativeDelta = (newValue - currentValue) / Math.max(currentValue, 0.001);
+    // Safely compute relativeDelta - avoid division by zero
+    let relativeDelta: number;
+    if (currentValue !== 0 && isFinite(currentValue) && !isNaN(currentValue)) {
+      relativeDelta = (newValue - currentValue) / currentValue;
+    } else if (newValue !== currentValue) {
+      relativeDelta = newValue > currentValue ? 0.1 : -0.1; // 10% effect estimate
+    } else {
+      relativeDelta = 0;
+    }
+    // Clamp to reasonable bounds
+    relativeDelta = Math.max(-1, Math.min(1, relativeDelta));
     
     // Compute causal effects using do-calculus
     const coefficients = CAUSAL_COEFFICIENTS[intervention.variable] || {};
