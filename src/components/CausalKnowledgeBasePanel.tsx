@@ -280,14 +280,22 @@ const CausalKnowledgeBasePanel: React.FC<CausalKnowledgeBasePanelProps> = ({
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-7 w-full">
             <TabsTrigger value="overview" className="text-xs">
               <Network className="h-3 w-3 mr-1" />
               Overview
             </TabsTrigger>
+            <TabsTrigger value="trust" className="text-xs">
+              <Shield className="h-3 w-3 mr-1" />
+              Trust
+            </TabsTrigger>
+            <TabsTrigger value="comparison" className="text-xs">
+              <GitBranch className="h-3 w-3 mr-1" />
+              Compare
+            </TabsTrigger>
             <TabsTrigger value="architecture" className="text-xs">
               <Zap className="h-3 w-3 mr-1" />
-              Architecture
+              Arch
             </TabsTrigger>
             <TabsTrigger value="query" className="text-xs">
               <Search className="h-3 w-3 mr-1" />
