@@ -1771,25 +1771,25 @@ export function getPerformanceSummary(): PerformanceSummary {
   const causalEffects: CausalEffectRow[] = [
     {
       metric: 'ATE',
-      cvggInference: infATE != null ? safeFixed(infATE) : '--',
-      intervention: intTotalEffect != null ? safeFixed(intTotalEffect) : '--',
-      counterfactual: cfEffect != null ? safeFixed(cfEffect) : '--',
+      cvggInference: isValidNum(infATE) ? safeFixed(infATE) : '--',
+      intervention: isValidNum(intTotalEffect) ? safeFixed(intTotalEffect) : '--',
+      counterfactual: isValidNum(cfEffect) ? safeFixed(cfEffect) : '--',
       trend: getTrend([infATE, intTotalEffect, cfEffect]),
     },
     {
       metric: 'Risk Level',
-      cvggInference: infAnomaly != null ? safePct(infAnomaly) : '--',
-      intervention: intRiskPost != null ? `${safePct(intRiskPost)} (post)` : '--',
+      cvggInference: isValidNum(infAnomaly) ? safePct(infAnomaly) : '--',
+      intervention: isValidNum(intRiskPost) ? `${safePct(intRiskPost)} (post)` : '--',
       counterfactual: counterfactualResult?.data?.riskChange || '--',
       trend: getTrend([infAnomaly, intRiskPost, counterfactualResult?.data?.counterfactualOutcome]),
     },
     {
       metric: 'Confidence',
-      cvggInference: infConfidence != null ? safePct(infConfidence) : '--',
-      intervention: intRiskPre != null && interventionResult?.data?.riskAssessment?.riskDelta != null
-        ? safePct(1 - Math.abs(interventionResult.data.riskAssessment.riskDelta))
+      cvggInference: isValidNum(infConfidence) ? safePct(infConfidence) : '--',
+      intervention: isValidNum(intRiskPre) && isValidNum(interventionResult?.data?.riskAssessment?.riskDelta)
+        ? safePct(1 - Math.abs(interventionResult!.data.riskAssessment.riskDelta))
         : '--',
-      counterfactual: cfConfidence != null ? safePct(cfConfidence) : '--',
+      counterfactual: isValidNum(cfConfidence) ? safePct(cfConfidence) : '--',
       trend: getTrend([infConfidence, cfConfidence]),
     },
   ];

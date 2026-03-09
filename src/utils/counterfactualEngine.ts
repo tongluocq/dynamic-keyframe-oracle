@@ -384,12 +384,17 @@ export class CounterfactualEngine {
     cvggResult?: InferenceResult
   ): number {
     // Use CVGG ATE if available, otherwise use domain knowledge
-    const baseEffect = cvggResult?.causalEffects.ATE || 0.2;
+    const rawATE = cvggResult?.causalEffects?.ATE;
+    const baseEffect = (rawATE != null && isFinite(rawATE) && !isNaN(rawATE)) ? rawATE : 0.2;
+    
+    // Ensure relativeDelta is valid
+    const safeRelativeDelta = (isFinite(relativeDelta) && !isNaN(relativeDelta)) ? relativeDelta : 0;
     
     // Scale by intervention magnitude
-    const scaledEffect = baseEffect * relativeDelta;
+    const scaledEffect = baseEffect * safeRelativeDelta;
     
-    return scaledEffect;
+    // Return clamped value to prevent extreme results
+    return Math.max(-1, Math.min(1, scaledEffect));
   }
 
   private calculateIndirectEffects(
