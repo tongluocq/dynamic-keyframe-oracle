@@ -22,7 +22,8 @@ import {
 import { 
   Database, Search, Download, RefreshCw, Network, Brain, 
   ArrowRight, FileJson, FileCode, FileText, Trash2, Upload,
-  Circle, GitBranch, Activity, Zap, Info
+  Circle, GitBranch, Activity, Zap, Info, Shield, CheckCircle2, 
+  AlertTriangle, XCircle, ExternalLink, Target, Award, TrendingUp
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { 
