@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield, BookOpen, FileText, Database, Save } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield, BookOpen, FileText, Database, Save, Rocket } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
@@ -21,12 +21,14 @@ import CausalExamplesPanel from '@/components/CausalExamplesPanel';
 import OperationCasesPanel from '@/components/OperationCasesPanel';
 import CausalKnowledgeBasePanel from '@/components/CausalKnowledgeBasePanel';
 import OperationResultsPanel from '@/components/OperationResultsPanel';
+import RoadmapPanel from '@/components/RoadmapPanel';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 import { saveOperationResult } from '@/utils/resultsStorage';
+import { getSystemDiagnostics } from '@/utils/systemDiagnostics';
 
-type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases' | 'knowledge' | 'results';
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases' | 'knowledge' | 'results' | 'roadmap';
 
 // Function Status Card Component
 const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMode: ModelMode }> = ({ cvggResult, modelMode }) => {
@@ -227,6 +229,23 @@ const IndustrialMonitor = () => {
     // Add to inference history for visualizations (keep last 100)
     setInferenceHistory(prev => [...prev, result].slice(-100));
     
+    // Log to diagnostics
+    const diag = getSystemDiagnostics();
+    diag.logSuccess('CVGG', `Inference: ${result.classification.className} (${(result.classification.confidence * 100).toFixed(0)}%)`);
+    
+    // Update trust scores
+    diag.updateTrustFromPipeline({
+      hasSimulation: isRunning || (sensorData.length > 0),
+      hasFailureInjection: activeFailures.length > 0,
+      hasCVGGTraining: true,
+      hasCVGGInference: true,
+      hasIntervention: false,
+      hasCounterfactual: false,
+      hasPrescriptive: false,
+      cvggConfidence: result.classification.confidence,
+      ateValue: result.causalEffects.ATE,
+    });
+    
     // Save to results storage
     saveOperationResult('cvgg_inference', result, {
       modelMode: 'enhanced-cvgg',
@@ -236,7 +255,7 @@ const IndustrialMonitor = () => {
         mechanical_torque: currentState.mechanical.torque,
       } : undefined,
     });
-  }, [currentState]);
+  }, [currentState, isRunning, sensorData.length, activeFailures.length]);
 
   // Counterfactual sweep handler
   const handleCounterfactualSweep = useCallback(async (pressureValues: number[]): Promise<{ pressure: number; effect: number }[]> => {
@@ -376,6 +395,10 @@ const IndustrialMonitor = () => {
                 <Save className="h-3 w-3 mr-1" />
                 {t('tab.results') || 'Results'}
               </TabsTrigger>
+              <TabsTrigger value="roadmap" className="text-xs px-2">
+                <Rocket className="h-3 w-3 mr-1" />
+                Roadmap
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           
@@ -474,8 +497,13 @@ const IndustrialMonitor = () => {
         <OperationResultsPanel />
       )}
 
+      {/* Roadmap Panel - Show when Roadmap mode is active */}
+      {modelMode === 'roadmap' && (
+        <RoadmapPanel />
+      )}
+
       {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
-      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && modelMode !== 'verification' && (
+      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && modelMode !== 'verification' && modelMode !== 'roadmap' && (
         <CausalVisualizationPanel
           inferenceHistory={inferenceHistory}
           causalGraph={causalGraph}
