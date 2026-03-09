@@ -387,34 +387,13 @@ const CausalKnowledgeBasePanel: React.FC<CausalKnowledgeBasePanelProps> = ({
             </div>
           </TabsContent>
 
-          {/* Trust Criteria Tab */}
+          {/* Trust Criteria Tab — Dynamic Scores */}
           <TabsContent value="trust" className="space-y-4">
             <ScrollArea className="h-[500px]">
               <div className="space-y-4 pr-3">
                 
-                {/* Trust Score Overview */}
-                <div className="grid grid-cols-4 gap-3">
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
-                    <Award className="h-5 w-5 text-green-500 mx-auto mb-1" />
-                    <div className="text-lg font-bold text-green-500">85%</div>
-                    <div className="text-xs text-muted-foreground">Physics Grounding</div>
-                  </div>
-                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
-                    <Target className="h-5 w-5 text-blue-500 mx-auto mb-1" />
-                    <div className="text-lg font-bold text-blue-500">6/6</div>
-                    <div className="text-xs text-muted-foreground">Verification Tests</div>
-                  </div>
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
-                    <TrendingUp className="h-5 w-5 text-yellow-500 mx-auto mb-1" />
-                    <div className="text-lg font-bold text-yellow-500">CWRU</div>
-                    <div className="text-xs text-muted-foreground">Benchmark Aligned</div>
-                  </div>
-                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 text-center">
-                    <Shield className="h-5 w-5 text-purple-500 mx-auto mb-1" />
-                    <div className="text-lg font-bold text-purple-500">3</div>
-                    <div className="text-xs text-muted-foreground">Validation Layers</div>
-                  </div>
-                </div>
+                {/* Dynamic Trust Score Overview */}
+                <DynamicTrustScores />
 
                 {/* Why Trust This System */}
                 <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
