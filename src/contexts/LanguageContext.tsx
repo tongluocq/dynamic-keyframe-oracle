@@ -251,6 +251,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.causalComparison': '因果効果比較',
     'results.systemHealth': 'システム健全性ダッシュボード',
     'results.downloadSummary': '性能サマリーをダウンロード',
+    'results.workflowGuide': '推奨ワークフロー順序',
+    'results.workflowHint': 'この順序に従ってください: 開始 → 故障注入 → CVGG訓練 → 推論実行 → do()/What-If実行 → 推奨取得',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知識ベース',
