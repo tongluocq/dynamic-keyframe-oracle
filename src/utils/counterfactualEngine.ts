@@ -12,6 +12,7 @@
 
 import { SystemState, IndustrialDomain, SensorReading } from '@/types/industrial';
 import { InferenceResult } from '@/hooks/useEnhancedCVGG';
+import { getSystemDiagnostics } from '@/utils/systemDiagnostics';
 
 export interface InterventionQuery {
   id: string;
