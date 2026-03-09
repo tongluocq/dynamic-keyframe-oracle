@@ -1679,13 +1679,16 @@ export function getPerformanceSummary(): PerformanceSummary {
 
   // Safe number formatter - prevents NaN display
   const safeFixed = (val: any, digits: number = 4): string => {
-    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val)) return '--';
+    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return '--';
     return val.toFixed(digits);
   };
   const safePct = (val: any, digits: number = 1): string => {
-    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val)) return '--';
+    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return '--';
     return `${(val * 100).toFixed(digits)}%`;
   };
+  // Helper to check if a number is valid before operations
+  const isValidNum = (val: any): val is number => 
+    val != null && typeof val === 'number' && !isNaN(val) && isFinite(val);
 
   // Helper: get latest result of a type
   const latest = (type: OperationType): StoredResult | undefined =>
@@ -1730,7 +1733,7 @@ export function getPerformanceSummary(): PerformanceSummary {
       stage: 'do() Intervention',
       pearlLevel: 'L2',
       keyMetric: 'Risk Reduction',
-      value: intRiskDelta != null ? `${safeFixed(intRiskDelta * 100, 1)}%` : '--',
+      value: isValidNum(intRiskDelta) ? `${safeFixed(intRiskDelta * 100, 1)}%` : '--',
       status: interventionResult ? 'done' : 'not_run',
       timestamp: interventionResult?.timestamp || null,
     },
@@ -1738,7 +1741,7 @@ export function getPerformanceSummary(): PerformanceSummary {
       stage: 'Counterfactual',
       pearlLevel: 'L3',
       keyMetric: 'Causal Effect',
-      value: cfEffect != null ? `${safeFixed(cfEffect * 100, 1)}%` : '--',
+      value: isValidNum(cfEffect) ? `${safeFixed(cfEffect * 100, 1)}%` : '--',
       status: counterfactualResult ? 'done' : 'not_run',
       timestamp: counterfactualResult?.timestamp || null,
     },
@@ -1768,25 +1771,25 @@ export function getPerformanceSummary(): PerformanceSummary {
   const causalEffects: CausalEffectRow[] = [
     {
       metric: 'ATE',
-      cvggInference: infATE != null ? safeFixed(infATE) : '--',
-      intervention: intTotalEffect != null ? safeFixed(intTotalEffect) : '--',
-      counterfactual: cfEffect != null ? safeFixed(cfEffect) : '--',
+      cvggInference: isValidNum(infATE) ? safeFixed(infATE) : '--',
+      intervention: isValidNum(intTotalEffect) ? safeFixed(intTotalEffect) : '--',
+      counterfactual: isValidNum(cfEffect) ? safeFixed(cfEffect) : '--',
       trend: getTrend([infATE, intTotalEffect, cfEffect]),
     },
     {
       metric: 'Risk Level',
-      cvggInference: infAnomaly != null ? safePct(infAnomaly) : '--',
-      intervention: intRiskPost != null ? `${safePct(intRiskPost)} (post)` : '--',
+      cvggInference: isValidNum(infAnomaly) ? safePct(infAnomaly) : '--',
+      intervention: isValidNum(intRiskPost) ? `${safePct(intRiskPost)} (post)` : '--',
       counterfactual: counterfactualResult?.data?.riskChange || '--',
       trend: getTrend([infAnomaly, intRiskPost, counterfactualResult?.data?.counterfactualOutcome]),
     },
     {
       metric: 'Confidence',
-      cvggInference: infConfidence != null ? safePct(infConfidence) : '--',
-      intervention: intRiskPre != null && interventionResult?.data?.riskAssessment?.riskDelta != null
-        ? safePct(1 - Math.abs(interventionResult.data.riskAssessment.riskDelta))
+      cvggInference: isValidNum(infConfidence) ? safePct(infConfidence) : '--',
+      intervention: isValidNum(intRiskPre) && isValidNum(interventionResult?.data?.riskAssessment?.riskDelta)
+        ? safePct(1 - Math.abs(interventionResult!.data.riskAssessment.riskDelta))
         : '--',
-      counterfactual: cfConfidence != null ? safePct(cfConfidence) : '--',
+      counterfactual: isValidNum(cfConfidence) ? safePct(cfConfidence) : '--',
       trend: getTrend([infConfidence, cfConfidence]),
     },
   ];
