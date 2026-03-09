@@ -253,6 +253,7 @@ export class CausalInterventionEngine {
     };
     
     this.interventionHistory.push(result);
+    getSystemDiagnostics().logSuccess('CausalInterventionEngine', `do(${intervention.variable}) executed`, `Risk: ${(preInterventionRisk*100).toFixed(1)}% → ${(postInterventionRisk*100).toFixed(1)}%`);
     return result;
   }
 
