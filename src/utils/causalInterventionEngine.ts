@@ -184,6 +184,7 @@ export class CausalInterventionEngine {
       relativeDelta = (newValue - currentValue) / currentValue;
     } else if (newValue !== currentValue) {
       relativeDelta = newValue > currentValue ? 0.1 : -0.1; // 10% effect estimate
+      getSystemDiagnostics().logNaN('CausalInterventionEngine', intervention.variable, 'relativeDelta computation (currentValue=0)');
     } else {
       relativeDelta = 0;
     }
