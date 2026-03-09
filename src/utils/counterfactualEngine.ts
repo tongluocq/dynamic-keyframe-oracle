@@ -265,8 +265,8 @@ export class CounterfactualEngine {
     if (currentValue !== 0 && isFinite(currentValue)) {
       relativeDelta = deltaValue / currentValue;
     } else if (deltaValue !== 0) {
-      // If currentValue is 0, use a reasonable default based on the delta
-      relativeDelta = deltaValue > 0 ? 0.1 : -0.1; // 10% effect estimate
+      relativeDelta = deltaValue > 0 ? 0.1 : -0.1;
+      getSystemDiagnostics().logNaN('CounterfactualEngine', query.variable, 'relativeDelta (currentValue=0)');
     } else {
       relativeDelta = 0;
     }
