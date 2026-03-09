@@ -785,6 +785,12 @@ const CausalKnowledgeBasePanel: React.FC<CausalKnowledgeBasePanelProps> = ({
           <TabsContent value="architecture" className="space-y-4">
             <ScrollArea className="h-[500px]">
               <div className="space-y-6 pr-3">
+
+                {/* CVGG Core Architecture */}
+                <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-primary" />
+                    CVGG Core — Causal VGG Neural Engine
                   </h4>
                   <p className="text-xs text-muted-foreground">
                     The numerical causal engine responsible for estimating ATE, CATE, Direct and Indirect Effects using DAG-constrained loss.
