@@ -1679,13 +1679,16 @@ export function getPerformanceSummary(): PerformanceSummary {
 
   // Safe number formatter - prevents NaN display
   const safeFixed = (val: any, digits: number = 4): string => {
-    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val)) return '--';
+    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return '--';
     return val.toFixed(digits);
   };
   const safePct = (val: any, digits: number = 1): string => {
-    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val)) return '--';
+    if (val === null || val === undefined || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return '--';
     return `${(val * 100).toFixed(digits)}%`;
   };
+  // Helper to check if a number is valid before operations
+  const isValidNum = (val: any): val is number => 
+    val != null && typeof val === 'number' && !isNaN(val) && isFinite(val);
 
   // Helper: get latest result of a type
   const latest = (type: OperationType): StoredResult | undefined =>
