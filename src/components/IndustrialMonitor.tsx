@@ -229,6 +229,23 @@ const IndustrialMonitor = () => {
     // Add to inference history for visualizations (keep last 100)
     setInferenceHistory(prev => [...prev, result].slice(-100));
     
+    // Log to diagnostics
+    const diag = getSystemDiagnostics();
+    diag.logSuccess('CVGG', `Inference: ${result.classification.className} (${(result.classification.confidence * 100).toFixed(0)}%)`);
+    
+    // Update trust scores
+    diag.updateTrustFromPipeline({
+      hasSimulation: isRunning || (sensorData.length > 0),
+      hasFailureInjection: activeFailures.length > 0,
+      hasCVGGTraining: true,
+      hasCVGGInference: true,
+      hasIntervention: false,
+      hasCounterfactual: false,
+      hasPrescriptive: false,
+      cvggConfidence: result.classification.confidence,
+      ateValue: result.causalEffects.ATE,
+    });
+    
     // Save to results storage
     saveOperationResult('cvgg_inference', result, {
       modelMode: 'enhanced-cvgg',
@@ -238,7 +255,7 @@ const IndustrialMonitor = () => {
         mechanical_torque: currentState.mechanical.torque,
       } : undefined,
     });
-  }, [currentState]);
+  }, [currentState, isRunning, sensorData.length, activeFailures.length]);
 
   // Counterfactual sweep handler
   const handleCounterfactualSweep = useCallback(async (pressureValues: number[]): Promise<{ pressure: number; effect: number }[]> => {
