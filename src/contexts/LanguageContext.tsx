@@ -57,6 +57,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.causalComparison': 'Causal Effects Comparison',
     'results.systemHealth': 'System Health Dashboard',
     'results.downloadSummary': 'Download Performance Summary',
+    'results.workflowGuide': 'Recommended Workflow Sequence',
+    'results.workflowHint': 'Follow this sequence: Start → Inject Failure → Train CVGG → Run Inference → Execute do()/What-If → Get Recommendations',
     
     // Metrics
     'metric.thrust': 'Thrust',
@@ -249,6 +251,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.causalComparison': '因果効果比較',
     'results.systemHealth': 'システム健全性ダッシュボード',
     'results.downloadSummary': '性能サマリーをダウンロード',
+    'results.workflowGuide': '推奨ワークフロー順序',
+    'results.workflowHint': 'この順序に従ってください: 開始 → 故障注入 → CVGG訓練 → 推論実行 → do()/What-If実行 → 推奨取得',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知識ベース',
@@ -439,6 +443,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.causalComparison': '因果效应对比',
     'results.systemHealth': '系统健康仪表盘',
     'results.downloadSummary': '下载性能摘要',
+    'results.workflowGuide': '推荐工作流程',
+    'results.workflowHint': '请按此顺序操作: 启动 → 注入故障 → CVGG训练 → 运行推理 → 执行do()/What-If → 获取建议',
     
     // Knowledge Base
     'knowledgeBase.title': '因果知识库',
@@ -629,6 +635,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.causalComparison': 'Comparación de Efectos Causales',
     'results.systemHealth': 'Panel de Salud del Sistema',
     'results.downloadSummary': 'Descargar Resumen de Rendimiento',
+    'results.workflowGuide': 'Secuencia de Flujo Recomendada',
+    'results.workflowHint': 'Siga esta secuencia: Iniciar → Inyectar Fallo → Entrenar CVGG → Ejecutar Inferencia → Ejecutar do()/What-If → Obtener Recomendaciones',
     
     // Knowledge Base
     'knowledgeBase.title': 'Base de Conocimiento Causal',
