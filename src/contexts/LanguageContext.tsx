@@ -635,6 +635,8 @@ const translations: Record<Language, Record<string, string>> = {
     'results.causalComparison': 'Comparación de Efectos Causales',
     'results.systemHealth': 'Panel de Salud del Sistema',
     'results.downloadSummary': 'Descargar Resumen de Rendimiento',
+    'results.workflowGuide': 'Secuencia de Flujo Recomendada',
+    'results.workflowHint': 'Siga esta secuencia: Iniciar → Inyectar Fallo → Entrenar CVGG → Ejecutar Inferencia → Ejecutar do()/What-If → Obtener Recomendaciones',
     
     // Knowledge Base
     'knowledgeBase.title': 'Base de Conocimiento Causal',
