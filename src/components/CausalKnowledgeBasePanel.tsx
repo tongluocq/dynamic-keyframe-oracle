@@ -54,6 +54,129 @@ const domainColors: Record<string, string> = {
   cutting: 'bg-green-500/20 text-green-400 border-green-500/50',
 };
 
+/** Dynamic Trust Scores Component - reads from SystemDiagnostics */
+const DynamicTrustScores: React.FC = () => {
+  const diagnostics = getSystemDiagnostics();
+  const [trust, setTrust] = useState<TrustScore>(diagnostics.getTrustScore());
+  const [logs, setLogs] = useState<DiagnosticEntry[]>(diagnostics.getEntries());
+
+  useEffect(() => {
+    const unsub = diagnostics.subscribe(() => {
+      setTrust(diagnostics.getTrustScore());
+      setLogs(diagnostics.getEntries());
+    });
+    return unsub;
+  }, [diagnostics]);
+
+  const unresolvedCount = diagnostics.getUnresolvedCount();
+  const trustColor = trust.overall >= 80 ? 'text-green-500' : trust.overall >= 60 ? 'text-yellow-500' : 'text-destructive';
+
+  return (
+    <>
+      <div className="border rounded-lg p-4 bg-muted/20">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            System Trust Score
+          </h4>
+          <div className="flex items-center gap-2">
+            <div className={`text-2xl font-bold ${trustColor}`}>{trust.overall}%</div>
+            {unresolvedCount > 0 && (
+              <Badge variant="outline" className="border-destructive text-destructive text-[10px]">
+                {unresolvedCount} issues
+              </Badge>
+            )}
+          </div>
+        </div>
+        <Progress value={trust.overall} className="h-2 mb-3" />
+        <div className="grid grid-cols-5 gap-2">
+          {[
+            { label: 'Physics', value: trust.physicsGrounding, icon: <Award className="h-4 w-4" /> },
+            { label: 'Verification', value: trust.verificationTests.total > 0 ? Math.round((trust.verificationTests.passed / trust.verificationTests.total) * 100) : 0, icon: <Target className="h-4 w-4" />, extra: `${trust.verificationTests.passed}/${trust.verificationTests.total}` },
+            { label: 'Benchmark', value: trust.benchmarkAlignment, icon: <TrendingUp className="h-4 w-4" /> },
+            { label: 'Pipeline', value: trust.pipelineIntegrity, icon: <Activity className="h-4 w-4" /> },
+            { label: 'Data Quality', value: trust.dataQuality, icon: <Database className="h-4 w-4" /> },
+          ].map((item, idx) => {
+            const c = item.value >= 80 ? 'text-green-500 bg-green-500/10 border-green-500/30'
+              : item.value >= 60 ? 'text-yellow-500 bg-yellow-500/10 border-yellow-500/30'
+              : 'text-destructive bg-destructive/10 border-destructive/30';
+            return (
+              <div key={idx} className={`rounded-lg p-2 text-center border ${c}`}>
+                <div className="mx-auto mb-1 flex justify-center">{item.icon}</div>
+                <div className="text-lg font-bold">{item.extra || `${item.value}%`}</div>
+                <div className="text-[10px] text-muted-foreground">{item.label}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="text-[10px] text-muted-foreground mt-2 text-right">
+          Last updated: {new Date(trust.lastUpdated).toLocaleTimeString()}
+        </div>
+      </div>
+
+      <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <Terminal className="h-4 w-4 text-primary" />
+            System Diagnostics Log
+            <Badge variant="outline" className="text-[10px]">Self-Closure</Badge>
+          </h4>
+          {logs.length > 0 && (
+            <Button size="sm" variant="ghost" className="text-xs h-6" onClick={() => { diagnostics.clearAll(); }}>
+              Clear
+            </Button>
+          )}
+        </div>
+        <ScrollArea className="h-40">
+          {logs.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground text-xs">
+              <Terminal className="h-6 w-6 mx-auto mb-2 opacity-50" />
+              No diagnostics yet. Run operations to see self-closure logs.
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {logs.slice(0, 30).map((entry) => (
+                <div key={entry.id} className={`flex items-start gap-2 rounded p-2 text-[10px] ${
+                  entry.severity === 'critical' ? 'bg-destructive/10 border border-destructive/30' :
+                  entry.severity === 'error' ? 'bg-destructive/5 border border-destructive/20' :
+                  entry.severity === 'warning' ? 'bg-yellow-500/5 border border-yellow-500/20' :
+                  'bg-muted/30'
+                }`}>
+                  <div className="shrink-0 mt-0.5">
+                    {entry.severity === 'error' || entry.severity === 'critical' ? (
+                      <XCircle className="h-3 w-3 text-destructive" />
+                    ) : entry.severity === 'warning' ? (
+                      <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                    ) : (
+                      <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium">{entry.message}</span>
+                      <span className="text-muted-foreground">{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                      {entry.resolved && <Badge variant="outline" className="text-[8px] h-3 px-1">resolved</Badge>}
+                    </div>
+                    <div className="flex items-start gap-1 mt-0.5 text-muted-foreground">
+                      <Lightbulb className="h-3 w-3 text-yellow-500 shrink-0 mt-0.5" />
+                      <span>{entry.solution}</span>
+                    </div>
+                  </div>
+                  {!entry.resolved && (
+                    <Button size="sm" variant="ghost" className="h-5 text-[8px] px-1 shrink-0" onClick={() => diagnostics.resolve(entry.id)}>
+                      Resolve
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+    </>
+  );
+};
+
 const CausalKnowledgeBasePanel: React.FC<CausalKnowledgeBasePanelProps> = ({
   causalGraph,
   onImportComplete
