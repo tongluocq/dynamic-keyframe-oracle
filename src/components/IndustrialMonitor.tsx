@@ -108,7 +108,7 @@ const IndustrialMonitor = () => {
   }>({ vibrationX: [], vibrationY: [], vibrationZ: [] });
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     
     if (isRunning) {
       interval = setInterval(() => {

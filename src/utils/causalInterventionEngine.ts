@@ -386,6 +386,8 @@ export class CausalInterventionEngine {
       cutting_force: state.cutting.cutting_force,
       mechanical_wear_level: state.mechanical.wear_level * 100,
       cutting_tool_wear: state.cutting.tool_wear * 100,
+      electrical_voltage: state.electrical.voltage,
+      electrical_power: state.electrical.power,
     };
     return valueMap[variable] ?? 0;
   }
