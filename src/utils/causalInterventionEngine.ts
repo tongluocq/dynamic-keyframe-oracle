@@ -255,36 +255,6 @@ const CAUSAL_COEFFICIENTS: Record<string, Record<string, number>> = {
   },
 };
 
-// Causal coefficients for computing intervention effects
-const CAUSAL_COEFFICIENTS: Record<string, Record<string, number>> = {
-  thrust: {
-    cutting_force: 0.75,
-    penetration_rate: 0.65,
-    mechanical_wear_level: 0.40,
-    cutter_head_torque: 0.55,
-    thermal_system_temp: 0.25,
-  },
-  thermal_system_temp: {
-    hydraulic_viscosity: -0.45,
-    mechanical_wear_level: 0.30,
-    electrical_efficiency: -0.20,
-    cutting_tool_wear: 0.25,
-  },
-  hydraulic_pressure: {
-    thrust: 0.80,
-    cutting_force: 0.50,
-    mechanical_vibration: 0.35,
-    seal_stress: 0.60,
-  },
-  rotation_speed: {
-    mechanical_vibration: 0.55,
-    cutting_tool_wear: 0.45,
-    penetration_rate: 0.40,
-    thermal_system_temp: 0.30,
-    power_consumption: 0.50,
-  },
-};
-
 /**
  * Causal Intervention Engine
  * Implements do-calculus for TBM causal interventions
