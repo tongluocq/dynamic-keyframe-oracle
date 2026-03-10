@@ -87,6 +87,7 @@ const IndustrialMonitor = () => {
   const [causalGraph, setCausalGraph] = useState<Map<string, CausalRelation[]>>(new Map());
   const [anomalies, setAnomalies] = useState<Array<{sensor: string, anomaly_score: number, causal_pathway?: string}>>([]);
   const [activeFailures, setActiveFailures] = useState<Array<{id: string, name: string, severity: number, domain: string}>>([]);
+  const [failureSeverities, setFailureSeverities] = useState<Record<string, number>>({});
   
   // Model modes
   const [modelMode, setModelMode] = useState<ModelMode>('none');
