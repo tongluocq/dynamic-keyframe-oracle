@@ -627,18 +627,44 @@ const IndustrialMonitor = () => {
               
               <div className="pt-4 border-t">
                 <h4 className="font-medium mb-2">Inject Failure:</h4>
-                <div className="flex gap-2 flex-wrap">
-                  {failureSimulator.getFailureModes().map((mode) => (
-                    <Button
-                      key={mode.id}
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleInjectFailure(mode.id)}
-                      disabled={activeFailures.some(f => f.id === mode.id)}
-                    >
-                      {mode.name}
-                    </Button>
-                  ))}
+                <div className="space-y-3">
+                  {failureSimulator.getFailureModes().map((mode) => {
+                    const severity = failureSeverities[mode.id] ?? 0.1;
+                    const isActive = activeFailures.some(f => f.id === mode.id);
+                    return (
+                      <div key={mode.id} className="flex items-center gap-3 p-2 border rounded">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{mode.name}</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground w-16">
+                              {(severity * 100).toFixed(0)}%
+                            </span>
+                            <input
+                              type="range"
+                              min={1}
+                              max={100}
+                              value={severity * 100}
+                              onChange={(e) => setFailureSeverities(prev => ({
+                                ...prev,
+                                [mode.id]: Number(e.target.value) / 100
+                              }))}
+                              className="flex-1 h-2 accent-primary"
+                              disabled={isActive}
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={isActive ? "secondary" : "outline"}
+                          onClick={() => handleInjectFailure(mode.id)}
+                          disabled={isActive}
+                          className="shrink-0"
+                        >
+                          {isActive ? 'Active' : 'Inject'}
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

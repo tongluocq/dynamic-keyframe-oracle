@@ -49,73 +49,211 @@ export interface InterventionResult {
   verified: boolean;
 }
 
-// Pre-defined Intervention Examples for TBM
+// Pre-defined Intervention Examples for TBM — mapped to all 5 failure types
 export const INTERVENTION_EXAMPLES: InterventionDefinition[] = [
-  // Example 1: Thrust Increase Intervention
-  {
-    id: 'int-thrust-increase-10',
-    name: 'Increase Thrust by 10%',
-    variable: 'thrust',
-    domain: 'mechanical',
-    interventionType: 'do',
-    targetValue: 10, // +10% relative
-    description: 'do(Thrust = current × 1.10): Force thrust to increase by 10%, cutting all incoming causal arrows to thrust.',
-    expectedOutcomes: [
-      'Penetration rate increases proportionally',
-      'Cutter head torque increases',
-      'Tool wear accelerates',
-      'System temperature may rise',
-    ],
-  },
-  // Example 2: Temperature Control Intervention
-  {
-    id: 'int-temp-control-60',
-    name: 'Control Temperature at 60°C',
-    variable: 'thermal_system_temp',
-    domain: 'thermal',
-    interventionType: 'do',
-    targetValue: 60, // absolute 60°C
-    description: 'do(Temperature = 60°C): Force system temperature to 60°C, simulating active cooling control.',
-    expectedOutcomes: [
-      'Hydraulic viscosity normalizes',
-      'Thermal stress on components reduces',
-      'Operational efficiency improves',
-      'Wear rate may decrease',
-    ],
-  },
-  // Example 3: Pressure Reduction Intervention
+  // === Hydraulic domain (maps to hydraulic_leak failure) ===
   {
     id: 'int-pressure-reduce-15',
     name: 'Reduce Hydraulic Pressure by 15%',
     variable: 'hydraulic_pressure',
     domain: 'hydraulic',
     interventionType: 'do',
-    targetValue: -15, // -15% relative
-    description: 'do(Pressure = current × 0.85): Force hydraulic pressure reduction to prevent overstress.',
+    targetValue: -15,
+    description: 'do(Pressure = current × 0.85): Counteract hydraulic leak by reducing system pressure.',
     expectedOutcomes: [
       'Thrust force decreases',
       'System stress reduces',
-      'Penetration rate may decrease',
-      'Seal and component longevity improves',
+      'Leak propagation slows',
+      'Seal longevity improves',
     ],
   },
-  // Example 4: Rotation Speed Adjustment
+  {
+    id: 'int-pressure-increase-10',
+    name: 'Increase Hydraulic Pressure by 10%',
+    variable: 'hydraulic_pressure',
+    domain: 'hydraulic',
+    interventionType: 'do',
+    targetValue: 10,
+    description: 'do(Pressure = current × 1.10): Compensate for pressure loss from leak.',
+    expectedOutcomes: [
+      'Flow rate partially restored',
+      'Risk of seal rupture increases',
+      'Thrust compensated',
+    ],
+  },
+  // === Mechanical domain (maps to bearing_wear failure) ===
   {
     id: 'int-rotation-decrease-20',
     name: 'Decrease Rotation Speed by 20%',
     variable: 'rotation_speed',
     domain: 'mechanical',
     interventionType: 'do',
-    targetValue: -20, // -20% relative
-    description: 'do(RPM = current × 0.80): Reduce cutter head rotation to decrease vibration and wear.',
+    targetValue: -20,
+    description: 'do(RPM = current × 0.80): Reduce rotation to mitigate bearing wear vibration.',
     expectedOutcomes: [
       'Vibration amplitude decreases',
-      'Tool wear rate reduces',
+      'Bearing wear rate reduces',
       'Penetration rate decreases',
       'Power consumption reduces',
     ],
   },
+  {
+    id: 'int-thrust-increase-10',
+    name: 'Increase Thrust by 10%',
+    variable: 'thrust',
+    domain: 'mechanical',
+    interventionType: 'do',
+    targetValue: 10,
+    description: 'do(Thrust = current × 1.10): Increase thrust to compensate for reduced rotation.',
+    expectedOutcomes: [
+      'Penetration rate increases',
+      'Cutter head torque increases',
+      'Tool wear accelerates',
+      'System temperature may rise',
+    ],
+  },
+  // === Thermal domain (maps to thermal_overload failure) ===
+  {
+    id: 'int-temp-control-60',
+    name: 'Control Temperature at 60°C',
+    variable: 'thermal_system_temp',
+    domain: 'thermal',
+    interventionType: 'do',
+    targetValue: 60,
+    description: 'do(Temperature = 60°C): Force active cooling to counteract thermal overload.',
+    expectedOutcomes: [
+      'Hydraulic viscosity normalizes',
+      'Thermal stress reduces',
+      'Operational efficiency improves',
+      'Wear rate may decrease',
+    ],
+  },
+  {
+    id: 'int-temp-control-45',
+    name: 'Aggressive Cooling to 45°C',
+    variable: 'thermal_system_temp',
+    domain: 'thermal',
+    interventionType: 'do',
+    targetValue: 45,
+    description: 'do(Temperature = 45°C): Aggressive cooling for critical thermal overload scenarios.',
+    expectedOutcomes: [
+      'All thermal effects eliminated',
+      'Viscosity increases (may slow flow)',
+      'Energy cost of cooling is high',
+    ],
+  },
+  // === Electrical domain (maps to voltage_fluctuation failure) ===
+  {
+    id: 'int-voltage-stabilize',
+    name: 'Stabilize Voltage at Nominal',
+    variable: 'electrical_voltage',
+    domain: 'electrical',
+    interventionType: 'do',
+    targetValue: 0,
+    description: 'do(Voltage = nominal): Force voltage stabilization via UPS/regulator to counter fluctuations.',
+    expectedOutcomes: [
+      'Power output stabilizes',
+      'Hydraulic pressure normalizes',
+      'Motor speed becomes consistent',
+      'Control system reliability improves',
+    ],
+  },
+  {
+    id: 'int-voltage-boost-5',
+    name: 'Boost Voltage by 5%',
+    variable: 'electrical_voltage',
+    domain: 'electrical',
+    interventionType: 'do',
+    targetValue: 5,
+    description: 'do(Voltage = current × 1.05): Slight voltage boost to compensate for drops.',
+    expectedOutcomes: [
+      'Power consumption increases',
+      'Motor torque increases slightly',
+      'Risk of overcurrent if sustained',
+    ],
+  },
+  // === Cutting domain (maps to tool_wear_excessive failure) ===
+  {
+    id: 'int-cutting-force-reduce-20',
+    name: 'Reduce Cutting Force by 20%',
+    variable: 'cutting_force',
+    domain: 'cutting',
+    interventionType: 'do',
+    targetValue: -20,
+    description: 'do(CuttingForce = current × 0.80): Reduce cutting force to slow tool wear.',
+    expectedOutcomes: [
+      'Tool wear rate decreases',
+      'Penetration rate decreases',
+      'Surface quality may improve',
+      'Torque requirement reduces',
+    ],
+  },
+  {
+    id: 'int-tool-wear-reset',
+    name: 'Simulate Tool Replacement',
+    variable: 'cutting_tool_wear',
+    domain: 'cutting',
+    interventionType: 'do',
+    targetValue: 5,
+    description: 'do(ToolWear = 5%): Simulate replacing worn tools with fresh ones.',
+    expectedOutcomes: [
+      'Cutting force normalizes',
+      'Surface quality improves dramatically',
+      'Downtime cost incurred',
+      'System returns to optimal operation',
+    ],
+  },
 ];
+
+// Causal coefficients — expanded for all intervention variables
+const CAUSAL_COEFFICIENTS: Record<string, Record<string, number>> = {
+  thrust: {
+    cutting_force: 0.75,
+    penetration_rate: 0.65,
+    mechanical_wear_level: 0.40,
+    cutter_head_torque: 0.55,
+    thermal_system_temp: 0.25,
+  },
+  thermal_system_temp: {
+    hydraulic_viscosity: -0.45,
+    mechanical_wear_level: 0.30,
+    electrical_efficiency: -0.20,
+    cutting_tool_wear: 0.25,
+  },
+  hydraulic_pressure: {
+    thrust: 0.80,
+    cutting_force: 0.50,
+    mechanical_vibration: 0.35,
+    seal_stress: 0.60,
+    hydraulic_flow_rate: 0.45,
+  },
+  rotation_speed: {
+    mechanical_vibration: 0.55,
+    cutting_tool_wear: 0.45,
+    penetration_rate: 0.40,
+    thermal_system_temp: 0.30,
+    power_consumption: 0.50,
+  },
+  electrical_voltage: {
+    electrical_power: 0.90,
+    hydraulic_pressure: 0.55,
+    mechanical_speed: 0.50,
+    control_stability: 0.70,
+  },
+  cutting_force: {
+    cutting_tool_wear: 0.65,
+    mechanical_torque: 0.50,
+    penetration_rate: 0.55,
+    surface_quality: -0.40,
+    thermal_system_temp: 0.20,
+  },
+  cutting_tool_wear: {
+    cutting_force: -0.60,
+    surface_quality: 0.80,
+    penetration_rate: 0.30,
+    downtime_cost: -0.50,
+  },
+};
 
 // Causal coefficients for computing intervention effects
 const CAUSAL_COEFFICIENTS: Record<string, Record<string, number>> = {
