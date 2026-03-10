@@ -199,7 +199,8 @@ const IndustrialMonitor = () => {
   };
 
   const handleInjectFailure = (failureId: string) => {
-    failureSimulator.injectFailure(failureId, 0.1);
+    const severity = failureSeverities[failureId] ?? 0.1;
+    failureSimulator.injectFailure(failureId, severity);
   };
 
   const handleClearFailures = () => {
