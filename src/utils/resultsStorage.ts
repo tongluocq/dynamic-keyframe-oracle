@@ -13,6 +13,40 @@
  */
 
 import { InferenceResult } from '@/hooks/useEnhancedCVGG';
+
+// Global safe number formatting helpers — prevents NaN in all display paths
+export const safeNum = (val: any): number =>
+  val != null && typeof val === 'number' && !isNaN(val) && isFinite(val) ? val : 0;
+export const sf = (val: any, digits = 4): string => {
+  if (val == null || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return '--';
+  return val.toFixed(digits);
+};
+export const sp = (val: any, digits = 1): string => {
+  if (val == null || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return '--';
+  return `${(val * 100).toFixed(digits)}%`;
+};
+
+// Workflow source labels for each operation type
+export const WORKFLOW_SOURCE: Record<OperationType, { step: number; label: string; icon: string }> = {
+  cvgg_training: { step: 3, label: 'Train', icon: '🧠' },
+  cvgg_inference: { step: 4, label: 'Infer', icon: '📊' },
+  intervention: { step: 5, label: 'do()', icon: '⚡' },
+  counterfactual: { step: 6, label: 'What-If', icon: '❓' },
+  prescriptive: { step: 7, label: 'Prescribe', icon: '💡' },
+  example: { step: 0, label: 'Example', icon: '📖' },
+  case: { step: 0, label: 'Case', icon: '📋' },
+  knowledge_import: { step: 0, label: 'KB Import', icon: '📥' },
+  knowledge_export: { step: 0, label: 'KB Export', icon: '📤' },
+  knowledge_query: { step: 0, label: 'KB Query', icon: '🔍' },
+};
+
+// Generate short readable ID from full ID
+export function shortId(id: string): string {
+  // result-1710000000000-abc123def -> OP-ABC1
+  const parts = id.split('-');
+  const suffix = parts[parts.length - 1] || '';
+  return `OP-${suffix.slice(0, 4).toUpperCase()}`;
+}
 import { InterventionResult } from '@/utils/causalInterventionEngine';
 import { CounterfactualResult } from '@/utils/counterfactualEngine';
 import { PrescriptiveOutput, Recommendation } from '@/utils/prescriptiveAI';
@@ -129,77 +163,77 @@ export type StoredResult =
   | CaseOperationResult
   | KnowledgeOperationResult;
 
-// Result explanation templates
+// Result explanation templates — all use sf/sp safe formatters
 const EXPLANATION_TEMPLATES: Record<OperationType, (result: StoredResult) => string> = {
   cvgg_training: (result) => {
     const r = result as CVGGTrainingResult;
-    return `**CVGG Training Completed**\n\n` +
+    return `**CVGG Training Completed** [${shortId(r.id)} · Step 3: Train]\n\n` +
       `Trained for ${r.data.epochs} epochs with ${r.data.config.samples} samples.\n` +
-      `Final loss: ${r.data.finalLoss.toFixed(4)} (Classification: ${r.data.classificationLoss.toFixed(4)}, Causal: ${r.data.causalLoss.toFixed(4)})\n` +
-      `Final accuracy: ${(r.data.finalAccuracy * 100).toFixed(1)}%\n\n` +
+      `Final loss: ${sf(r.data.finalLoss)} (Classification: ${sf(r.data.classificationLoss)}, Causal: ${sf(r.data.causalLoss)})\n` +
+      `Final accuracy: ${sp(r.data.finalAccuracy)}\n\n` +
       `**Interpretation:** The model has learned to classify system states while simultaneously learning causal relationships. ` +
       `Lower causal loss indicates better estimation of Average Treatment Effects (ATE) and Conditional ATE (CATE).`;
   },
   cvgg_inference: (result) => {
     const r = result as CVGGInferenceResult;
     const d = r.data;
-    return `**CVGG Inference Result**\n\n` +
-      `Classification: ${d.classification.className} (${(d.classification.confidence * 100).toFixed(1)}% confidence)\n` +
-      `Anomaly Score: ${(d.anomalyScore * 100).toFixed(1)}%\n\n` +
+    return `**CVGG Inference Result** [${shortId(r.id)} · Step 4: Infer]\n\n` +
+      `Classification: ${d.classification.className} (${sp(d.classification.confidence)} confidence)\n` +
+      `Anomaly Score: ${sp(d.anomalyScore)}\n\n` +
       `**Causal Effects:**\n` +
-      `- ATE (Average Treatment Effect): ${d.causalEffects.ATE.toFixed(4)}\n` +
-      `- CATE (Conditional ATE): ${d.causalEffects.CATE.toFixed(4)}\n` +
-      `- Direct Effect: ${d.causalEffects.directEffect.toFixed(4)}\n` +
-      `- Indirect Effect: ${d.causalEffects.indirectEffect.toFixed(4)}\n\n` +
-      `**Interpretation:** ATE of ${d.causalEffects.ATE.toFixed(4)} indicates ` +
-      `${d.causalEffects.ATE > 0.3 ? 'significant causal impact - intervention may be needed' : 
-        d.causalEffects.ATE > 0.1 ? 'moderate causal activity - monitoring recommended' : 
+      `- ATE (Average Treatment Effect): ${sf(d.causalEffects.ATE)}\n` +
+      `- CATE (Conditional ATE): ${sf(d.causalEffects.CATE)}\n` +
+      `- Direct Effect: ${sf(d.causalEffects.directEffect)}\n` +
+      `- Indirect Effect: ${sf(d.causalEffects.indirectEffect)}\n\n` +
+      `**Interpretation:** ATE of ${sf(d.causalEffects.ATE)} indicates ` +
+      `${safeNum(d.causalEffects.ATE) > 0.3 ? 'significant causal impact - intervention may be needed' : 
+        safeNum(d.causalEffects.ATE) > 0.1 ? 'moderate causal activity - monitoring recommended' : 
         'normal causal levels - system operating stably'}.`;
   },
   intervention: (result) => {
     const r = result as InterventionOperationResult;
     const d = r.data;
-    return `**Causal Intervention (do-calculus)**\n\n` +
+    return `**Causal Intervention (do-calculus)** [${shortId(r.id)} · Step 5: do()]\n\n` +
       `Intervention: ${d.intervention.name}\n` +
       `do(${d.intervention.variable} = ${d.intervention.targetValue})\n\n` +
       `**Causal Effects:**\n` +
-      `- Primary Effect: ${(d.causalEffects.primaryEffect * 100).toFixed(1)}%\n` +
-      `- Total Effect: ${(d.causalEffects.totalEffect * 100).toFixed(1)}%\n` +
+      `- Primary Effect: ${sp(d.causalEffects.primaryEffect)}\n` +
+      `- Total Effect: ${sp(d.causalEffects.totalEffect)}\n` +
       `- Secondary Pathways: ${d.causalEffects.secondaryEffects.length}\n\n` +
       `**Risk Assessment:**\n` +
-      `- Pre-intervention: ${(d.riskAssessment.preInterventionRisk * 100).toFixed(1)}%\n` +
-      `- Post-intervention: ${(d.riskAssessment.postInterventionRisk * 100).toFixed(1)}%\n` +
-      `- Change: ${d.riskAssessment.riskDelta > 0 ? '+' : ''}${(d.riskAssessment.riskDelta * 100).toFixed(1)}%\n\n` +
+      `- Pre-intervention: ${sp(d.riskAssessment.preInterventionRisk)}\n` +
+      `- Post-intervention: ${sp(d.riskAssessment.postInterventionRisk)}\n` +
+      `- Change: ${safeNum(d.riskAssessment.riskDelta) > 0 ? '+' : ''}${sf(safeNum(d.riskAssessment.riskDelta) * 100, 1)}%\n\n` +
       `**Interpretation:** ${d.explanation}`;
   },
   counterfactual: (result) => {
     const r = result as CounterfactualOperationResult;
     const d = r.data;
-    return `**Counterfactual Analysis (What-If)**\n\n` +
+    return `**Counterfactual Analysis (What-If)** [${shortId(r.id)} · Step 6: What-If]\n\n` +
       `Query: ${d.query.description}\n\n` +
       `**Results:**\n` +
-      `- Baseline Outcome: ${(d.baselineOutcome * 100).toFixed(1)}%\n` +
-      `- Counterfactual Outcome: ${(d.counterfactualOutcome * 100).toFixed(1)}%\n` +
-      `- Causal Effect: ${(d.causalEffect * 100).toFixed(1)}%\n` +
+      `- Baseline Outcome: ${sp(d.baselineOutcome)}\n` +
+      `- Counterfactual Outcome: ${sp(d.counterfactualOutcome)}\n` +
+      `- Causal Effect: ${sp(d.causalEffect)}\n` +
       `- Risk Change: ${d.riskChange}\n` +
-      `- Confidence: ${(d.confidence * 100).toFixed(1)}%\n\n` +
+      `- Confidence: ${sp(d.confidence)}\n\n` +
       `**Affected Variables:**\n${d.affectedVariables.slice(0, 3).map(v => 
-        `- ${v.variable}: ${v.predictedChange > 0 ? '+' : ''}${(v.predictedChange * 100).toFixed(1)}%`
+        `- ${v.variable}: ${safeNum(v.predictedChange) > 0 ? '+' : ''}${sf(safeNum(v.predictedChange) * 100, 1)}%`
       ).join('\n')}\n\n` +
       `**Interpretation:** ${d.explanation}`;
   },
   prescriptive: (result) => {
     const r = result as PrescriptiveOperationResult;
     const d = r.data;
-    return `**Prescriptive AI Analysis**\n\n` +
-      `System Health: ${d.systemHealthScore.toFixed(0)}/100\n` +
+    return `**Prescriptive AI Analysis** [${shortId(r.id)} · Step 7: Prescribe]\n\n` +
+      `System Health: ${sf(d.systemHealthScore, 0)}/100\n` +
       `Risk Level: ${d.riskLevel.toUpperCase()}\n\n` +
       `**Summary:** ${d.summary}\n\n` +
       `**Top Recommendations (${d.recommendations.length} total):**\n` +
       d.recommendations.slice(0, 3).map((rec, i) => 
         `${i + 1}. [${rec.priority.toUpperCase()}] ${rec.title}\n` +
-        `   Risk Reduction: ${(rec.estimatedImpact.riskReduction * 100).toFixed(0)}%, ` +
-        `Cost Saving: $${rec.estimatedImpact.costSaving.toFixed(0)}`
+        `   Risk Reduction: ${sp(rec.estimatedImpact.riskReduction, 0)}, ` +
+        `Cost Saving: $${sf(rec.estimatedImpact.costSaving, 0)}`
       ).join('\n\n') +
       `\n\n**Interpretation:** The prescriptive AI has analyzed current system state and causal relationships ` +
       `to generate actionable recommendations prioritized by impact and urgency.`;

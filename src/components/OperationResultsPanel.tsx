@@ -69,6 +69,7 @@ import {
   getPerformanceSummary,
   downloadPerformanceSummary,
   PerformanceSummary,
+  sf, sp, safeNum, shortId, WORKFLOW_SOURCE,
 } from '@/utils/resultsStorage';
 import DatasetDemoPanel from '@/components/DatasetDemoPanel';
 
@@ -94,7 +95,7 @@ const OperationResultsPanel: React.FC = () => {
   const [filterType, setFilterType] = useState<OperationType | 'all'>('all');
   const [sortColumn, setSortColumn] = useState<'timestamp' | 'type'>('timestamp');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [activeTab, setActiveTab] = useState<'summary' | 'list' | 'table' | 'statistics'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'list' | 'table' | 'total' | 'statistics'>('summary');
 
   // Subscribe to storage changes
   useEffect(() => {
@@ -317,11 +318,12 @@ const OperationResultsPanel: React.FC = () => {
                 <Activity className="h-4 w-4" />
                 <span>Results ({filteredResults.length})</span>
               </div>
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'summary' | 'list' | 'table' | 'statistics')}>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
                 <TabsList className="h-8">
                   <TabsTrigger value="summary" className="text-xs px-2">{t('results.summary') || 'Summary'}</TabsTrigger>
                   <TabsTrigger value="list" className="text-xs px-2">List</TabsTrigger>
                   <TabsTrigger value="table" className="text-xs px-2">Table</TabsTrigger>
+                  <TabsTrigger value="total" className="text-xs px-2">Total</TabsTrigger>
                   <TabsTrigger value="statistics" className="text-xs px-2">Stats</TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -366,6 +368,8 @@ const OperationResultsPanel: React.FC = () => {
                 onSort={handleSort}
                 formatRelativeTime={formatRelativeTime}
               />
+            ) : activeTab === 'total' ? (
+              <TotalTableView results={sortedResults} />
             ) : (
               <StatisticsView statistics={statistics} results={results} />
             )}
@@ -421,6 +425,8 @@ const ResultListItem: React.FC<ResultListItemProps> = ({
   const config = operationTypeConfig[result.type];
   const storage = getResultsStorage();
   const summary = storage.getResultSummary(result);
+  const source = WORKFLOW_SOURCE[result.type];
+  const opId = shortId(result.id);
 
   return (
     <div
@@ -438,7 +444,13 @@ const ResultListItem: React.FC<ResultListItemProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-[10px] font-mono shrink-0 px-1.5">{opId}</Badge>
               <span className="font-medium text-sm truncate">{config.label}</span>
+              {source.step > 0 && (
+                <Badge variant="outline" className="text-[10px] shrink-0 px-1.5">
+                  {source.icon} Step {source.step}
+                </Badge>
+              )}
               <Badge variant="outline" className="text-xs shrink-0">
                 <Clock className="h-3 w-3 mr-1" />
                 {formatRelativeTime(result.timestamp)}
@@ -475,19 +487,29 @@ const ResultDetail: React.FC<ResultDetailProps> = ({ result, formatTimestamp }) 
   const storage = getResultsStorage();
   const explanation = storage.getExplanation(result);
   const config = operationTypeConfig[result.type];
+  const source = WORKFLOW_SOURCE[result.type];
+  const opId = shortId(result.id);
 
   return (
     <ScrollArea className="h-[500px] pr-4">
       <div className="space-y-4">
-        {/* Header */}
+        {/* Header with ID and Source */}
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg bg-muted ${config.color}`}>
             {config.icon}
           </div>
           <div>
-            <h3 className="font-semibold">{config.label}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold">{config.label}</h3>
+              <Badge variant="secondary" className="text-[10px] font-mono">{opId}</Badge>
+              {source.step > 0 && (
+                <Badge variant="outline" className="text-[10px]">
+                  {source.icon} Workflow Step {source.step}: {source.label}
+                </Badge>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {formatTimestamp(result.timestamp)}
+              {formatTimestamp(result.timestamp)} · Full ID: {result.id}
             </p>
           </div>
         </div>
@@ -545,8 +567,8 @@ const TypeSpecificDetails: React.FC<{ result: StoredResult }> = ({ result }) => 
       return (
         <div className="grid grid-cols-2 gap-3">
           <MetricCard label="Epochs" value={r.data.epochs} />
-          <MetricCard label="Final Accuracy" value={`${(r.data.finalAccuracy * 100).toFixed(1)}%`} />
-          <MetricCard label="Final Loss" value={r.data.finalLoss.toFixed(4)} />
+          <MetricCard label="Final Accuracy" value={sp(r.data.finalAccuracy)} />
+          <MetricCard label="Final Loss" value={sf(r.data.finalLoss)} />
           <MetricCard label="Samples" value={r.data.config.samples} />
         </div>
       );
@@ -556,9 +578,9 @@ const TypeSpecificDetails: React.FC<{ result: StoredResult }> = ({ result }) => 
       return (
         <div className="grid grid-cols-2 gap-3">
           <MetricCard label="Classification" value={r.data.classification.className} />
-          <MetricCard label="Confidence" value={`${(r.data.classification.confidence * 100).toFixed(1)}%`} />
-          <MetricCard label="ATE" value={r.data.causalEffects.ATE.toFixed(4)} />
-          <MetricCard label="CATE" value={r.data.causalEffects.CATE.toFixed(4)} />
+          <MetricCard label="Confidence" value={sp(r.data.classification.confidence)} />
+          <MetricCard label="ATE" value={sf(r.data.causalEffects.ATE)} />
+          <MetricCard label="CATE" value={sf(r.data.causalEffects.CATE)} />
         </div>
       );
     }
@@ -567,9 +589,11 @@ const TypeSpecificDetails: React.FC<{ result: StoredResult }> = ({ result }) => 
       return (
         <div className="grid grid-cols-2 gap-3">
           <MetricCard label="Intervention" value={r.data.intervention.name} />
-          <MetricCard label="Primary Effect" value={`${(r.data.causalEffects.primaryEffect * 100).toFixed(1)}%`} />
-          <MetricCard label="Pre-Risk" value={`${(r.data.riskAssessment.preInterventionRisk * 100).toFixed(1)}%`} />
-          <MetricCard label="Post-Risk" value={`${(r.data.riskAssessment.postInterventionRisk * 100).toFixed(1)}%`} />
+          <MetricCard label="Primary Effect" value={sp(r.data.causalEffects.primaryEffect)} />
+          <MetricCard label="Pre-Risk" value={sp(r.data.riskAssessment.preInterventionRisk)} />
+          <MetricCard label="Post-Risk" value={sp(r.data.riskAssessment.postInterventionRisk)} />
+          <MetricCard label="Risk Δ" value={`${safeNum(r.data.riskAssessment.riskDelta) > 0 ? '+' : ''}${sf(safeNum(r.data.riskAssessment.riskDelta) * 100, 1)}%`} />
+          <MetricCard label="Command" value={`do(${r.data.intervention.variable} = ${r.data.intervention.targetValue})`} />
         </div>
       );
     }
@@ -577,10 +601,10 @@ const TypeSpecificDetails: React.FC<{ result: StoredResult }> = ({ result }) => 
       const r = result as CounterfactualOperationResult;
       return (
         <div className="grid grid-cols-2 gap-3">
-          <MetricCard label="Baseline" value={`${(r.data.baselineOutcome * 100).toFixed(1)}%`} />
-          <MetricCard label="Counterfactual" value={`${(r.data.counterfactualOutcome * 100).toFixed(1)}%`} />
-          <MetricCard label="Causal Effect" value={`${(r.data.causalEffect * 100).toFixed(1)}%`} />
-          <MetricCard label="Confidence" value={`${(r.data.confidence * 100).toFixed(1)}%`} />
+          <MetricCard label="Baseline" value={sp(r.data.baselineOutcome)} />
+          <MetricCard label="Counterfactual" value={sp(r.data.counterfactualOutcome)} />
+          <MetricCard label="Causal Effect" value={sp(r.data.causalEffect)} />
+          <MetricCard label="Confidence" value={sp(r.data.confidence)} />
         </div>
       );
     }
@@ -588,7 +612,7 @@ const TypeSpecificDetails: React.FC<{ result: StoredResult }> = ({ result }) => 
       const r = result as PrescriptiveOperationResult;
       return (
         <div className="grid grid-cols-2 gap-3">
-          <MetricCard label="System Health" value={`${r.data.systemHealthScore.toFixed(0)}/100`} />
+          <MetricCard label="System Health" value={`${sf(r.data.systemHealthScore, 0)}/100`} />
           <MetricCard label="Risk Level" value={r.data.riskLevel.toUpperCase()} />
           <MetricCard label="Recommendations" value={r.data.recommendations.length} />
           <MetricCard label="Top Priority" value={r.data.topPriority?.priority || 'None'} />
@@ -609,64 +633,135 @@ const MetricCard: React.FC<{ label: string; value: string | number }> = ({ label
 );
 
 // Extract compact data for table view
-function extractCompactData(result: StoredResult): { metrics: string; configParams: string } {
+function extractCompactData(result: StoredResult): { metrics: string; configParams: string; command: string } {
   switch (result.type) {
     case 'cvgg_training': {
       const r = result as CVGGTrainingResult;
       return {
-        metrics: `Acc:${(r.data.finalAccuracy * 100).toFixed(1)}% Loss:${r.data.finalLoss.toFixed(3)}`,
-        configParams: `e:${r.data.epochs} lr:${r.data.config.learningRate} n:${r.data.config.samples}`
+        metrics: `Acc:${sp(r.data.finalAccuracy)} Loss:${sf(r.data.finalLoss, 3)}`,
+        configParams: `e:${r.data.epochs} lr:${r.data.config.learningRate} n:${r.data.config.samples}`,
+        command: `train(epochs=${r.data.epochs}, lr=${r.data.config.learningRate})`
       };
     }
     case 'cvgg_inference': {
       const r = result as CVGGInferenceResult;
       return {
-        metrics: `${r.data.classification.className} (${(r.data.classification.confidence * 100).toFixed(0)}%)`,
-        configParams: `ATE:${r.data.causalEffects.ATE.toFixed(3)} CATE:${r.data.causalEffects.CATE.toFixed(3)}`
+        metrics: `${r.data.classification.className} (${sp(r.data.classification.confidence, 0)})`,
+        configParams: `ATE:${sf(r.data.causalEffects.ATE, 3)} CATE:${sf(r.data.causalEffects.CATE, 3)}`,
+        command: `infer(state)`
       };
     }
     case 'intervention': {
       const r = result as InterventionOperationResult;
       return {
-        metrics: `do(${r.data.intervention.variable}) Δ:${(r.data.riskAssessment.riskDelta * 100).toFixed(1)}%`,
-        configParams: `pre:${(r.data.riskAssessment.preInterventionRisk * 100).toFixed(0)}% post:${(r.data.riskAssessment.postInterventionRisk * 100).toFixed(0)}%`
+        metrics: `Δ Risk:${sf(safeNum(r.data.riskAssessment.riskDelta) * 100, 1)}%`,
+        configParams: `pre:${sp(r.data.riskAssessment.preInterventionRisk, 0)} → post:${sp(r.data.riskAssessment.postInterventionRisk, 0)}`,
+        command: `do(${r.data.intervention.variable} = ${r.data.intervention.targetValue})`
       };
     }
     case 'counterfactual': {
       const r = result as CounterfactualOperationResult;
       return {
-        metrics: `Effect:${(r.data.causalEffect * 100).toFixed(1)}% Conf:${(r.data.confidence * 100).toFixed(0)}%`,
-        configParams: `base:${(r.data.baselineOutcome * 100).toFixed(0)}% cf:${(r.data.counterfactualOutcome * 100).toFixed(0)}%`
+        metrics: `Effect:${sp(r.data.causalEffect)} Conf:${sp(r.data.confidence, 0)}`,
+        configParams: `base:${sp(r.data.baselineOutcome, 0)} → cf:${sp(r.data.counterfactualOutcome, 0)}`,
+        command: `if(${r.data.query.variable} → ${r.data.query.description?.slice(0, 30) || 'change'})`
       };
     }
     case 'prescriptive': {
       const r = result as PrescriptiveOperationResult;
       return {
-        metrics: `Health:${r.data.systemHealthScore.toFixed(0)} Risk:${r.data.riskLevel}`,
-        configParams: `${r.data.recommendations.length} recs, ${r.data.topPriority?.priority || 'none'}`
+        metrics: `Health:${sf(r.data.systemHealthScore, 0)} Risk:${r.data.riskLevel}`,
+        configParams: `${r.data.recommendations.length} recs, ${r.data.topPriority?.priority || 'none'}`,
+        command: `prescribe()`
       };
     }
     case 'example':
-      return {
-        metrics: 'CVGG Example',
-        configParams: 'Normal/Fault patterns'
-      };
+      return { metrics: 'CVGG Example', configParams: 'Normal/Fault patterns', command: 'example()' };
     case 'case':
-      return {
-        metrics: 'Case Study',
-        configParams: 'L1/L2/L3 operations'
-      };
+      return { metrics: 'Case Study', configParams: 'L1/L2/L3 operations', command: 'case()' };
     case 'knowledge_import':
     case 'knowledge_export':
     case 'knowledge_query':
-      return {
-        metrics: 'Knowledge Base',
-        configParams: 'Graph operation'
-      };
+      return { metrics: 'Knowledge Base', configParams: 'Graph operation', command: 'knowledge()' };
     default:
-      return { metrics: '-', configParams: '-' };
+      return { metrics: '--', configParams: '--', command: '--' };
   }
 }
+
+// Total Table View — comprehensive view with IDs, sources, commands, and all key metrics
+const TotalTableView: React.FC<{ results: StoredResult[] }> = ({ results }) => {
+  if (results.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p className="font-medium">No results saved yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <ScrollArea className="h-[500px]">
+      <Table>
+        <TableHeader className="sticky top-0 bg-background z-10">
+          <TableRow>
+            <TableHead className="text-xs w-[70px]">Op ID</TableHead>
+            <TableHead className="text-xs w-[40px]">Step</TableHead>
+            <TableHead className="text-xs w-[90px]">Type</TableHead>
+            <TableHead className="text-xs">Command</TableHead>
+            <TableHead className="text-xs">Key Metrics</TableHead>
+            <TableHead className="text-xs">Details</TableHead>
+            <TableHead className="text-xs w-[70px]">Time</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {results.map((result) => {
+            const config = operationTypeConfig[result.type];
+            const { metrics, configParams, command } = extractCompactData(result);
+            const source = WORKFLOW_SOURCE[result.type];
+            const opId = shortId(result.id);
+
+            return (
+              <TableRow key={result.id} className="h-9 text-xs">
+                <TableCell className="py-1">
+                  <Badge variant="secondary" className="text-[10px] font-mono px-1">{opId}</Badge>
+                </TableCell>
+                <TableCell className="py-1 text-center">
+                  {source.step > 0 ? (
+                    <span title={`Step ${source.step}: ${source.label}`} className="text-sm">{source.icon}</span>
+                  ) : (
+                    <span className="text-muted-foreground">--</span>
+                  )}
+                </TableCell>
+                <TableCell className="py-1">
+                  <Badge variant="outline" className={cn("text-[10px] px-1", config.color)}>
+                    {config.icon}
+                    <span className="ml-1">{config.label.split(' ')[0]}</span>
+                  </Badge>
+                </TableCell>
+                <TableCell className="py-1 font-mono text-[10px] text-muted-foreground max-w-[160px] truncate" title={command}>
+                  {command}
+                </TableCell>
+                <TableCell className="py-1 font-mono text-[10px]">
+                  {metrics}
+                </TableCell>
+                <TableCell className="py-1 text-muted-foreground font-mono text-[10px]">
+                  {configParams}
+                </TableCell>
+                <TableCell className="py-1 font-mono text-[10px] text-muted-foreground">
+                  {new Date(result.timestamp).toLocaleTimeString()}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+      <div className="mt-2 p-2 bg-muted/30 rounded text-xs text-muted-foreground">
+        Total: {results.length} operations · 
+        Steps covered: {[...new Set(results.map(r => WORKFLOW_SOURCE[r.type].step).filter(s => s > 0))].sort().map(s => `${s}`).join(', ') || 'none'}
+      </div>
+    </ScrollArea>
+  );
+};
 
 // Compact Table View Component
 interface CompactTableViewProps {
@@ -707,54 +802,59 @@ const CompactTableView: React.FC<CompactTableViewProps> = ({
       <Table>
         <TableHeader className="sticky top-0 bg-background z-10">
           <TableRow>
+            <TableHead className="w-[60px] text-xs">ID</TableHead>
             <TableHead 
-              className="w-[80px] cursor-pointer hover:bg-muted/50 transition-colors"
+              className="w-[70px] cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => onSort('timestamp')}
             >
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 text-xs">
                 Time {sortColumn === 'timestamp' && (sortDirection === 'desc' ? '↓' : '↑')}
               </span>
             </TableHead>
             <TableHead 
-              className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
+              className="w-[100px] cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => onSort('type')}
             >
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 text-xs">
                 Type {sortColumn === 'type' && (sortDirection === 'desc' ? '↓' : '↑')}
               </span>
             </TableHead>
-            <TableHead>Key Metrics</TableHead>
-            <TableHead>Configuration</TableHead>
-            <TableHead className="w-[50px]">Actions</TableHead>
+            <TableHead className="text-xs">Key Metrics</TableHead>
+            <TableHead className="text-xs">Details</TableHead>
+            <TableHead className="w-[50px] text-xs">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {results.map((result) => {
             const config = operationTypeConfig[result.type];
             const { metrics, configParams } = extractCompactData(result);
+            const opId = shortId(result.id);
             
             return (
               <TableRow
                 key={result.id}
                 className={cn(
-                  "cursor-pointer h-10 text-xs transition-colors",
+                  "cursor-pointer h-9 text-xs transition-colors",
                   selectedId === result.id && "bg-primary/10"
                 )}
                 onClick={() => onSelect(result)}
               >
-                <TableCell className="py-1 font-mono text-muted-foreground text-xs">
+                <TableCell className="py-1">
+                  <Badge variant="secondary" className="text-[10px] font-mono px-1">{opId}</Badge>
+                </TableCell>
+                <TableCell className="py-1 font-mono text-muted-foreground text-[10px]">
                   {formatRelativeTime(result.timestamp)}
                 </TableCell>
                 <TableCell className="py-1">
-                  <Badge variant="outline" className={cn("text-xs px-1.5 py-0.5", config.color)}>
+                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5", config.color)}>
                     {config.icon}
                     <span className="ml-1">{config.label.split(' ')[0]}</span>
                   </Badge>
                 </TableCell>
-                <TableCell className="py-1 font-mono text-xs">
+                <TableCell className="py-1 font-mono text-[10px]">
                   {metrics}
                 </TableCell>
-                <TableCell className="py-1 text-muted-foreground font-mono text-xs">
+                <TableCell className="py-1 text-muted-foreground font-mono text-[10px]">
                   {configParams}
                 </TableCell>
                 <TableCell className="py-1">

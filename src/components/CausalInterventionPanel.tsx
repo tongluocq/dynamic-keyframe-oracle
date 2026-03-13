@@ -37,7 +37,7 @@ import {
   InterventionDefinition,
 } from '@/utils/causalInterventionEngine';
 import SimpleDAG, { buildInterventionDAG } from '@/components/SimpleDAG';
-import { saveOperationResult } from '@/utils/resultsStorage';
+import { saveOperationResult, sf, sp, safeNum, shortId } from '@/utils/resultsStorage';
 import { useToast } from '@/hooks/use-toast';
 
 interface CausalInterventionPanelProps {
@@ -99,8 +99,12 @@ const CausalInterventionPanel: React.FC<CausalInterventionPanelProps> = ({
     const interventions = allInterventions.filter(i => selectedInterventions.has(i.id));
     const newResults = engine.executeMultipleInterventions(interventions, currentState, cvggResult || undefined);
     setResults(prev => [...newResults, ...prev].slice(0, 20));
-    newResults.forEach(result => saveOperationResult('intervention', result, { modelMode: 'intervention' }));
-    toast({ title: 'Interventions Executed', description: `${newResults.length} intervention(s) computed.` });
+    const savedIds = newResults.map(result => {
+      const savedId = saveOperationResult('intervention', result, { modelMode: 'intervention' });
+      (result as any)._savedId = savedId;
+      return savedId;
+    });
+    toast({ title: 'Interventions Executed', description: `${newResults.length} intervention(s) computed. IDs: ${savedIds.map(id => shortId(id)).join(', ')}` });
   };
 
   const executeAll = () => {
@@ -438,13 +442,15 @@ const InterventionCard: React.FC<{
 };
 
 const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ result }) => {
-  const riskDelta = result.riskAssessment.riskDelta;
+  const riskDelta = safeNum(result.riskAssessment.riskDelta);
   const riskTrend = riskDelta > 0.02 ? 'increased' : riskDelta < -0.02 ? 'decreased' : 'unchanged';
+  const opId = (result as any)._savedId ? shortId((result as any)._savedId) : '⚡';
   
   return (
     <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-[10px] font-mono px-1">{opId}</Badge>
           {domainIcons[result.intervention.domain]}
           <span className="font-medium">{result.intervention.name}</span>
           {result.verified ? (
@@ -459,17 +465,22 @@ const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ resu
             </Badge>
           )}
         </div>
-        <span className="text-xs text-muted-foreground">
-          {(result.confidence * 100).toFixed(0)}% confidence
-        </span>
+        <div className="text-right">
+          <span className="text-xs text-muted-foreground">
+            {sp(result.confidence, 0)} confidence
+          </span>
+          <div className="text-[10px] font-mono text-muted-foreground">
+            do({result.intervention.variable} = {result.intervention.targetValue})
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-background rounded p-2 text-center">
           <div className="text-xs text-muted-foreground">Primary Effect</div>
-          <div className={`font-semibold ${result.causalEffects.primaryEffect > 0 ? 'text-orange-400' : 'text-blue-400'}`}>
-            {result.causalEffects.primaryEffect > 0 ? '+' : ''}
-            {(result.causalEffects.primaryEffect * 100).toFixed(1)}%
+          <div className={`font-semibold ${safeNum(result.causalEffects.primaryEffect) > 0 ? 'text-orange-400' : 'text-blue-400'}`}>
+            {safeNum(result.causalEffects.primaryEffect) > 0 ? '+' : ''}
+            {sp(result.causalEffects.primaryEffect)}
           </div>
         </div>
         <div className="bg-background rounded p-2 text-center">
@@ -478,9 +489,9 @@ const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ resu
         </div>
         <div className="bg-background rounded p-2 text-center">
           <div className="text-xs text-muted-foreground">Total Effect</div>
-          <div className={`font-semibold ${result.causalEffects.totalEffect > 0 ? 'text-red-400' : 'text-green-400'}`}>
-            {result.causalEffects.totalEffect > 0 ? '+' : ''}
-            {(result.causalEffects.totalEffect * 100).toFixed(1)}%
+          <div className={`font-semibold ${safeNum(result.causalEffects.totalEffect) > 0 ? 'text-red-400' : 'text-green-400'}`}>
+            {safeNum(result.causalEffects.totalEffect) > 0 ? '+' : ''}
+            {sp(result.causalEffects.totalEffect)}
           </div>
         </div>
       </div>
@@ -488,13 +499,13 @@ const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ resu
       <div className="flex items-center justify-center gap-4 py-2">
         <div className="text-center">
           <div className="text-xs text-muted-foreground">Pre-Intervention Risk</div>
-          <div className="font-mono">{(result.riskAssessment.preInterventionRisk * 100).toFixed(1)}%</div>
+          <div className="font-mono">{sp(result.riskAssessment.preInterventionRisk)}</div>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground" />
         <div className="text-center">
           <div className="text-xs text-muted-foreground">Post-Intervention Risk</div>
           <div className={`font-mono ${riskTrend === 'increased' ? 'text-red-400' : riskTrend === 'decreased' ? 'text-green-400' : ''}`}>
-            {(result.riskAssessment.postInterventionRisk * 100).toFixed(1)}%
+            {sp(result.riskAssessment.postInterventionRisk)}
           </div>
         </div>
         <Badge variant="outline" className={`ml-2 ${
@@ -533,9 +544,9 @@ const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ resu
             {result.causalEffects.secondaryEffects.slice(0, 5).map((effect, i) => (
               <Badge key={i} variant="outline" className="text-xs">
                 {effect.pathway}
-                <span className={`ml-1 ${effect.effect > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                  {effect.effect > 0 ? '↑' : '↓'}
-                  {Math.abs(effect.effect * 100).toFixed(0)}%
+                <span className={`ml-1 ${safeNum(effect.effect) > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                  {safeNum(effect.effect) > 0 ? '↑' : '↓'}
+                  {Math.abs(safeNum(effect.effect) * 100).toFixed(0)}%
                 </span>
               </Badge>
             ))}
