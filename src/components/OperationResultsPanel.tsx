@@ -368,6 +368,8 @@ const OperationResultsPanel: React.FC = () => {
                 onSort={handleSort}
                 formatRelativeTime={formatRelativeTime}
               />
+            ) : activeTab === 'total' ? (
+              <TotalTableView results={sortedResults} />
             ) : (
               <StatisticsView statistics={statistics} results={results} />
             )}
