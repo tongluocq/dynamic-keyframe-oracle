@@ -95,7 +95,7 @@ const OperationResultsPanel: React.FC = () => {
   const [filterType, setFilterType] = useState<OperationType | 'all'>('all');
   const [sortColumn, setSortColumn] = useState<'timestamp' | 'type'>('timestamp');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [activeTab, setActiveTab] = useState<'summary' | 'list' | 'table' | 'statistics'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'list' | 'table' | 'total' | 'statistics'>('summary');
 
   // Subscribe to storage changes
   useEffect(() => {
