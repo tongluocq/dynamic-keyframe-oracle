@@ -544,9 +544,9 @@ const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ resu
             {result.causalEffects.secondaryEffects.slice(0, 5).map((effect, i) => (
               <Badge key={i} variant="outline" className="text-xs">
                 {effect.pathway}
-                <span className={`ml-1 ${effect.effect > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                  {effect.effect > 0 ? '↑' : '↓'}
-                  {Math.abs(effect.effect * 100).toFixed(0)}%
+                <span className={`ml-1 ${safeNum(effect.effect) > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                  {safeNum(effect.effect) > 0 ? '↑' : '↓'}
+                  {Math.abs(safeNum(effect.effect) * 100).toFixed(0)}%
                 </span>
               </Badge>
             ))}
