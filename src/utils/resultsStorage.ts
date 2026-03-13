@@ -163,47 +163,47 @@ export type StoredResult =
   | CaseOperationResult
   | KnowledgeOperationResult;
 
-// Result explanation templates
+// Result explanation templates — all use sf/sp safe formatters
 const EXPLANATION_TEMPLATES: Record<OperationType, (result: StoredResult) => string> = {
   cvgg_training: (result) => {
     const r = result as CVGGTrainingResult;
-    return `**CVGG Training Completed**\n\n` +
+    return `**CVGG Training Completed** [${shortId(r.id)} · Step 3: Train]\n\n` +
       `Trained for ${r.data.epochs} epochs with ${r.data.config.samples} samples.\n` +
-      `Final loss: ${r.data.finalLoss.toFixed(4)} (Classification: ${r.data.classificationLoss.toFixed(4)}, Causal: ${r.data.causalLoss.toFixed(4)})\n` +
-      `Final accuracy: ${(r.data.finalAccuracy * 100).toFixed(1)}%\n\n` +
+      `Final loss: ${sf(r.data.finalLoss)} (Classification: ${sf(r.data.classificationLoss)}, Causal: ${sf(r.data.causalLoss)})\n` +
+      `Final accuracy: ${sp(r.data.finalAccuracy)}\n\n` +
       `**Interpretation:** The model has learned to classify system states while simultaneously learning causal relationships. ` +
       `Lower causal loss indicates better estimation of Average Treatment Effects (ATE) and Conditional ATE (CATE).`;
   },
   cvgg_inference: (result) => {
     const r = result as CVGGInferenceResult;
     const d = r.data;
-    return `**CVGG Inference Result**\n\n` +
-      `Classification: ${d.classification.className} (${(d.classification.confidence * 100).toFixed(1)}% confidence)\n` +
-      `Anomaly Score: ${(d.anomalyScore * 100).toFixed(1)}%\n\n` +
+    return `**CVGG Inference Result** [${shortId(r.id)} · Step 4: Infer]\n\n` +
+      `Classification: ${d.classification.className} (${sp(d.classification.confidence)} confidence)\n` +
+      `Anomaly Score: ${sp(d.anomalyScore)}\n\n` +
       `**Causal Effects:**\n` +
-      `- ATE (Average Treatment Effect): ${d.causalEffects.ATE.toFixed(4)}\n` +
-      `- CATE (Conditional ATE): ${d.causalEffects.CATE.toFixed(4)}\n` +
-      `- Direct Effect: ${d.causalEffects.directEffect.toFixed(4)}\n` +
-      `- Indirect Effect: ${d.causalEffects.indirectEffect.toFixed(4)}\n\n` +
-      `**Interpretation:** ATE of ${d.causalEffects.ATE.toFixed(4)} indicates ` +
-      `${d.causalEffects.ATE > 0.3 ? 'significant causal impact - intervention may be needed' : 
-        d.causalEffects.ATE > 0.1 ? 'moderate causal activity - monitoring recommended' : 
+      `- ATE (Average Treatment Effect): ${sf(d.causalEffects.ATE)}\n` +
+      `- CATE (Conditional ATE): ${sf(d.causalEffects.CATE)}\n` +
+      `- Direct Effect: ${sf(d.causalEffects.directEffect)}\n` +
+      `- Indirect Effect: ${sf(d.causalEffects.indirectEffect)}\n\n` +
+      `**Interpretation:** ATE of ${sf(d.causalEffects.ATE)} indicates ` +
+      `${safeNum(d.causalEffects.ATE) > 0.3 ? 'significant causal impact - intervention may be needed' : 
+        safeNum(d.causalEffects.ATE) > 0.1 ? 'moderate causal activity - monitoring recommended' : 
         'normal causal levels - system operating stably'}.`;
   },
   intervention: (result) => {
     const r = result as InterventionOperationResult;
     const d = r.data;
-    return `**Causal Intervention (do-calculus)**\n\n` +
+    return `**Causal Intervention (do-calculus)** [${shortId(r.id)} · Step 5: do()]\n\n` +
       `Intervention: ${d.intervention.name}\n` +
       `do(${d.intervention.variable} = ${d.intervention.targetValue})\n\n` +
       `**Causal Effects:**\n` +
-      `- Primary Effect: ${(d.causalEffects.primaryEffect * 100).toFixed(1)}%\n` +
-      `- Total Effect: ${(d.causalEffects.totalEffect * 100).toFixed(1)}%\n` +
+      `- Primary Effect: ${sp(d.causalEffects.primaryEffect)}\n` +
+      `- Total Effect: ${sp(d.causalEffects.totalEffect)}\n` +
       `- Secondary Pathways: ${d.causalEffects.secondaryEffects.length}\n\n` +
       `**Risk Assessment:**\n` +
-      `- Pre-intervention: ${(d.riskAssessment.preInterventionRisk * 100).toFixed(1)}%\n` +
-      `- Post-intervention: ${(d.riskAssessment.postInterventionRisk * 100).toFixed(1)}%\n` +
-      `- Change: ${d.riskAssessment.riskDelta > 0 ? '+' : ''}${(d.riskAssessment.riskDelta * 100).toFixed(1)}%\n\n` +
+      `- Pre-intervention: ${sp(d.riskAssessment.preInterventionRisk)}\n` +
+      `- Post-intervention: ${sp(d.riskAssessment.postInterventionRisk)}\n` +
+      `- Change: ${safeNum(d.riskAssessment.riskDelta) > 0 ? '+' : ''}${sf(safeNum(d.riskAssessment.riskDelta) * 100, 1)}%\n\n` +
       `**Interpretation:** ${d.explanation}`;
   },
   counterfactual: (result) => {
