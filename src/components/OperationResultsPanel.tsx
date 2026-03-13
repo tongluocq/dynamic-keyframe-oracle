@@ -425,6 +425,8 @@ const ResultListItem: React.FC<ResultListItemProps> = ({
   const config = operationTypeConfig[result.type];
   const storage = getResultsStorage();
   const summary = storage.getResultSummary(result);
+  const source = WORKFLOW_SOURCE[result.type];
+  const opId = shortId(result.id);
 
   return (
     <div
@@ -442,7 +444,13 @@ const ResultListItem: React.FC<ResultListItemProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-[10px] font-mono shrink-0 px-1.5">{opId}</Badge>
               <span className="font-medium text-sm truncate">{config.label}</span>
+              {source.step > 0 && (
+                <Badge variant="outline" className="text-[10px] shrink-0 px-1.5">
+                  {source.icon} Step {source.step}
+                </Badge>
+              )}
               <Badge variant="outline" className="text-xs shrink-0">
                 <Clock className="h-3 w-3 mr-1" />
                 {formatRelativeTime(result.timestamp)}
