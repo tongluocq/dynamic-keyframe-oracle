@@ -37,7 +37,7 @@ import {
   InterventionDefinition,
 } from '@/utils/causalInterventionEngine';
 import SimpleDAG, { buildInterventionDAG } from '@/components/SimpleDAG';
-import { saveOperationResult } from '@/utils/resultsStorage';
+import { saveOperationResult, sf, sp, safeNum, shortId } from '@/utils/resultsStorage';
 import { useToast } from '@/hooks/use-toast';
 
 interface CausalInterventionPanelProps {
