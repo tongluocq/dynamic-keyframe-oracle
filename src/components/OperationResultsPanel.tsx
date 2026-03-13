@@ -664,7 +664,7 @@ function extractCompactData(result: StoredResult): { metrics: string; configPara
       return {
         metrics: `Effect:${sp(r.data.causalEffect)} Conf:${sp(r.data.confidence, 0)}`,
         configParams: `base:${sp(r.data.baselineOutcome, 0)} → cf:${sp(r.data.counterfactualOutcome, 0)}`,
-        command: `if(${r.data.query.variable} ${r.data.query.direction} ${sf(safeNum(r.data.query.magnitude) * 100, 0)}%)`
+        command: `if(${r.data.query.variable} → ${r.data.query.description?.slice(0, 30) || 'change'})`
       };
     }
     case 'prescriptive': {
