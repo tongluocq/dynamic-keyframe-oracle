@@ -450,6 +450,7 @@ const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ resu
     <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-[10px] font-mono px-1">{opId}</Badge>
           {domainIcons[result.intervention.domain]}
           <span className="font-medium">{result.intervention.name}</span>
           {result.verified ? (
@@ -464,9 +465,14 @@ const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ resu
             </Badge>
           )}
         </div>
-        <span className="text-xs text-muted-foreground">
-          {(result.confidence * 100).toFixed(0)}% confidence
-        </span>
+        <div className="text-right">
+          <span className="text-xs text-muted-foreground">
+            {sp(result.confidence, 0)} confidence
+          </span>
+          <div className="text-[10px] font-mono text-muted-foreground">
+            do({result.intervention.variable} = {result.intervention.targetValue})
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
