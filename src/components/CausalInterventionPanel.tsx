@@ -499,13 +499,13 @@ const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ resu
       <div className="flex items-center justify-center gap-4 py-2">
         <div className="text-center">
           <div className="text-xs text-muted-foreground">Pre-Intervention Risk</div>
-          <div className="font-mono">{(result.riskAssessment.preInterventionRisk * 100).toFixed(1)}%</div>
+          <div className="font-mono">{sp(result.riskAssessment.preInterventionRisk)}</div>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground" />
         <div className="text-center">
           <div className="text-xs text-muted-foreground">Post-Intervention Risk</div>
           <div className={`font-mono ${riskTrend === 'increased' ? 'text-red-400' : riskTrend === 'decreased' ? 'text-green-400' : ''}`}>
-            {(result.riskAssessment.postInterventionRisk * 100).toFixed(1)}%
+            {sp(result.riskAssessment.postInterventionRisk)}
           </div>
         </div>
         <Badge variant="outline" className={`ml-2 ${
