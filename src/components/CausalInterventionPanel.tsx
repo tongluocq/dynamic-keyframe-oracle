@@ -99,8 +99,12 @@ const CausalInterventionPanel: React.FC<CausalInterventionPanelProps> = ({
     const interventions = allInterventions.filter(i => selectedInterventions.has(i.id));
     const newResults = engine.executeMultipleInterventions(interventions, currentState, cvggResult || undefined);
     setResults(prev => [...newResults, ...prev].slice(0, 20));
-    newResults.forEach(result => saveOperationResult('intervention', result, { modelMode: 'intervention' }));
-    toast({ title: 'Interventions Executed', description: `${newResults.length} intervention(s) computed.` });
+    const savedIds = newResults.map(result => {
+      const savedId = saveOperationResult('intervention', result, { modelMode: 'intervention' });
+      (result as any)._savedId = savedId;
+      return savedId;
+    });
+    toast({ title: 'Interventions Executed', description: `${newResults.length} intervention(s) computed. IDs: ${savedIds.map(id => shortId(id)).join(', ')}` });
   };
 
   const executeAll = () => {
