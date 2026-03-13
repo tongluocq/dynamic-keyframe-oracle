@@ -13,6 +13,40 @@
  */
 
 import { InferenceResult } from '@/hooks/useEnhancedCVGG';
+
+// Global safe number formatting helpers — prevents NaN in all display paths
+export const safeNum = (val: any): number =>
+  val != null && typeof val === 'number' && !isNaN(val) && isFinite(val) ? val : 0;
+export const sf = (val: any, digits = 4): string => {
+  if (val == null || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return '--';
+  return val.toFixed(digits);
+};
+export const sp = (val: any, digits = 1): string => {
+  if (val == null || typeof val !== 'number' || isNaN(val) || !isFinite(val)) return '--';
+  return `${(val * 100).toFixed(digits)}%`;
+};
+
+// Workflow source labels for each operation type
+export const WORKFLOW_SOURCE: Record<OperationType, { step: number; label: string; icon: string }> = {
+  cvgg_training: { step: 3, label: 'Train', icon: '🧠' },
+  cvgg_inference: { step: 4, label: 'Infer', icon: '📊' },
+  intervention: { step: 5, label: 'do()', icon: '⚡' },
+  counterfactual: { step: 6, label: 'What-If', icon: '❓' },
+  prescriptive: { step: 7, label: 'Prescribe', icon: '💡' },
+  example: { step: 0, label: 'Example', icon: '📖' },
+  case: { step: 0, label: 'Case', icon: '📋' },
+  knowledge_import: { step: 0, label: 'KB Import', icon: '📥' },
+  knowledge_export: { step: 0, label: 'KB Export', icon: '📤' },
+  knowledge_query: { step: 0, label: 'KB Query', icon: '🔍' },
+};
+
+// Generate short readable ID from full ID
+export function shortId(id: string): string {
+  // result-1710000000000-abc123def -> OP-ABC1
+  const parts = id.split('-');
+  const suffix = parts[parts.length - 1] || '';
+  return `OP-${suffix.slice(0, 4).toUpperCase()}`;
+}
 import { InterventionResult } from '@/utils/causalInterventionEngine';
 import { CounterfactualResult } from '@/utils/counterfactualEngine';
 import { PrescriptiveOutput, Recommendation } from '@/utils/prescriptiveAI';
