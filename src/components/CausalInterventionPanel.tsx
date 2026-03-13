@@ -478,9 +478,9 @@ const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ resu
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-background rounded p-2 text-center">
           <div className="text-xs text-muted-foreground">Primary Effect</div>
-          <div className={`font-semibold ${result.causalEffects.primaryEffect > 0 ? 'text-orange-400' : 'text-blue-400'}`}>
-            {result.causalEffects.primaryEffect > 0 ? '+' : ''}
-            {(result.causalEffects.primaryEffect * 100).toFixed(1)}%
+          <div className={`font-semibold ${safeNum(result.causalEffects.primaryEffect) > 0 ? 'text-orange-400' : 'text-blue-400'}`}>
+            {safeNum(result.causalEffects.primaryEffect) > 0 ? '+' : ''}
+            {sp(result.causalEffects.primaryEffect)}
           </div>
         </div>
         <div className="bg-background rounded p-2 text-center">
@@ -489,9 +489,9 @@ const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ resu
         </div>
         <div className="bg-background rounded p-2 text-center">
           <div className="text-xs text-muted-foreground">Total Effect</div>
-          <div className={`font-semibold ${result.causalEffects.totalEffect > 0 ? 'text-red-400' : 'text-green-400'}`}>
-            {result.causalEffects.totalEffect > 0 ? '+' : ''}
-            {(result.causalEffects.totalEffect * 100).toFixed(1)}%
+          <div className={`font-semibold ${safeNum(result.causalEffects.totalEffect) > 0 ? 'text-red-400' : 'text-green-400'}`}>
+            {safeNum(result.causalEffects.totalEffect) > 0 ? '+' : ''}
+            {sp(result.causalEffects.totalEffect)}
           </div>
         </div>
       </div>
