@@ -487,19 +487,29 @@ const ResultDetail: React.FC<ResultDetailProps> = ({ result, formatTimestamp }) 
   const storage = getResultsStorage();
   const explanation = storage.getExplanation(result);
   const config = operationTypeConfig[result.type];
+  const source = WORKFLOW_SOURCE[result.type];
+  const opId = shortId(result.id);
 
   return (
     <ScrollArea className="h-[500px] pr-4">
       <div className="space-y-4">
-        {/* Header */}
+        {/* Header with ID and Source */}
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg bg-muted ${config.color}`}>
             {config.icon}
           </div>
           <div>
-            <h3 className="font-semibold">{config.label}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold">{config.label}</h3>
+              <Badge variant="secondary" className="text-[10px] font-mono">{opId}</Badge>
+              {source.step > 0 && (
+                <Badge variant="outline" className="text-[10px]">
+                  {source.icon} Workflow Step {source.step}: {source.label}
+                </Badge>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {formatTimestamp(result.timestamp)}
+              {formatTimestamp(result.timestamp)} · Full ID: {result.id}
             </p>
           </div>
         </div>
