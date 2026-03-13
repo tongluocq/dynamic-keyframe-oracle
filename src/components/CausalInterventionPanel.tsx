@@ -442,8 +442,9 @@ const InterventionCard: React.FC<{
 };
 
 const InterventionResultCard: React.FC<{ result: InterventionResult }> = ({ result }) => {
-  const riskDelta = result.riskAssessment.riskDelta;
+  const riskDelta = safeNum(result.riskAssessment.riskDelta);
   const riskTrend = riskDelta > 0.02 ? 'increased' : riskDelta < -0.02 ? 'decreased' : 'unchanged';
+  const opId = (result as any)._savedId ? shortId((result as any)._savedId) : '⚡';
   
   return (
     <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
