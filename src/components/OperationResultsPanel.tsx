@@ -802,54 +802,59 @@ const CompactTableView: React.FC<CompactTableViewProps> = ({
       <Table>
         <TableHeader className="sticky top-0 bg-background z-10">
           <TableRow>
+            <TableHead className="w-[60px] text-xs">ID</TableHead>
             <TableHead 
-              className="w-[80px] cursor-pointer hover:bg-muted/50 transition-colors"
+              className="w-[70px] cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => onSort('timestamp')}
             >
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 text-xs">
                 Time {sortColumn === 'timestamp' && (sortDirection === 'desc' ? '↓' : '↑')}
               </span>
             </TableHead>
             <TableHead 
-              className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
+              className="w-[100px] cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => onSort('type')}
             >
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 text-xs">
                 Type {sortColumn === 'type' && (sortDirection === 'desc' ? '↓' : '↑')}
               </span>
             </TableHead>
-            <TableHead>Key Metrics</TableHead>
-            <TableHead>Configuration</TableHead>
-            <TableHead className="w-[50px]">Actions</TableHead>
+            <TableHead className="text-xs">Key Metrics</TableHead>
+            <TableHead className="text-xs">Details</TableHead>
+            <TableHead className="w-[50px] text-xs">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {results.map((result) => {
             const config = operationTypeConfig[result.type];
             const { metrics, configParams } = extractCompactData(result);
+            const opId = shortId(result.id);
             
             return (
               <TableRow
                 key={result.id}
                 className={cn(
-                  "cursor-pointer h-10 text-xs transition-colors",
+                  "cursor-pointer h-9 text-xs transition-colors",
                   selectedId === result.id && "bg-primary/10"
                 )}
                 onClick={() => onSelect(result)}
               >
-                <TableCell className="py-1 font-mono text-muted-foreground text-xs">
+                <TableCell className="py-1">
+                  <Badge variant="secondary" className="text-[10px] font-mono px-1">{opId}</Badge>
+                </TableCell>
+                <TableCell className="py-1 font-mono text-muted-foreground text-[10px]">
                   {formatRelativeTime(result.timestamp)}
                 </TableCell>
                 <TableCell className="py-1">
-                  <Badge variant="outline" className={cn("text-xs px-1.5 py-0.5", config.color)}>
+                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5", config.color)}>
                     {config.icon}
                     <span className="ml-1">{config.label.split(' ')[0]}</span>
                   </Badge>
                 </TableCell>
-                <TableCell className="py-1 font-mono text-xs">
+                <TableCell className="py-1 font-mono text-[10px]">
                   {metrics}
                 </TableCell>
-                <TableCell className="py-1 text-muted-foreground font-mono text-xs">
+                <TableCell className="py-1 text-muted-foreground font-mono text-[10px]">
                   {configParams}
                 </TableCell>
                 <TableCell className="py-1">
