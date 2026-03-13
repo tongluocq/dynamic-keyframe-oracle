@@ -567,8 +567,8 @@ const TypeSpecificDetails: React.FC<{ result: StoredResult }> = ({ result }) => 
       return (
         <div className="grid grid-cols-2 gap-3">
           <MetricCard label="Epochs" value={r.data.epochs} />
-          <MetricCard label="Final Accuracy" value={`${(r.data.finalAccuracy * 100).toFixed(1)}%`} />
-          <MetricCard label="Final Loss" value={r.data.finalLoss.toFixed(4)} />
+          <MetricCard label="Final Accuracy" value={sp(r.data.finalAccuracy)} />
+          <MetricCard label="Final Loss" value={sf(r.data.finalLoss)} />
           <MetricCard label="Samples" value={r.data.config.samples} />
         </div>
       );
@@ -578,9 +578,9 @@ const TypeSpecificDetails: React.FC<{ result: StoredResult }> = ({ result }) => 
       return (
         <div className="grid grid-cols-2 gap-3">
           <MetricCard label="Classification" value={r.data.classification.className} />
-          <MetricCard label="Confidence" value={`${(r.data.classification.confidence * 100).toFixed(1)}%`} />
-          <MetricCard label="ATE" value={r.data.causalEffects.ATE.toFixed(4)} />
-          <MetricCard label="CATE" value={r.data.causalEffects.CATE.toFixed(4)} />
+          <MetricCard label="Confidence" value={sp(r.data.classification.confidence)} />
+          <MetricCard label="ATE" value={sf(r.data.causalEffects.ATE)} />
+          <MetricCard label="CATE" value={sf(r.data.causalEffects.CATE)} />
         </div>
       );
     }
@@ -589,9 +589,11 @@ const TypeSpecificDetails: React.FC<{ result: StoredResult }> = ({ result }) => 
       return (
         <div className="grid grid-cols-2 gap-3">
           <MetricCard label="Intervention" value={r.data.intervention.name} />
-          <MetricCard label="Primary Effect" value={`${(r.data.causalEffects.primaryEffect * 100).toFixed(1)}%`} />
-          <MetricCard label="Pre-Risk" value={`${(r.data.riskAssessment.preInterventionRisk * 100).toFixed(1)}%`} />
-          <MetricCard label="Post-Risk" value={`${(r.data.riskAssessment.postInterventionRisk * 100).toFixed(1)}%`} />
+          <MetricCard label="Primary Effect" value={sp(r.data.causalEffects.primaryEffect)} />
+          <MetricCard label="Pre-Risk" value={sp(r.data.riskAssessment.preInterventionRisk)} />
+          <MetricCard label="Post-Risk" value={sp(r.data.riskAssessment.postInterventionRisk)} />
+          <MetricCard label="Risk Δ" value={`${safeNum(r.data.riskAssessment.riskDelta) > 0 ? '+' : ''}${sf(safeNum(r.data.riskAssessment.riskDelta) * 100, 1)}%`} />
+          <MetricCard label="Command" value={`do(${r.data.intervention.variable} = ${r.data.intervention.targetValue})`} />
         </div>
       );
     }
@@ -599,10 +601,10 @@ const TypeSpecificDetails: React.FC<{ result: StoredResult }> = ({ result }) => 
       const r = result as CounterfactualOperationResult;
       return (
         <div className="grid grid-cols-2 gap-3">
-          <MetricCard label="Baseline" value={`${(r.data.baselineOutcome * 100).toFixed(1)}%`} />
-          <MetricCard label="Counterfactual" value={`${(r.data.counterfactualOutcome * 100).toFixed(1)}%`} />
-          <MetricCard label="Causal Effect" value={`${(r.data.causalEffect * 100).toFixed(1)}%`} />
-          <MetricCard label="Confidence" value={`${(r.data.confidence * 100).toFixed(1)}%`} />
+          <MetricCard label="Baseline" value={sp(r.data.baselineOutcome)} />
+          <MetricCard label="Counterfactual" value={sp(r.data.counterfactualOutcome)} />
+          <MetricCard label="Causal Effect" value={sp(r.data.causalEffect)} />
+          <MetricCard label="Confidence" value={sp(r.data.confidence)} />
         </div>
       );
     }
@@ -610,7 +612,7 @@ const TypeSpecificDetails: React.FC<{ result: StoredResult }> = ({ result }) => 
       const r = result as PrescriptiveOperationResult;
       return (
         <div className="grid grid-cols-2 gap-3">
-          <MetricCard label="System Health" value={`${r.data.systemHealthScore.toFixed(0)}/100`} />
+          <MetricCard label="System Health" value={`${sf(r.data.systemHealthScore, 0)}/100`} />
           <MetricCard label="Risk Level" value={r.data.riskLevel.toUpperCase()} />
           <MetricCard label="Recommendations" value={r.data.recommendations.length} />
           <MetricCard label="Top Priority" value={r.data.topPriority?.priority || 'None'} />
