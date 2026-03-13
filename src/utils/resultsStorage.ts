@@ -209,31 +209,31 @@ const EXPLANATION_TEMPLATES: Record<OperationType, (result: StoredResult) => str
   counterfactual: (result) => {
     const r = result as CounterfactualOperationResult;
     const d = r.data;
-    return `**Counterfactual Analysis (What-If)**\n\n` +
+    return `**Counterfactual Analysis (What-If)** [${shortId(r.id)} · Step 6: What-If]\n\n` +
       `Query: ${d.query.description}\n\n` +
       `**Results:**\n` +
-      `- Baseline Outcome: ${(d.baselineOutcome * 100).toFixed(1)}%\n` +
-      `- Counterfactual Outcome: ${(d.counterfactualOutcome * 100).toFixed(1)}%\n` +
-      `- Causal Effect: ${(d.causalEffect * 100).toFixed(1)}%\n` +
+      `- Baseline Outcome: ${sp(d.baselineOutcome)}\n` +
+      `- Counterfactual Outcome: ${sp(d.counterfactualOutcome)}\n` +
+      `- Causal Effect: ${sp(d.causalEffect)}\n` +
       `- Risk Change: ${d.riskChange}\n` +
-      `- Confidence: ${(d.confidence * 100).toFixed(1)}%\n\n` +
+      `- Confidence: ${sp(d.confidence)}\n\n` +
       `**Affected Variables:**\n${d.affectedVariables.slice(0, 3).map(v => 
-        `- ${v.variable}: ${v.predictedChange > 0 ? '+' : ''}${(v.predictedChange * 100).toFixed(1)}%`
+        `- ${v.variable}: ${safeNum(v.predictedChange) > 0 ? '+' : ''}${sf(safeNum(v.predictedChange) * 100, 1)}%`
       ).join('\n')}\n\n` +
       `**Interpretation:** ${d.explanation}`;
   },
   prescriptive: (result) => {
     const r = result as PrescriptiveOperationResult;
     const d = r.data;
-    return `**Prescriptive AI Analysis**\n\n` +
-      `System Health: ${d.systemHealthScore.toFixed(0)}/100\n` +
+    return `**Prescriptive AI Analysis** [${shortId(r.id)} · Step 7: Prescribe]\n\n` +
+      `System Health: ${sf(d.systemHealthScore, 0)}/100\n` +
       `Risk Level: ${d.riskLevel.toUpperCase()}\n\n` +
       `**Summary:** ${d.summary}\n\n` +
       `**Top Recommendations (${d.recommendations.length} total):**\n` +
       d.recommendations.slice(0, 3).map((rec, i) => 
         `${i + 1}. [${rec.priority.toUpperCase()}] ${rec.title}\n` +
-        `   Risk Reduction: ${(rec.estimatedImpact.riskReduction * 100).toFixed(0)}%, ` +
-        `Cost Saving: $${rec.estimatedImpact.costSaving.toFixed(0)}`
+        `   Risk Reduction: ${sp(rec.estimatedImpact.riskReduction, 0)}, ` +
+        `Cost Saving: $${sf(rec.estimatedImpact.costSaving, 0)}`
       ).join('\n\n') +
       `\n\n**Interpretation:** The prescriptive AI has analyzed current system state and causal relationships ` +
       `to generate actionable recommendations prioritized by impact and urgency.`;
