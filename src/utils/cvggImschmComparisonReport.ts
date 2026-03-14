@@ -247,6 +247,8 @@ Based on ${sessionStats.total} recorded operations in the current session:
 - Prescriptive operations: ${sessionStats.prescriptive} (IMSCHM Decision)
 
 This distribution illustrates that CVGG provides the foundational measurements, while IMSCHM's higher-level engines consume and extend these measurements across Pearl's hierarchy.
+
+${generateComparisonDynamicSection(results)}
 ` : `No session data available. Run operations in the dashboard to populate this section with empirical evidence.`}
 
 ---
