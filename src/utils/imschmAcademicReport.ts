@@ -619,11 +619,15 @@ Deferred: Action 3 (requires shutdown, cost: $45,000)
 \`\`\`
 
 ${hasDynamic && prescriptives.length > 0 ? `
-#### 🔄 Dynamic Prescriptive Results (${prescriptives.length} recommendations)
+#### 🔄 Dynamic Prescriptive Results (${prescriptives.length} analyses)
 
-${prescriptives.map((p: any, i: number) => `
-**Prescription ${i + 1}:** ${p.data?.topAction || 'Unknown'} (Score: ${p.data?.score?.toFixed(3) || 'N/A'}, Priority: ${p.data?.priority || 'N/A'})
-`).join('')}
+| # | Health Score | Risk Level | Recommendations | Top Priority | Top Action | Risk Reduction |
+|---|-------------|------------|-----------------|-------------|------------|----------------|
+${prescriptives.slice(0, 10).map((p: any, i: number) => {
+  const d = p.data;
+  const top = d.topPriority || d.recommendations[0];
+  return `| ${i + 1} | ${d.systemHealthScore.toFixed(0)}/100 | ${d.riskLevel.toUpperCase()} | ${d.recommendations.length} | ${top?.priority?.toUpperCase() || '—'} | ${top?.title?.substring(0, 30) || '—'} | ${top ? (top.estimatedImpact.riskReduction * 100).toFixed(0) + '%' : '—'} |`;
+}).join('\n')}
 ` : ''}
 
 ### 6.6 Five Operation Case Studies
