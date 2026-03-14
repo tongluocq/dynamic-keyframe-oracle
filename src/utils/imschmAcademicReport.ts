@@ -590,11 +590,12 @@ ${interventions.slice(0, 10).map((intv: any, i: number) => {
 ${hasDynamic && counterfactuals.length > 0 ? `
 #### 🔄 Dynamic Counterfactual Results (${counterfactuals.length} queries)
 
-${counterfactuals.map((cf: any, i: number) => `
-**Query ${i + 1}:** "${cf.data?.query || 'Unknown'}"
-- Baseline: ${cf.data?.baselineOutcome?.toFixed(4) || 'N/A'} → Counterfactual: ${cf.data?.counterfactualOutcome?.toFixed(4) || 'N/A'}
-- Effect: ${cf.data?.causalEffect?.toFixed(4) || 'N/A'}, Confidence: ${(cf.data?.confidence * 100 || 0).toFixed(1)}%
-`).join('\n')}
+| # | Query | Baseline | Counterfactual | Effect | Confidence | Risk |
+|---|-------|----------|---------------|--------|------------|------|
+${counterfactuals.slice(0, 10).map((cf: any, i: number) => {
+  const d = cf.data;
+  return `| ${i + 1} | ${d.query.description.substring(0, 40)}... | ${(d.baselineOutcome * 100).toFixed(1)}% | ${(d.counterfactualOutcome * 100).toFixed(1)}% | ${(d.causalEffect * 100).toFixed(1)}% | ${(d.confidence * 100).toFixed(1)}% | ${d.riskChange} |`;
+}).join('\n')}
 ` : ''}
 
 ### 6.5 Prescriptive Recommendation Evaluation
