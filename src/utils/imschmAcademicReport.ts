@@ -569,11 +569,12 @@ P(Risk | do(Temperature = 60))
 ${hasDynamic && interventions.length > 0 ? `
 #### 🔄 Dynamic Intervention Results (${interventions.length} executions)
 
-${interventions.map((int: any, i: number) => `
-**Intervention ${i + 1}:** do(${int.data?.variable || 'Unknown'} = ${int.data?.value || 'N/A'})
-- Primary Effect: ${int.data?.primaryEffect || 'N/A'}
-- Risk Change: ${int.data?.riskBefore?.toFixed(3) || '?'} → ${int.data?.riskAfter?.toFixed(3) || '?'}
-`).join('\n')}
+| # | Intervention | Variable | Target | Primary Effect | Total Effect | Pre-Risk | Post-Risk | Risk Δ |
+|---|-------------|----------|--------|----------------|-------------|----------|-----------|--------|
+${interventions.slice(0, 10).map((intv: any, i: number) => {
+  const d = intv.data;
+  return `| ${i + 1} | ${d.intervention.name} | ${d.intervention.variable} | ${d.intervention.targetValue} | ${(d.causalEffects.primaryEffect * 100).toFixed(1)}% | ${(d.causalEffects.totalEffect * 100).toFixed(1)}% | ${(d.riskAssessment.preInterventionRisk * 100).toFixed(1)}% | ${(d.riskAssessment.postInterventionRisk * 100).toFixed(1)}% | ${d.riskAssessment.riskDelta > 0 ? '+' : ''}${(d.riskAssessment.riskDelta * 100).toFixed(1)}% |`;
+}).join('\n')}
 ` : ''}
 
 ### 6.4 Counterfactual Query Analysis
