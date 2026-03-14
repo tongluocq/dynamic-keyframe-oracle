@@ -456,7 +456,9 @@ export class CausalInterventionEngine {
     postRisk: number
   ): string {
     const changeDir = newValue > currentValue ? 'increases' : 'decreases';
-    const changePct = Math.abs(((newValue - currentValue) / currentValue) * 100).toFixed(1);
+    const changePct = currentValue !== 0 
+      ? Math.abs(((newValue - currentValue) / currentValue) * 100).toFixed(1)
+      : Math.abs(newValue).toFixed(1);
     
     let explanation = `**Causal Intervention Analysis**\n\n`;
     explanation += `**do(${intervention.variable.replace(/_/g, ' ')} = ${newValue.toFixed(1)})**\n\n`;
