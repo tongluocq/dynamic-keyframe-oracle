@@ -8,7 +8,56 @@
  * - Potential upgrade trends and future directions
  */
 
-import { StoredResult } from './resultsStorage';
+import { StoredResult, InterventionOperationResult, CounterfactualOperationResult, PrescriptiveOperationResult, CVGGInferenceResult } from './resultsStorage';
+
+function generateComparisonDynamicSection(results: StoredResult[]): string {
+  const inferences = results.filter(r => r.type === 'cvgg_inference') as CVGGInferenceResult[];
+  const interventions = results.filter(r => r.type === 'intervention') as InterventionOperationResult[];
+  const counterfactuals = results.filter(r => r.type === 'counterfactual') as CounterfactualOperationResult[];
+  const prescriptives = results.filter(r => r.type === 'prescriptive') as PrescriptiveOperationResult[];
+
+  let s = `#### 5.3.1 🔄 Dynamic Evidence from Session Operations\n\n`;
+
+  if (inferences.length > 0) {
+    const avgATE = inferences.reduce((sum, inf) => sum + inf.data.causalEffects.ATE, 0) / inferences.length;
+    const avgCATE = inferences.reduce((sum, inf) => sum + inf.data.causalEffects.CATE, 0) / inferences.length;
+    s += `**CVGG Inference Evidence (${inferences.length} runs):**\n`;
+    s += `- Mean ATE: ${avgATE.toFixed(4)} | Mean CATE: ${avgCATE.toFixed(4)}\n`;
+    s += `- These CVGG outputs serve as input to IMSCHM's L2/L3 engines below\n\n`;
+  }
+
+  if (interventions.length > 0) {
+    s += `**IMSCHM do-Calculus Evidence (${interventions.length} interventions):**\n\n`;
+    s += `| # | do() Command | Risk Δ | CVGG→IMSCHM Flow |\n|---|-------------|--------|------------------|\n`;
+    interventions.slice(0, 5).forEach((intv, i) => {
+      const d = intv.data;
+      s += `| ${i + 1} | do(${d.intervention.variable} = ${d.intervention.targetValue}) | ${d.riskAssessment.riskDelta > 0 ? '+' : ''}${(d.riskAssessment.riskDelta * 100).toFixed(1)}% | ATE calibrates effect magnitude |\n`;
+    });
+    s += '\n';
+  }
+
+  if (counterfactuals.length > 0) {
+    s += `**IMSCHM Counterfactual Evidence (${counterfactuals.length} queries):**\n\n`;
+    s += `| # | Query | Effect | CVGG Role |\n|---|-------|--------|----------|\n`;
+    counterfactuals.slice(0, 5).forEach((cf, i) => {
+      const d = cf.data;
+      s += `| ${i + 1} | ${d.query.description.substring(0, 35)} | ${(d.causalEffect * 100).toFixed(1)}% | Baseline ATE as factual anchor |\n`;
+    });
+    s += '\n';
+  }
+
+  if (prescriptives.length > 0) {
+    s += `**IMSCHM Prescriptive Evidence (${prescriptives.length} analyses):**\n\n`;
+    prescriptives.slice(0, 3).forEach((p, i) => {
+      const d = p.data;
+      const top = d.topPriority || d.recommendations[0];
+      s += `- Analysis ${i + 1}: Health=${d.systemHealthScore.toFixed(0)}/100, Risk=${d.riskLevel}, Top: ${top?.title || '—'}\n`;
+    });
+    s += '\n';
+  }
+
+  return s;
+}
 
 function generateComparisonReport(results: StoredResult[]): string {
   const timestamp = new Date().toISOString();
@@ -247,6 +296,8 @@ Based on ${sessionStats.total} recorded operations in the current session:
 - Prescriptive operations: ${sessionStats.prescriptive} (IMSCHM Decision)
 
 This distribution illustrates that CVGG provides the foundational measurements, while IMSCHM's higher-level engines consume and extend these measurements across Pearl's hierarchy.
+
+${generateComparisonDynamicSection(results)}
 ` : `No session data available. Run operations in the dashboard to populate this section with empirical evidence.`}
 
 ---

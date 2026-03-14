@@ -525,21 +525,20 @@ Fault:  |ATE - (DE + IE)| = |0.4231 - (0.3918 + 0.1954)| = |0.4231 - 0.5872| = 0
 ${hasDynamic && trainings.length > 0 ? `
 #### 🔄 Dynamic Training Results (${trainings.length} sessions)
 
-${trainings.map((t: any, i: number) => `
-**Training Session ${i + 1}** (${new Date(t.timestamp).toLocaleString()})
-- Final Accuracy: ${(t.data?.accuracy * 100 || 0).toFixed(1)}%
-- Final Loss: ${t.data?.loss?.toFixed(4) || 'N/A'}
-- Epochs: ${t.data?.epochs || 'N/A'}
-- Learning Rate: ${t.data?.learningRate || 'N/A'}
-`).join('\n')}
+| Session | Epochs | LR | Samples | Final Loss | Final Accuracy | Class Loss | Causal Loss |
+|---------|--------|----|---------|------------|----------------|------------|-------------|
+${trainings.slice(0, 10).map((t: any, i: number) => `| ${i + 1} | ${t.data.epochs} | ${t.data.config.learningRate} | ${t.data.config.samples} | ${t.data.finalLoss.toFixed(4)} | ${(t.data.finalAccuracy * 100).toFixed(1)}% | ${t.data.classificationLoss.toFixed(4)} | ${t.data.causalLoss.toFixed(4)} |`).join('\n')}
 ` : ''}
 
 ${hasDynamic && inferences.length > 0 ? `
 #### 🔄 Dynamic Inference Results (${inferences.length} runs)
 
-${inferences.map((inf: any, i: number) => `
-**Inference ${i + 1}:** ATE=${inf.data?.ate?.toFixed(4) || 'N/A'}, CATE=${inf.data?.cate?.toFixed(4) || 'N/A'}, Class=${inf.data?.predictedClass || 'N/A'}, Confidence=${(inf.data?.confidence * 100 || 0).toFixed(1)}%
-`).join('')}
+| # | Classification | Confidence | ATE | CATE | DE | IE | Anomaly |
+|---|---------------|------------|-----|------|----|----|---------|
+${inferences.slice(0, 10).map((inf: any, i: number) => {
+  const d = inf.data;
+  return `| ${i + 1} | ${d.classification.className} | ${(d.classification.confidence * 100).toFixed(1)}% | ${d.causalEffects.ATE.toFixed(4)} | ${d.causalEffects.CATE.toFixed(4)} | ${d.causalEffects.directEffect.toFixed(4)} | ${d.causalEffects.indirectEffect.toFixed(4)} | ${(d.anomalyScore * 100).toFixed(1)}% |`;
+}).join('\n')}
 ` : ''}
 
 ### 6.3 Causal Intervention Analysis (do-Calculus Results)
@@ -570,11 +569,12 @@ P(Risk | do(Temperature = 60))
 ${hasDynamic && interventions.length > 0 ? `
 #### 🔄 Dynamic Intervention Results (${interventions.length} executions)
 
-${interventions.map((int: any, i: number) => `
-**Intervention ${i + 1}:** do(${int.data?.variable || 'Unknown'} = ${int.data?.value || 'N/A'})
-- Primary Effect: ${int.data?.primaryEffect || 'N/A'}
-- Risk Change: ${int.data?.riskBefore?.toFixed(3) || '?'} → ${int.data?.riskAfter?.toFixed(3) || '?'}
-`).join('\n')}
+| # | Intervention | Variable | Target | Primary Effect | Total Effect | Pre-Risk | Post-Risk | Risk Δ |
+|---|-------------|----------|--------|----------------|-------------|----------|-----------|--------|
+${interventions.slice(0, 10).map((intv: any, i: number) => {
+  const d = intv.data;
+  return `| ${i + 1} | ${d.intervention.name} | ${d.intervention.variable} | ${d.intervention.targetValue} | ${(d.causalEffects.primaryEffect * 100).toFixed(1)}% | ${(d.causalEffects.totalEffect * 100).toFixed(1)}% | ${(d.riskAssessment.preInterventionRisk * 100).toFixed(1)}% | ${(d.riskAssessment.postInterventionRisk * 100).toFixed(1)}% | ${d.riskAssessment.riskDelta > 0 ? '+' : ''}${(d.riskAssessment.riskDelta * 100).toFixed(1)}% |`;
+}).join('\n')}
 ` : ''}
 
 ### 6.4 Counterfactual Query Analysis
@@ -590,11 +590,12 @@ ${interventions.map((int: any, i: number) => `
 ${hasDynamic && counterfactuals.length > 0 ? `
 #### 🔄 Dynamic Counterfactual Results (${counterfactuals.length} queries)
 
-${counterfactuals.map((cf: any, i: number) => `
-**Query ${i + 1}:** "${cf.data?.query || 'Unknown'}"
-- Baseline: ${cf.data?.baselineOutcome?.toFixed(4) || 'N/A'} → Counterfactual: ${cf.data?.counterfactualOutcome?.toFixed(4) || 'N/A'}
-- Effect: ${cf.data?.causalEffect?.toFixed(4) || 'N/A'}, Confidence: ${(cf.data?.confidence * 100 || 0).toFixed(1)}%
-`).join('\n')}
+| # | Query | Baseline | Counterfactual | Effect | Confidence | Risk |
+|---|-------|----------|---------------|--------|------------|------|
+${counterfactuals.slice(0, 10).map((cf: any, i: number) => {
+  const d = cf.data;
+  return `| ${i + 1} | ${d.query.description.substring(0, 40)}... | ${(d.baselineOutcome * 100).toFixed(1)}% | ${(d.counterfactualOutcome * 100).toFixed(1)}% | ${(d.causalEffect * 100).toFixed(1)}% | ${(d.confidence * 100).toFixed(1)}% | ${d.riskChange} |`;
+}).join('\n')}
 ` : ''}
 
 ### 6.5 Prescriptive Recommendation Evaluation
@@ -618,11 +619,15 @@ Deferred: Action 3 (requires shutdown, cost: $45,000)
 \`\`\`
 
 ${hasDynamic && prescriptives.length > 0 ? `
-#### 🔄 Dynamic Prescriptive Results (${prescriptives.length} recommendations)
+#### 🔄 Dynamic Prescriptive Results (${prescriptives.length} analyses)
 
-${prescriptives.map((p: any, i: number) => `
-**Prescription ${i + 1}:** ${p.data?.topAction || 'Unknown'} (Score: ${p.data?.score?.toFixed(3) || 'N/A'}, Priority: ${p.data?.priority || 'N/A'})
-`).join('')}
+| # | Health Score | Risk Level | Recommendations | Top Priority | Top Action | Risk Reduction |
+|---|-------------|------------|-----------------|-------------|------------|----------------|
+${prescriptives.slice(0, 10).map((p: any, i: number) => {
+  const d = p.data;
+  const top = d.topPriority || d.recommendations[0];
+  return `| ${i + 1} | ${d.systemHealthScore.toFixed(0)}/100 | ${d.riskLevel.toUpperCase()} | ${d.recommendations.length} | ${top?.priority?.toUpperCase() || '—'} | ${top?.title?.substring(0, 30) || '—'} | ${top ? (top.estimatedImpact.riskReduction * 100).toFixed(0) + '%' : '—'} |`;
+}).join('\n')}
 ` : ''}
 
 ### 6.6 Five Operation Case Studies
