@@ -525,21 +525,20 @@ Fault:  |ATE - (DE + IE)| = |0.4231 - (0.3918 + 0.1954)| = |0.4231 - 0.5872| = 0
 ${hasDynamic && trainings.length > 0 ? `
 #### 🔄 Dynamic Training Results (${trainings.length} sessions)
 
-${trainings.map((t: any, i: number) => `
-**Training Session ${i + 1}** (${new Date(t.timestamp).toLocaleString()})
-- Final Accuracy: ${(t.data?.accuracy * 100 || 0).toFixed(1)}%
-- Final Loss: ${t.data?.loss?.toFixed(4) || 'N/A'}
-- Epochs: ${t.data?.epochs || 'N/A'}
-- Learning Rate: ${t.data?.learningRate || 'N/A'}
-`).join('\n')}
+| Session | Epochs | LR | Samples | Final Loss | Final Accuracy | Class Loss | Causal Loss |
+|---------|--------|----|---------|------------|----------------|------------|-------------|
+${trainings.slice(0, 10).map((t: any, i: number) => `| ${i + 1} | ${t.data.epochs} | ${t.data.config.learningRate} | ${t.data.config.samples} | ${t.data.finalLoss.toFixed(4)} | ${(t.data.finalAccuracy * 100).toFixed(1)}% | ${t.data.classificationLoss.toFixed(4)} | ${t.data.causalLoss.toFixed(4)} |`).join('\n')}
 ` : ''}
 
 ${hasDynamic && inferences.length > 0 ? `
 #### 🔄 Dynamic Inference Results (${inferences.length} runs)
 
-${inferences.map((inf: any, i: number) => `
-**Inference ${i + 1}:** ATE=${inf.data?.ate?.toFixed(4) || 'N/A'}, CATE=${inf.data?.cate?.toFixed(4) || 'N/A'}, Class=${inf.data?.predictedClass || 'N/A'}, Confidence=${(inf.data?.confidence * 100 || 0).toFixed(1)}%
-`).join('')}
+| # | Classification | Confidence | ATE | CATE | DE | IE | Anomaly |
+|---|---------------|------------|-----|------|----|----|---------|
+${inferences.slice(0, 10).map((inf: any, i: number) => {
+  const d = inf.data;
+  return `| ${i + 1} | ${d.classification.className} | ${(d.classification.confidence * 100).toFixed(1)}% | ${d.causalEffects.ATE.toFixed(4)} | ${d.causalEffects.CATE.toFixed(4)} | ${d.causalEffects.directEffect.toFixed(4)} | ${d.causalEffects.indirectEffect.toFixed(4)} | ${(d.anomalyScore * 100).toFixed(1)}% |`;
+}).join('\n')}
 ` : ''}
 
 ### 6.3 Causal Intervention Analysis (do-Calculus Results)
