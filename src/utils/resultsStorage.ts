@@ -1826,6 +1826,17 @@ export function getPerformanceSummary(): PerformanceSummary {
       counterfactual: isValidNum(cfConfidence) ? safePct(cfConfidence) : '--',
       trend: getTrend([infConfidence, cfConfidence]),
     },
+    {
+      metric: 'Calibration',
+      cvggInference: inferenceResult ? '✓ Source' : '--',
+      intervention: interventionResult 
+        ? (inferenceResult ? '✓ CVGG-Calibrated' : '⚠ Domain-Only')
+        : '--',
+      counterfactual: counterfactualResult 
+        ? (inferenceResult ? '✓ CVGG-Calibrated' : '⚠ Domain-Only')
+        : '--',
+      trend: inferenceResult ? '✓ Calibrated' : '⚠ Uncalibrated',
+    },
   ];
 
   // --- Table 3: System Health KPI ---
