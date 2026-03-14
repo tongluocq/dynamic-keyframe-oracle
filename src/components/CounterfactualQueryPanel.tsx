@@ -157,6 +157,20 @@ const CounterfactualQueryPanel: React.FC<CounterfactualQueryPanelProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* CVGG Calibration Status */}
+          <div className="flex items-center gap-2 mb-2">
+            {cvggResult ? (
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/50 border">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                CVGG-Calibrated · ATE={cvggResult.causalEffects?.ATE?.toFixed(4) ?? '--'}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-yellow-400 border-yellow-400/50">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Domain-Knowledge Only (run CVGG Inference for calibration)
+              </Badge>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">
             Ask "What if?" questions to understand causal impacts of interventions.
             Results combine CVGG causal estimates with domain knowledge.

@@ -195,6 +195,20 @@ const CausalInterventionPanel: React.FC<CausalInterventionPanelProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* CVGG Calibration Status */}
+          <div className="flex items-center gap-2 mb-3">
+            {cvggResult ? (
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/50 border">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                CVGG-Calibrated · ATE={sf(cvggResult.causalEffects?.ATE)}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-yellow-400 border-yellow-400/50">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Domain-Knowledge Only (run CVGG Inference for calibration)
+              </Badge>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground mb-3">
             Execute causal interventions using do-calculus: <code className="bg-muted px-1 rounded">P(Y | do(X = x))</code>.
             All 5 failure domains covered + custom builder.
