@@ -958,9 +958,9 @@ const PerformanceSummaryView: React.FC<{ results: StoredResult[] }> = ({ results
       if (stage.status === 'done') {
         if (stage.stage === 'CVGG Training') completed.add(3);
         if (stage.stage === 'CVGG Inference') completed.add(4);
-        if (stage.stage === 'Intervention') { completed.add(2); completed.add(5); }
+        if (stage.stage === 'do() Intervention') { completed.add(2); completed.add(5); }
         if (stage.stage === 'Counterfactual') { completed.add(2); completed.add(6); }
-        if (stage.stage === 'Prescriptive') completed.add(7);
+        if (stage.stage === 'Prescriptive AI') completed.add(7);
       }
     });
     return completed;
