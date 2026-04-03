@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line, Cell } from 'recharts';
 import { FlaskConical, TrendingUp, AlertTriangle, CheckCircle2, Clock, Shield, Target, BarChart3 } from 'lucide-react';
-import { getOperationResults, sf, sp, safeNum } from '@/utils/resultsStorage';
+import { getResultsStorage, sf, sp, safeNum } from '@/utils/resultsStorage';
 import { InferenceResult } from '@/hooks/useEnhancedCVGG';
 
 interface Props {
