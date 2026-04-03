@@ -22,6 +22,7 @@ import OperationCasesPanel from '@/components/OperationCasesPanel';
 import CausalKnowledgeBasePanel from '@/components/CausalKnowledgeBasePanel';
 import OperationResultsPanel from '@/components/OperationResultsPanel';
 import RoadmapPanel from '@/components/RoadmapPanel';
+import CausalityComparisonPanel from '@/components/CausalityComparisonPanel';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
