@@ -29,7 +29,7 @@ import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 import { saveOperationResult } from '@/utils/resultsStorage';
 import { getSystemDiagnostics } from '@/utils/systemDiagnostics';
 
-type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases' | 'knowledge' | 'results' | 'roadmap';
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases' | 'knowledge' | 'results' | 'roadmap' | 'comparison';
 
 // Function Status Card Component
 const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMode: ModelMode }> = ({ cvggResult, modelMode }) => {
