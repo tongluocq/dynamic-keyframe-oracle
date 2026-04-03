@@ -402,6 +402,10 @@ const IndustrialMonitor = () => {
                 <Rocket className="h-3 w-3 mr-1" />
                 Roadmap
               </TabsTrigger>
+              <TabsTrigger value="comparison" className="text-xs px-2">
+                <FlaskConical className="h-3 w-3 mr-1" />
+                Comparison
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           
