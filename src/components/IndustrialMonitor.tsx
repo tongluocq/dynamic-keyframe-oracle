@@ -509,8 +509,13 @@ const IndustrialMonitor = () => {
         <RoadmapPanel />
       )}
 
-      {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
-      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && modelMode !== 'verification' && modelMode !== 'roadmap' && (
+      {/* Causality Comparison Panel */}
+      {modelMode === 'comparison' && (
+        <CausalityComparisonPanel cvggResult={cvggInferenceResult} />
+      )}
+
+      {/* Causal Visualization Panel */}
+      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && modelMode !== 'verification' && modelMode !== 'roadmap' && modelMode !== 'comparison' && (
         <CausalVisualizationPanel
           inferenceHistory={inferenceHistory}
           causalGraph={causalGraph}
