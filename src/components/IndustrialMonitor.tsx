@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield, BookOpen, FileText, Database, Save, Rocket } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield, BookOpen, FileText, Database, Save, Rocket, FlaskConical } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
@@ -22,13 +22,14 @@ import OperationCasesPanel from '@/components/OperationCasesPanel';
 import CausalKnowledgeBasePanel from '@/components/CausalKnowledgeBasePanel';
 import OperationResultsPanel from '@/components/OperationResultsPanel';
 import RoadmapPanel from '@/components/RoadmapPanel';
+import CausalityComparisonPanel from '@/components/CausalityComparisonPanel';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 import { saveOperationResult } from '@/utils/resultsStorage';
 import { getSystemDiagnostics } from '@/utils/systemDiagnostics';
 
-type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases' | 'knowledge' | 'results' | 'roadmap';
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases' | 'knowledge' | 'results' | 'roadmap' | 'comparison';
 
 // Function Status Card Component
 const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMode: ModelMode }> = ({ cvggResult, modelMode }) => {
@@ -401,6 +402,10 @@ const IndustrialMonitor = () => {
                 <Rocket className="h-3 w-3 mr-1" />
                 Roadmap
               </TabsTrigger>
+              <TabsTrigger value="comparison" className="text-xs px-2">
+                <FlaskConical className="h-3 w-3 mr-1" />
+                Comparison
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           
@@ -504,8 +509,13 @@ const IndustrialMonitor = () => {
         <RoadmapPanel />
       )}
 
-      {/* Causal Visualization Panel - Show when we have inference history or causal graph */}
-      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && modelMode !== 'verification' && modelMode !== 'roadmap' && (
+      {/* Causality Comparison Panel */}
+      {modelMode === 'comparison' && (
+        <CausalityComparisonPanel cvggResult={cvggInferenceResult} />
+      )}
+
+      {/* Causal Visualization Panel */}
+      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && modelMode !== 'verification' && modelMode !== 'roadmap' && modelMode !== 'comparison' && (
         <CausalVisualizationPanel
           inferenceHistory={inferenceHistory}
           causalGraph={causalGraph}
