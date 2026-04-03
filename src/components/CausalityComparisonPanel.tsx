@@ -35,7 +35,7 @@ const CausalityComparisonPanel: React.FC<Props> = ({ cvggResult }) => {
 
   // Pull live session data
   const sessionResults = useMemo(() => {
-    const all = getOperationResults();
+    const all = getResultsStorage().getResults();
     const interventions = all.filter(r => r.type === 'intervention');
     const counterfactuals = all.filter(r => r.type === 'counterfactual');
     const prescriptives = all.filter(r => r.type === 'prescriptive');
