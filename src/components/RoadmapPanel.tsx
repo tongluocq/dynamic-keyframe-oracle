@@ -98,11 +98,12 @@ const MILESTONES: MilestoneGroup[] = [
   },
   {
     version: 'v3.0',
-    title: 'Real-World Data Integration',
+    title: 'Real-World Data Integration & Knowledge Graph',
     date: 'Q3 2026',
-    status: 'planned',
-    progress: 10,
+    status: 'in_progress',
+    progress: 25,
     items: [
+      { title: 'Hybrid Knowledge Graph (FMEA × Causal)', description: 'Dual-view KG panel: traditional industrial FMEA workflow side-by-side with CVGG/PC/Granger causal pathway, with linked cross-highlighting between equipment-component-failure-action nodes and causal variables', status: 'completed', category: 'Causal' },
       { title: 'CWRU Bearing dataset loader', description: 'Direct import of Case Western Reserve University bearing fault data', status: 'planned', category: 'Data', dependencies: ['File parser for .mat format'] },
       { title: 'NASA IMS dataset support', description: 'Prognostics Center of Excellence bearing run-to-failure data', status: 'planned', category: 'Data' },
       { title: 'FEMTO bearing dataset', description: 'PRONOSTIA platform accelerated degradation test data', status: 'planned', category: 'Data' },

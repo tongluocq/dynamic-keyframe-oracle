@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield, BookOpen, FileText, Database, Save, Rocket, FlaskConical } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Thermometer, Wrench, Droplets, Play, Pause, RotateCcw, Brain, Cpu, Lightbulb, HelpCircle, Crosshair, CheckCircle2, XCircle, Shield, BookOpen, FileText, Database, Save, Rocket, FlaskConical, Network } from 'lucide-react';
 import { PhysicsSimulator } from '@/utils/physicsSimulator';
 import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
