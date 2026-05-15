@@ -22,6 +22,7 @@ import OperationCasesPanel from '@/components/OperationCasesPanel';
 import CausalKnowledgeBasePanel from '@/components/CausalKnowledgeBasePanel';
 import OperationResultsPanel from '@/components/OperationResultsPanel';
 import RoadmapPanel from '@/components/RoadmapPanel';
+import KnowledgeGraphPanel from '@/components/KnowledgeGraphPanel';
 import CausalityComparisonPanel from '@/components/CausalityComparisonPanel';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -29,7 +30,7 @@ import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
 import { saveOperationResult } from '@/utils/resultsStorage';
 import { getSystemDiagnostics } from '@/utils/systemDiagnostics';
 
-type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases' | 'knowledge' | 'results' | 'roadmap' | 'comparison';
+type ModelMode = 'none' | 'neural' | 'enhanced-cvgg' | 'prescriptive' | 'counterfactual' | 'intervention' | 'verification' | 'examples' | 'cases' | 'knowledge' | 'results' | 'roadmap' | 'comparison' | 'kg';
 
 // Function Status Card Component
 const FunctionStatusCard: React.FC<{ cvggResult: InferenceResult | null; modelMode: ModelMode }> = ({ cvggResult, modelMode }) => {
@@ -402,6 +403,10 @@ const IndustrialMonitor = () => {
                 <Rocket className="h-3 w-3 mr-1" />
                 Roadmap
               </TabsTrigger>
+              <TabsTrigger value="kg" className="text-xs px-2">
+                <Network className="h-3 w-3 mr-1" />
+                KG
+              </TabsTrigger>
               <TabsTrigger value="comparison" className="text-xs px-2">
                 <FlaskConical className="h-3 w-3 mr-1" />
                 Comparison
@@ -507,6 +512,11 @@ const IndustrialMonitor = () => {
       {/* Roadmap Panel - Show when Roadmap mode is active */}
       {modelMode === 'roadmap' && (
         <RoadmapPanel />
+      )}
+
+      {/* Knowledge Graph Panel - Hybrid FMEA × Causal */}
+      {modelMode === 'kg' && (
+        <KnowledgeGraphPanel causalGraph={causalGraph} />
       )}
 
       {/* Causality Comparison Panel */}
