@@ -56,16 +56,12 @@ export class PhysicsSimulator {
     // Temperature affects viscosity (causal relation)
     newState.viscosity = 30 + (newState.temperature - 40) * 0.5;
     
-    // Contamination affects pressure (causal relation)
-    newState.pressure = newState.pressure * (1 - newState.contamination * 0.1);
-    
-    // Electrical power affects hydraulic pressure (cross-domain causal relation)
-    const power_factor = state.electrical.power / 6000;
-    newState.pressure = newState.pressure * power_factor;
-    
-    // Add noise
-    newState.pressure += (Math.random() - 0.5) * this.noise_level * newState.pressure;
-    newState.flow_rate += (Math.random() - 0.5) * this.noise_level * newState.flow_rate;
+    // Pressure derived from 150 bar baseline, modulated by contamination & electrical power (non-compounding)
+    const contamination_factor = Math.max(0.5, 1 - newState.contamination * 0.1);
+    const power_factor = Math.max(0.5, Math.min(1.5, state.electrical.power / 6000));
+    newState.pressure = 150 * contamination_factor * power_factor
+      + (Math.random() - 0.5) * this.noise_level * 150;
+    newState.flow_rate = Math.max(1, newState.flow_rate + (Math.random() - 0.5) * this.noise_level * 10);
     
     return newState;
   }
@@ -82,9 +78,9 @@ export class PhysicsSimulator {
     newState.vibration_y = 0.5 * wear_factor;
     newState.vibration_z = 0.5 * wear_factor;
     
-    // Thermal effects on mechanical components
-    const thermal_factor = 1 + (state.thermal.system_temp - 45) * 0.01;
-    newState.speed = newState.speed * thermal_factor;
+    // Thermal effects on mechanical components (clamped, non-compounding from 1800 rpm baseline)
+    const thermal_factor_mech = 1 + Math.max(-0.2, Math.min(0.2, (state.thermal.system_temp - 45) * 0.01));
+    newState.speed = 1800 * thermal_factor_mech;
     
     // Gradual wear progression
     newState.wear_level += 0.0001 * this.timeStep;
@@ -126,13 +122,13 @@ export class PhysicsSimulator {
     // Power calculation (V * I * cos(phi))
     newState.power = newState.voltage * newState.current * Math.cos(newState.phase_shift * Math.PI / 180);
     
-    // Thermal effects on electrical resistance
-    const temp_factor = 1 + (state.thermal.system_temp - 45) * 0.001;
-    newState.voltage = newState.voltage * temp_factor;
-    
-    // Add noise
-    newState.voltage += (Math.random() - 0.5) * this.noise_level * 10;
-    newState.current += (Math.random() - 0.5) * this.noise_level * 2;
+    // Thermal effects on electrical resistance (clamped, non-compounding from 380 V baseline)
+    const temp_factor = 1 + Math.max(-0.1, Math.min(0.1, (state.thermal.system_temp - 45) * 0.001));
+    newState.voltage = 380 * temp_factor + (Math.random() - 0.5) * this.noise_level * 10;
+    newState.current = Math.max(0, newState.current + (Math.random() - 0.5) * this.noise_level * 2);
+
+    // Recompute power with stabilized V/I
+    newState.power = newState.voltage * newState.current * Math.cos(newState.phase_shift * Math.PI / 180);
     
     return newState;
   }
