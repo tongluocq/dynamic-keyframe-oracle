@@ -56,16 +56,12 @@ export class PhysicsSimulator {
     // Temperature affects viscosity (causal relation)
     newState.viscosity = 30 + (newState.temperature - 40) * 0.5;
     
-    // Contamination affects pressure (causal relation)
-    newState.pressure = newState.pressure * (1 - newState.contamination * 0.1);
-    
-    // Electrical power affects hydraulic pressure (cross-domain causal relation)
-    const power_factor = state.electrical.power / 6000;
-    newState.pressure = newState.pressure * power_factor;
-    
-    // Add noise
-    newState.pressure += (Math.random() - 0.5) * this.noise_level * newState.pressure;
-    newState.flow_rate += (Math.random() - 0.5) * this.noise_level * newState.flow_rate;
+    // Pressure derived from 150 bar baseline, modulated by contamination & electrical power (non-compounding)
+    const contamination_factor = Math.max(0.5, 1 - newState.contamination * 0.1);
+    const power_factor = Math.max(0.5, Math.min(1.5, state.electrical.power / 6000));
+    newState.pressure = 150 * contamination_factor * power_factor
+      + (Math.random() - 0.5) * this.noise_level * 150;
+    newState.flow_rate = Math.max(1, newState.flow_rate + (Math.random() - 0.5) * this.noise_level * 10);
     
     return newState;
   }
