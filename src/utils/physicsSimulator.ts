@@ -82,9 +82,9 @@ export class PhysicsSimulator {
     newState.vibration_y = 0.5 * wear_factor;
     newState.vibration_z = 0.5 * wear_factor;
     
-    // Thermal effects on mechanical components
-    const thermal_factor = 1 + (state.thermal.system_temp - 45) * 0.01;
-    newState.speed = newState.speed * thermal_factor;
+    // Thermal effects on mechanical components (clamped, non-compounding from 1800 rpm baseline)
+    const thermal_factor_mech = 1 + Math.max(-0.2, Math.min(0.2, (state.thermal.system_temp - 45) * 0.01));
+    newState.speed = 1800 * thermal_factor_mech;
     
     // Gradual wear progression
     newState.wear_level += 0.0001 * this.timeStep;
