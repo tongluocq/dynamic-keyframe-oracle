@@ -207,82 +207,110 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
     return points;
   }, [inferenceHistory]);
 
-  // 4. DAG Nodes and Edges from Causal Graph
-  const dagData = useMemo((): { nodes: DAGNode[]; edges: DAGEdge[] } => {
-    const nodes: DAGNode[] = [];
-    const edges: DAGEdge[] = [];
-    const nodeSet = new Set<string>();
-
-    // Extract nodes and edges from causal graph
-    causalGraph.forEach((relations, source) => {
-      if (!nodeSet.has(source)) {
-        nodeSet.add(source);
-      }
-      relations.forEach(rel => {
-        if (!nodeSet.has(rel.effect)) {
-          nodeSet.add(rel.effect);
-        }
-        edges.push({
-          from: rel.cause,
-          to: rel.effect,
-          strength: rel.strength
-        });
-      });
-    });
-
-    // Position nodes in a layered layout
+  // 4. DAG layout helper — positions nodes for a 400x320 viewBox with generous spacing
+  const layoutDAG = (rawEdges: DAGEdge[], extraNodes: string[]): { nodes: DAGNode[]; edges: DAGEdge[] } => {
+    const nodeSet = new Set<string>(extraNodes);
+    rawEdges.forEach(e => { nodeSet.add(e.from); nodeSet.add(e.to); });
     const nodeArray = Array.from(nodeSet);
-    const layers: Map<string, number> = new Map();
 
-    // Simple topological layering
+    const layers = new Map<string, number>();
     const inDegree = new Map<string, number>();
     nodeArray.forEach(n => inDegree.set(n, 0));
-    edges.forEach(e => inDegree.set(e.to, (inDegree.get(e.to) || 0) + 1));
+    rawEdges.forEach(e => inDegree.set(e.to, (inDegree.get(e.to) || 0) + 1));
 
     let currentLayer = 0;
-    let remaining = new Set(nodeArray);
-
+    const remaining = new Set(nodeArray);
+    const workingInDeg = new Map(inDegree);
     while (remaining.size > 0) {
-      const layerNodes = Array.from(remaining).filter(n => (inDegree.get(n) || 0) === 0);
-      if (layerNodes.length === 0) {
-        // Handle cycles by placing remaining nodes
-        layerNodes.push(remaining.values().next().value);
-      }
-
-      layerNodes.forEach((n, idx) => {
+      let layerNodes = Array.from(remaining).filter(n => (workingInDeg.get(n) || 0) === 0);
+      if (layerNodes.length === 0) layerNodes = [remaining.values().next().value as string];
+      layerNodes.forEach(n => {
         layers.set(n, currentLayer);
         remaining.delete(n);
-        // Reduce in-degree for successors
-        edges.filter(e => e.from === n).forEach(e => {
-          inDegree.set(e.to, (inDegree.get(e.to) || 1) - 1);
+        rawEdges.filter(e => e.from === n).forEach(e => {
+          workingInDeg.set(e.to, (workingInDeg.get(e.to) || 1) - 1);
         });
       });
       currentLayer++;
     }
 
-    // Create positioned nodes
-    const maxLayer = currentLayer;
+    const maxLayer = Math.max(currentLayer, 1);
     const nodesPerLayer = new Map<number, string[]>();
     layers.forEach((layer, node) => {
       if (!nodesPerLayer.has(layer)) nodesPerLayer.set(layer, []);
       nodesPerLayer.get(layer)!.push(node);
     });
 
+    const W = 400, H = 320, padX = 50, padY = 30;
+    const positioned: DAGNode[] = [];
     nodesPerLayer.forEach((layerNodes, layer) => {
       layerNodes.forEach((nodeId, idx) => {
-        const totalInLayer = layerNodes.length;
-        nodes.push({
-          id: nodeId,
-          x: (layer + 1) / (maxLayer + 1) * 100,
-          y: (idx + 1) / (totalInLayer + 1) * 100,
+        const total = layerNodes.length;
+        const x = maxLayer === 1 ? W / 2 : padX + (layer / (maxLayer - 1)) * (W - 2 * padX);
+        const y = padY + ((idx + 1) / (total + 1)) * (H - 2 * padY);
+        positioned.push({
+          id: nodeId, x, y,
           label: nodeId.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase()),
-          type: layer === 0 ? 'cause' : layer === maxLayer - 1 ? 'effect' : 'mediator'
+          type: layer === 0 ? 'cause' : layer === maxLayer - 1 ? 'effect' : 'mediator',
         });
       });
     });
+    return { nodes: positioned, edges: rawEdges };
+  };
 
-    return { nodes, edges };
+  // Inferred DAG from learned causal graph
+  const dagData = useMemo(() => {
+    const edges: DAGEdge[] = [];
+    const nodeSet = new Set<string>();
+    causalGraph.forEach((relations, source) => {
+      nodeSet.add(source);
+      relations.forEach(rel => {
+        nodeSet.add(rel.effect);
+        edges.push({ from: rel.cause, to: rel.effect, strength: rel.strength });
+      });
+    });
+    return layoutDAG(edges, Array.from(nodeSet));
   }, [causalGraph]);
+
+  // Ideal reference DAG — canonical cross-domain pathway projected onto the same nodes
+  // Domain cascade: electrical → hydraulic → mechanical → thermal → cutting
+  const idealDagData = useMemo(() => {
+    const domainOrder = ['electrical', 'hydraulic', 'mechanical', 'thermal', 'cutting'];
+    const nodesByDomain = new Map<string, string[]>();
+    dagData.nodes.forEach(n => {
+      const dom = n.id.split('_')[0];
+      if (!nodesByDomain.has(dom)) nodesByDomain.set(dom, []);
+      nodesByDomain.get(dom)!.push(n.id);
+    });
+    const edges: DAGEdge[] = [];
+    for (let i = 0; i < domainOrder.length - 1; i++) {
+      const up = nodesByDomain.get(domainOrder[i]) || [];
+      const down = nodesByDomain.get(domainOrder[i + 1]) || [];
+      up.forEach(u => down.forEach(d => edges.push({ from: u, to: d, strength: 0.9 })));
+    }
+    nodesByDomain.forEach(list => {
+      for (let i = 0; i < list.length - 1; i++) edges.push({ from: list[i], to: list[i + 1], strength: 0.55 });
+    });
+    return layoutDAG(edges, dagData.nodes.map(n => n.id));
+  }, [dagData]);
+
+  // Structural agreement metrics between inferred and ideal DAGs (Jaccard)
+  const dagAgreement = useMemo(() => {
+    const norm = (e: DAGEdge) => `${e.from}->${e.to}`;
+    const inferred = new Set(dagData.edges.map(norm));
+    const ideal = new Set(idealDagData.edges.map(norm));
+    let intersect = 0;
+    inferred.forEach(e => { if (ideal.has(e)) intersect++; });
+    const union = new Set([...inferred, ...ideal]).size || 1;
+    const precision = inferred.size ? intersect / inferred.size : 0;
+    const recall = ideal.size ? intersect / ideal.size : 0;
+    return {
+      jaccard: intersect / union,
+      precision, recall,
+      f1: precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0,
+      intersect, inferredCount: inferred.size, idealCount: ideal.size,
+    };
+  }, [dagData, idealDagData]);
 
   // 5. Run Counterfactual Sweep
   const handleCounterfactualSweep = async () => {
