@@ -126,13 +126,13 @@ export class PhysicsSimulator {
     // Power calculation (V * I * cos(phi))
     newState.power = newState.voltage * newState.current * Math.cos(newState.phase_shift * Math.PI / 180);
     
-    // Thermal effects on electrical resistance
-    const temp_factor = 1 + (state.thermal.system_temp - 45) * 0.001;
-    newState.voltage = newState.voltage * temp_factor;
-    
-    // Add noise
-    newState.voltage += (Math.random() - 0.5) * this.noise_level * 10;
-    newState.current += (Math.random() - 0.5) * this.noise_level * 2;
+    // Thermal effects on electrical resistance (clamped, non-compounding from 380 V baseline)
+    const temp_factor = 1 + Math.max(-0.1, Math.min(0.1, (state.thermal.system_temp - 45) * 0.001));
+    newState.voltage = 380 * temp_factor + (Math.random() - 0.5) * this.noise_level * 10;
+    newState.current = Math.max(0, newState.current + (Math.random() - 0.5) * this.noise_level * 2);
+
+    // Recompute power with stabilized V/I
+    newState.power = newState.voltage * newState.current * Math.cos(newState.phase_shift * Math.PI / 180);
     
     return newState;
   }
