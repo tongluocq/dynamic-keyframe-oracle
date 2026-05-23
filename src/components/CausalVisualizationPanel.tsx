@@ -86,6 +86,10 @@ interface DAGEdge {
   from: string;
   to: string;
   strength: number;
+  weight?: number;     // effect magnitude (do-calculus ATE proxy)
+  confidence?: number; // 0..1 statistical confidence
+  lag?: number;        // discovered temporal lag (samples)
+  source?: 'inferred' | 'ideal';
 }
 
 const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
