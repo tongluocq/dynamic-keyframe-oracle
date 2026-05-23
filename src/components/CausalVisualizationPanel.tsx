@@ -86,6 +86,10 @@ interface DAGEdge {
   from: string;
   to: string;
   strength: number;
+  weight?: number;     // effect magnitude (do-calculus ATE proxy)
+  confidence?: number; // 0..1 statistical confidence
+  lag?: number;        // discovered temporal lag (samples)
+  source?: 'inferred' | 'ideal';
 }
 
 const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
@@ -241,7 +245,7 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
       nodesPerLayer.get(layer)!.push(node);
     });
 
-    const W = 400, H = 320, padX = 50, padY = 30;
+    const W = 640, H = 460, padX = 70, padY = 50;
     const positioned: DAGNode[] = [];
     nodesPerLayer.forEach((layerNodes, layer) => {
       layerNodes.forEach((nodeId, idx) => {
@@ -258,22 +262,34 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
     return { nodes: positioned, edges: rawEdges };
   };
 
-  // Inferred DAG from learned causal graph
+  // Inferred DAG from learned causal graph — carries weight/confidence/lag
   const dagData = useMemo(() => {
     const edges: DAGEdge[] = [];
     const nodeSet = new Set<string>();
+    // Collect all strengths to derive a normalized confidence proxy
+    const allStrengths: number[] = [];
+    causalGraph.forEach(rels => rels.forEach(r => allStrengths.push(Math.abs(r.strength))));
+    const maxS = Math.max(0.001, ...allStrengths);
     causalGraph.forEach((relations, source) => {
       nodeSet.add(source);
       relations.forEach(rel => {
         nodeSet.add(rel.effect);
-        edges.push({ from: rel.cause, to: rel.effect, strength: rel.strength });
+        const w = Math.abs(rel.strength);
+        edges.push({
+          from: rel.cause,
+          to: rel.effect,
+          strength: rel.strength,
+          weight: w,
+          confidence: Math.min(1, w / maxS),
+          lag: rel.lag,
+          source: 'inferred',
+        });
       });
     });
     return layoutDAG(edges, Array.from(nodeSet));
   }, [causalGraph]);
 
   // Ideal reference DAG — canonical cross-domain pathway projected onto the same nodes
-  // Domain cascade: electrical → hydraulic → mechanical → thermal → cutting
   const idealDagData = useMemo(() => {
     const domainOrder = ['electrical', 'hydraulic', 'mechanical', 'thermal', 'cutting'];
     const nodesByDomain = new Map<string, string[]>();
@@ -286,10 +302,16 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
     for (let i = 0; i < domainOrder.length - 1; i++) {
       const up = nodesByDomain.get(domainOrder[i]) || [];
       const down = nodesByDomain.get(domainOrder[i + 1]) || [];
-      up.forEach(u => down.forEach(d => edges.push({ from: u, to: d, strength: 0.9 })));
+      up.forEach(u => down.forEach(d => edges.push({
+        from: u, to: d, strength: 0.9,
+        weight: 0.9, confidence: 1.0, lag: 1, source: 'ideal',
+      })));
     }
     nodesByDomain.forEach(list => {
-      for (let i = 0; i < list.length - 1; i++) edges.push({ from: list[i], to: list[i + 1], strength: 0.55 });
+      for (let i = 0; i < list.length - 1; i++) edges.push({
+        from: list[i], to: list[i + 1], strength: 0.55,
+        weight: 0.55, confidence: 1.0, lag: 0, source: 'ideal',
+      });
     });
     return layoutDAG(edges, dagData.nodes.map(n => n.id));
   }, [dagData]);
@@ -530,8 +552,8 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
                     ]).map(({ title, data, stroke, markerId }) => (
                       <div key={markerId} className="space-y-1">
                         <div className="text-xs font-medium text-muted-foreground">{title}</div>
-                        <div className="relative h-[340px] border rounded-lg bg-muted/20 overflow-hidden">
-                          <svg width="100%" height="100%" viewBox="0 0 400 320" preserveAspectRatio="xMidYMid meet">
+                        <div className="relative h-[460px] border rounded-lg bg-muted/20 overflow-hidden">
+                          <svg width="100%" height="100%" viewBox="0 0 640 460" preserveAspectRatio="xMidYMid meet">
                             <defs>
                               <marker id={markerId} markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
                                 <polygon points="0 0, 10 3.5, 0 7" fill={stroke} />
@@ -541,28 +563,56 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
                               const fromNode = data.nodes.find(n => n.id === edge.from);
                               const toNode = data.nodes.find(n => n.id === edge.to);
                               if (!fromNode || !toNode) return null;
-                              // Shorten line so arrow doesn't hide under circle (r=10)
                               const dx = toNode.x - fromNode.x;
                               const dy = toNode.y - fromNode.y;
                               const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                              const r = 12;
+                              const r = 14;
+                              const x1 = fromNode.x + (dx / dist) * r;
+                              const y1 = fromNode.y + (dy / dist) * r;
                               const x2 = toNode.x - (dx / dist) * r;
                               const y2 = toNode.y - (dy / dist) * r;
+                              const mx = (x1 + x2) / 2;
+                              const my = (y1 + y2) / 2;
+                              const w = edge.weight ?? edge.strength ?? 0;
+                              const c = edge.confidence ?? 0.5;
+                              const lag = edge.lag ?? 0;
+                              // Width scales with weight, opacity with confidence, dashing for low-conf
+                              const sw = Math.max(1, w * 4.5);
+                              const op = 0.35 + c * 0.55;
+                              const dash = c < 0.4 ? '4,3' : undefined;
+                              const label = `w${w.toFixed(2)} · c${(c * 100).toFixed(0)}% · L${lag}`;
                               return (
-                                <line
-                                  key={`edge-${idx}`}
-                                  x1={fromNode.x} y1={fromNode.y} x2={x2} y2={y2}
-                                  stroke={stroke}
-                                  strokeWidth={Math.max(1, edge.strength * 2.5)}
-                                  strokeOpacity={0.55}
-                                  markerEnd={`url(#${markerId})`}
-                                />
+                                <g key={`edge-${idx}`}>
+                                  <title>{`${edge.from} → ${edge.to}\nweight=${w.toFixed(3)}  confidence=${(c*100).toFixed(1)}%  lag=${lag}`}</title>
+                                  <line
+                                    x1={x1} y1={y1} x2={x2} y2={y2}
+                                    stroke={stroke}
+                                    strokeWidth={sw}
+                                    strokeOpacity={op}
+                                    strokeDasharray={dash}
+                                    markerEnd={`url(#${markerId})`}
+                                  />
+                                  <rect
+                                    x={mx - 38} y={my - 7} width={76} height={12} rx={3}
+                                    fill="hsl(var(--background))" fillOpacity={0.78}
+                                    stroke={stroke} strokeOpacity={0.4} strokeWidth={0.5}
+                                  />
+                                  <text
+                                    x={mx} y={my + 2}
+                                    textAnchor="middle"
+                                    fontSize={8.5}
+                                    fill="hsl(var(--foreground))"
+                                    className="select-none font-mono"
+                                  >
+                                    {label}
+                                  </text>
+                                </g>
                               );
                             })}
                             {data.nodes.map((node, idx) => (
                               <g key={`node-${idx}`}>
                                 <circle
-                                  cx={node.x} cy={node.y} r={10}
+                                  cx={node.x} cy={node.y} r={14}
                                   fill={
                                     node.type === 'cause' ? 'hsl(var(--chart-1))' :
                                     node.type === 'effect' ? 'hsl(var(--chart-2))' :
@@ -570,16 +620,17 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
                                     'hsl(var(--chart-3))'
                                   }
                                   stroke="hsl(var(--background))"
-                                  strokeWidth={1.5}
+                                  strokeWidth={2}
                                 />
                                 <text
-                                  x={node.x} y={node.y + 22}
+                                  x={node.x} y={node.y + 28}
                                   textAnchor="middle"
-                                  fontSize={10}
+                                  fontSize={11}
+                                  fontWeight={500}
                                   fill="hsl(var(--foreground))"
                                   className="select-none"
                                 >
-                                  {node.label.length > 16 ? node.label.substring(0, 14) + '…' : node.label}
+                                  {node.label.length > 18 ? node.label.substring(0, 16) + '…' : node.label}
                                 </text>
                               </g>
                             ))}
@@ -609,7 +660,7 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex gap-3 text-xs flex-wrap">
+                  <div className="flex gap-3 text-xs flex-wrap items-center">
                     <span className="flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]" /> Cause
                     </span>
@@ -618,6 +669,11 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
                     </span>
                     <span className="flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]" /> Effect
+                    </span>
+                    <span className="text-muted-foreground border-l pl-3 ml-1">
+                      Edge: <span className="font-mono">w</span> thickness = effect ·
+                      <span className="font-mono"> c</span> opacity = confidence (dashed if &lt;40%) ·
+                      <span className="font-mono"> L</span> = temporal lag
                     </span>
                     <span className="text-muted-foreground ml-auto">
                       Ideal pathway: electrical → hydraulic → mechanical → thermal → cutting
