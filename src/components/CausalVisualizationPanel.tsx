@@ -262,22 +262,34 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
     return { nodes: positioned, edges: rawEdges };
   };
 
-  // Inferred DAG from learned causal graph
+  // Inferred DAG from learned causal graph — carries weight/confidence/lag
   const dagData = useMemo(() => {
     const edges: DAGEdge[] = [];
     const nodeSet = new Set<string>();
+    // Collect all strengths to derive a normalized confidence proxy
+    const allStrengths: number[] = [];
+    causalGraph.forEach(rels => rels.forEach(r => allStrengths.push(Math.abs(r.strength))));
+    const maxS = Math.max(0.001, ...allStrengths);
     causalGraph.forEach((relations, source) => {
       nodeSet.add(source);
       relations.forEach(rel => {
         nodeSet.add(rel.effect);
-        edges.push({ from: rel.cause, to: rel.effect, strength: rel.strength });
+        const w = Math.abs(rel.strength);
+        edges.push({
+          from: rel.cause,
+          to: rel.effect,
+          strength: rel.strength,
+          weight: w,
+          confidence: Math.min(1, w / maxS),
+          lag: rel.lag,
+          source: 'inferred',
+        });
       });
     });
     return layoutDAG(edges, Array.from(nodeSet));
   }, [causalGraph]);
 
   // Ideal reference DAG — canonical cross-domain pathway projected onto the same nodes
-  // Domain cascade: electrical → hydraulic → mechanical → thermal → cutting
   const idealDagData = useMemo(() => {
     const domainOrder = ['electrical', 'hydraulic', 'mechanical', 'thermal', 'cutting'];
     const nodesByDomain = new Map<string, string[]>();
@@ -290,10 +302,16 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
     for (let i = 0; i < domainOrder.length - 1; i++) {
       const up = nodesByDomain.get(domainOrder[i]) || [];
       const down = nodesByDomain.get(domainOrder[i + 1]) || [];
-      up.forEach(u => down.forEach(d => edges.push({ from: u, to: d, strength: 0.9 })));
+      up.forEach(u => down.forEach(d => edges.push({
+        from: u, to: d, strength: 0.9,
+        weight: 0.9, confidence: 1.0, lag: 1, source: 'ideal',
+      })));
     }
     nodesByDomain.forEach(list => {
-      for (let i = 0; i < list.length - 1; i++) edges.push({ from: list[i], to: list[i + 1], strength: 0.55 });
+      for (let i = 0; i < list.length - 1; i++) edges.push({
+        from: list[i], to: list[i + 1], strength: 0.55,
+        weight: 0.55, confidence: 1.0, lag: 0, source: 'ideal',
+      });
     });
     return layoutDAG(edges, dagData.nodes.map(n => n.id));
   }, [dagData]);
