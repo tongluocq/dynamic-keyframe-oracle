@@ -552,8 +552,8 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
                     ]).map(({ title, data, stroke, markerId }) => (
                       <div key={markerId} className="space-y-1">
                         <div className="text-xs font-medium text-muted-foreground">{title}</div>
-                        <div className="relative h-[340px] border rounded-lg bg-muted/20 overflow-hidden">
-                          <svg width="100%" height="100%" viewBox="0 0 400 320" preserveAspectRatio="xMidYMid meet">
+                        <div className="relative h-[460px] border rounded-lg bg-muted/20 overflow-hidden">
+                          <svg width="100%" height="100%" viewBox="0 0 640 460" preserveAspectRatio="xMidYMid meet">
                             <defs>
                               <marker id={markerId} markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
                                 <polygon points="0 0, 10 3.5, 0 7" fill={stroke} />
@@ -563,28 +563,56 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
                               const fromNode = data.nodes.find(n => n.id === edge.from);
                               const toNode = data.nodes.find(n => n.id === edge.to);
                               if (!fromNode || !toNode) return null;
-                              // Shorten line so arrow doesn't hide under circle (r=10)
                               const dx = toNode.x - fromNode.x;
                               const dy = toNode.y - fromNode.y;
                               const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                              const r = 12;
+                              const r = 14;
+                              const x1 = fromNode.x + (dx / dist) * r;
+                              const y1 = fromNode.y + (dy / dist) * r;
                               const x2 = toNode.x - (dx / dist) * r;
                               const y2 = toNode.y - (dy / dist) * r;
+                              const mx = (x1 + x2) / 2;
+                              const my = (y1 + y2) / 2;
+                              const w = edge.weight ?? edge.strength ?? 0;
+                              const c = edge.confidence ?? 0.5;
+                              const lag = edge.lag ?? 0;
+                              // Width scales with weight, opacity with confidence, dashing for low-conf
+                              const sw = Math.max(1, w * 4.5);
+                              const op = 0.35 + c * 0.55;
+                              const dash = c < 0.4 ? '4,3' : undefined;
+                              const label = `w${w.toFixed(2)} · c${(c * 100).toFixed(0)}% · L${lag}`;
                               return (
-                                <line
-                                  key={`edge-${idx}`}
-                                  x1={fromNode.x} y1={fromNode.y} x2={x2} y2={y2}
-                                  stroke={stroke}
-                                  strokeWidth={Math.max(1, edge.strength * 2.5)}
-                                  strokeOpacity={0.55}
-                                  markerEnd={`url(#${markerId})`}
-                                />
+                                <g key={`edge-${idx}`}>
+                                  <title>{`${edge.from} → ${edge.to}\nweight=${w.toFixed(3)}  confidence=${(c*100).toFixed(1)}%  lag=${lag}`}</title>
+                                  <line
+                                    x1={x1} y1={y1} x2={x2} y2={y2}
+                                    stroke={stroke}
+                                    strokeWidth={sw}
+                                    strokeOpacity={op}
+                                    strokeDasharray={dash}
+                                    markerEnd={`url(#${markerId})`}
+                                  />
+                                  <rect
+                                    x={mx - 38} y={my - 7} width={76} height={12} rx={3}
+                                    fill="hsl(var(--background))" fillOpacity={0.78}
+                                    stroke={stroke} strokeOpacity={0.4} strokeWidth={0.5}
+                                  />
+                                  <text
+                                    x={mx} y={my + 2}
+                                    textAnchor="middle"
+                                    fontSize={8.5}
+                                    fill="hsl(var(--foreground))"
+                                    className="select-none font-mono"
+                                  >
+                                    {label}
+                                  </text>
+                                </g>
                               );
                             })}
                             {data.nodes.map((node, idx) => (
                               <g key={`node-${idx}`}>
                                 <circle
-                                  cx={node.x} cy={node.y} r={10}
+                                  cx={node.x} cy={node.y} r={14}
                                   fill={
                                     node.type === 'cause' ? 'hsl(var(--chart-1))' :
                                     node.type === 'effect' ? 'hsl(var(--chart-2))' :
@@ -592,16 +620,17 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
                                     'hsl(var(--chart-3))'
                                   }
                                   stroke="hsl(var(--background))"
-                                  strokeWidth={1.5}
+                                  strokeWidth={2}
                                 />
                                 <text
-                                  x={node.x} y={node.y + 22}
+                                  x={node.x} y={node.y + 28}
                                   textAnchor="middle"
-                                  fontSize={10}
+                                  fontSize={11}
+                                  fontWeight={500}
                                   fill="hsl(var(--foreground))"
                                   className="select-none"
                                 >
-                                  {node.label.length > 16 ? node.label.substring(0, 14) + '…' : node.label}
+                                  {node.label.length > 18 ? node.label.substring(0, 16) + '…' : node.label}
                                 </text>
                               </g>
                             ))}
