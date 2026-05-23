@@ -245,7 +245,7 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
       nodesPerLayer.get(layer)!.push(node);
     });
 
-    const W = 400, H = 320, padX = 50, padY = 30;
+    const W = 640, H = 460, padX = 70, padY = 50;
     const positioned: DAGNode[] = [];
     nodesPerLayer.forEach((layerNodes, layer) => {
       layerNodes.forEach((nodeId, idx) => {
