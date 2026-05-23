@@ -660,7 +660,7 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex gap-3 text-xs flex-wrap">
+                  <div className="flex gap-3 text-xs flex-wrap items-center">
                     <span className="flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]" /> Cause
                     </span>
@@ -669,6 +669,11 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
                     </span>
                     <span className="flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]" /> Effect
+                    </span>
+                    <span className="text-muted-foreground border-l pl-3 ml-1">
+                      Edge: <span className="font-mono">w</span> thickness = effect ·
+                      <span className="font-mono"> c</span> opacity = confidence (dashed if &lt;40%) ·
+                      <span className="font-mono"> L</span> = temporal lag
                     </span>
                     <span className="text-muted-foreground ml-auto">
                       Ideal pathway: electrical → hydraulic → mechanical → thermal → cutting
