@@ -211,54 +211,81 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
     return points;
   }, [inferenceHistory]);
 
-  // 4. DAG layout helper — positions nodes for a 400x320 viewBox with generous spacing
+  // 4. DAG layout helper — radial/star layout: hub = highest out-degree node, others on concentric rings by BFS distance
   const layoutDAG = (rawEdges: DAGEdge[], extraNodes: string[]): { nodes: DAGNode[]; edges: DAGEdge[] } => {
     const nodeSet = new Set<string>(extraNodes);
     rawEdges.forEach(e => { nodeSet.add(e.from); nodeSet.add(e.to); });
     const nodeArray = Array.from(nodeSet);
 
-    const layers = new Map<string, number>();
-    const inDegree = new Map<string, number>();
-    nodeArray.forEach(n => inDegree.set(n, 0));
-    rawEdges.forEach(e => inDegree.set(e.to, (inDegree.get(e.to) || 0) + 1));
+    // Pick hub: highest out-degree (most downstream effects); tiebreaker = lowest in-degree
+    const outDeg = new Map<string, number>();
+    const inDeg = new Map<string, number>();
+    nodeArray.forEach(n => { outDeg.set(n, 0); inDeg.set(n, 0); });
+    rawEdges.forEach(e => {
+      outDeg.set(e.from, (outDeg.get(e.from) || 0) + 1);
+      inDeg.set(e.to, (inDeg.get(e.to) || 0) + 1);
+    });
+    const hub = nodeArray.slice().sort((a, b) => {
+      const oa = outDeg.get(a) || 0, ob = outDeg.get(b) || 0;
+      if (ob !== oa) return ob - oa;
+      return (inDeg.get(a) || 0) - (inDeg.get(b) || 0);
+    })[0] || nodeArray[0];
 
-    let currentLayer = 0;
-    const remaining = new Set(nodeArray);
-    const workingInDeg = new Map(inDegree);
-    while (remaining.size > 0) {
-      let layerNodes = Array.from(remaining).filter(n => (workingInDeg.get(n) || 0) === 0);
-      if (layerNodes.length === 0) layerNodes = [remaining.values().next().value as string];
-      layerNodes.forEach(n => {
-        layers.set(n, currentLayer);
-        remaining.delete(n);
-        rawEdges.filter(e => e.from === n).forEach(e => {
-          workingInDeg.set(e.to, (workingInDeg.get(e.to) || 1) - 1);
-        });
+    // BFS distance from hub on undirected adjacency → ring index
+    const adj = new Map<string, Set<string>>();
+    nodeArray.forEach(n => adj.set(n, new Set()));
+    rawEdges.forEach(e => { adj.get(e.from)?.add(e.to); adj.get(e.to)?.add(e.from); });
+    const dist = new Map<string, number>();
+    dist.set(hub, 0);
+    const queue: string[] = [hub];
+    while (queue.length) {
+      const n = queue.shift()!;
+      adj.get(n)?.forEach(m => {
+        if (!dist.has(m)) { dist.set(m, (dist.get(n) || 0) + 1); queue.push(m); }
       });
-      currentLayer++;
     }
+    let maxRing = 0;
+    dist.forEach(d => { if (d > maxRing) maxRing = d; });
+    nodeArray.forEach(n => { if (!dist.has(n)) dist.set(n, maxRing + 1); });
+    maxRing = Math.max(maxRing, 1);
+    if (Array.from(dist.values()).some(d => d === maxRing + 1)) maxRing += 1;
 
-    const maxLayer = Math.max(currentLayer, 1);
-    const nodesPerLayer = new Map<number, string[]>();
-    layers.forEach((layer, node) => {
-      if (!nodesPerLayer.has(layer)) nodesPerLayer.set(layer, []);
-      nodesPerLayer.get(layer)!.push(node);
+    const rings = new Map<number, string[]>();
+    dist.forEach((d, n) => {
+      if (!rings.has(d)) rings.set(d, []);
+      rings.get(d)!.push(n);
     });
 
-    const W = 640, H = 460, padX = 70, padY = 50;
+    const W = 640, H = 460;
+    const cx = W / 2, cy = H / 2;
+    const rMax = Math.min(W, H) / 2 - 55;
     const positioned: DAGNode[] = [];
-    nodesPerLayer.forEach((layerNodes, layer) => {
-      layerNodes.forEach((nodeId, idx) => {
-        const total = layerNodes.length;
-        const x = maxLayer === 1 ? W / 2 : padX + (layer / (maxLayer - 1)) * (W - 2 * padX);
-        const y = padY + ((idx + 1) / (total + 1)) * (H - 2 * padY);
+
+    rings.forEach((ringNodes, ringIdx) => {
+      if (ringIdx === 0) {
+        positioned.push({
+          id: hub, x: cx, y: cy,
+          label: hub.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase()),
+          type: 'cause',
+        });
+        return;
+      }
+      const r = (ringIdx / maxRing) * rMax;
+      const count = ringNodes.length;
+      const angleOffset = (ringIdx % 2) * (Math.PI / Math.max(count, 1));
+      ringNodes.forEach((nodeId, idx) => {
+        const angle = angleOffset + (idx / count) * 2 * Math.PI - Math.PI / 2;
+        const x = cx + r * Math.cos(angle);
+        const y = cy + r * Math.sin(angle);
+        const isLeaf = (outDeg.get(nodeId) || 0) === 0;
         positioned.push({
           id: nodeId, x, y,
           label: nodeId.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase()),
-          type: layer === 0 ? 'cause' : layer === maxLayer - 1 ? 'effect' : 'mediator',
+          type: isLeaf ? 'effect' : 'mediator',
         });
       });
     });
+
     return { nodes: positioned, edges: rawEdges };
   };
 
