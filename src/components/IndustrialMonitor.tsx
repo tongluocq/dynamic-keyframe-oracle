@@ -529,6 +529,11 @@ const IndustrialMonitor = () => {
         <CausalityComparisonPanel cvggResult={cvggInferenceResult} />
       )}
 
+      {/* Experiment Panel — Five-Tier Causal Validation Suite */}
+      {modelMode === 'experiment' && (
+        <ExperimentPanel />
+      )}
+
       {/* Causal Visualization Panel */}
       {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && modelMode !== 'verification' && modelMode !== 'roadmap' && modelMode !== 'comparison' && (
         <CausalVisualizationPanel
