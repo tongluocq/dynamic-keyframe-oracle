@@ -412,6 +412,10 @@ const IndustrialMonitor = () => {
                 <FlaskConical className="h-3 w-3 mr-1" />
                 Comparison
               </TabsTrigger>
+              <TabsTrigger value="experiment" className="text-xs px-2">
+                <FlaskConical className="h-3 w-3 mr-1" />
+                Experiment
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           
