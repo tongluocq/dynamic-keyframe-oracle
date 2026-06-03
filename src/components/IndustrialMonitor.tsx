@@ -24,6 +24,7 @@ import OperationResultsPanel from '@/components/OperationResultsPanel';
 import RoadmapPanel from '@/components/RoadmapPanel';
 import KnowledgeGraphPanel from '@/components/KnowledgeGraphPanel';
 import CausalityComparisonPanel from '@/components/CausalityComparisonPanel';
+import ExperimentPanel from '@/components/ExperimentPanel';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { InferenceResult, useEnhancedCVGG } from '@/hooks/useEnhancedCVGG';
