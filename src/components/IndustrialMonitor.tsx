@@ -535,7 +535,7 @@ const IndustrialMonitor = () => {
       )}
 
       {/* Causal Visualization Panel */}
-      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && modelMode !== 'verification' && modelMode !== 'roadmap' && modelMode !== 'comparison' && (
+      {(inferenceHistory.length > 0 || causalGraph.size > 0) && modelMode !== 'prescriptive' && modelMode !== 'counterfactual' && modelMode !== 'intervention' && modelMode !== 'verification' && modelMode !== 'roadmap' && modelMode !== 'comparison' && modelMode !== 'experiment' && (
         <CausalVisualizationPanel
           inferenceHistory={inferenceHistory}
           causalGraph={causalGraph}
