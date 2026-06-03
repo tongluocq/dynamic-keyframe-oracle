@@ -441,4 +441,411 @@ operates within <strong>${results.tier5.totalLatency} ms</strong> end-to-end lat
                 Reproducible via seed, results exportable as HTML / CSV / JSON.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2
+            <div className="flex items-center gap-2 flex-wrap">
+              <label className="text-xs text-muted-foreground flex items-center gap-1">
+                Seed
+                <input
+                  type="number"
+                  value={seed}
+                  onChange={(e) => setSeed(parseInt(e.target.value || '1', 10))}
+                  className="w-20 px-2 py-1 border rounded text-xs bg-background"
+                />
+              </label>
+              <Button onClick={runAll} disabled={running} size="sm">
+                <Play className="h-3 w-3 mr-1" />
+                {running ? 'Running…' : 'Run All Tiers'}
+              </Button>
+              <Button onClick={downloadHTML} variant="outline" size="sm">
+                <FileText className="h-3 w-3 mr-1" /> HTML
+              </Button>
+              <Button onClick={downloadCSV} variant="outline" size="sm">
+                <TableIcon className="h-3 w-3 mr-1" /> CSV
+              </Button>
+              <Button onClick={downloadJSON} variant="outline" size="sm">
+                <FileJson className="h-3 w-3 mr-1" /> JSON
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {(running || progress > 0) && (
+            <div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                <span>Pipeline progress</span><span>{progress.toFixed(0)}%</span>
+              </div>
+              <Progress value={progress} />
+            </div>
+          )}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+            {[
+              { id: 'tier1', label: 'Algorithmic Baseline', icon: GitBranch },
+              { id: 'tier2', label: 'Multi-Scale Temporal', icon: Layers },
+              { id: 'tier3', label: 'Environmental Fusion', icon: ImageIcon },
+              { id: 'tier4', label: 'Counterfactual', icon: Activity },
+              { id: 'tier5', label: 'Closed-Loop', icon: Gauge },
+            ].map(t => {
+              const Icon = t.icon;
+              const done = completed[t.id];
+              return (
+                <div key={t.id} className={`p-2 rounded border flex items-center gap-2 ${done ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800' : 'bg-muted/30'}`}>
+                  <Icon className="h-3 w-3" />
+                  <span className="flex-1 truncate">{t.label}</span>
+                  {done && <CheckCircle2 className="h-3 w-3 text-emerald-600" />}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Tabs defaultValue="tier1">
+        <TabsList className="grid grid-cols-5 w-full">
+          <TabsTrigger value="tier1">1. Baseline</TabsTrigger>
+          <TabsTrigger value="tier2">2. Temporal</TabsTrigger>
+          <TabsTrigger value="tier3">3. Fusion</TabsTrigger>
+          <TabsTrigger value="tier4">4. Counterfactual</TabsTrigger>
+          <TabsTrigger value="tier5">5. Closed-Loop</TabsTrigger>
+        </TabsList>
+
+        {/* ============= TIER 1 ============= */}
+        <TabsContent value="tier1" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Tier 1 — Algorithmic Baseline</CardTitle>
+              <CardDescription>
+                CVGG vs PC vs Granger on a 5-node TBM DAG with hidden confounders.
+                Metrics: SHD, Precision, Recall, F1, FPR @ threshold 0.5.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {(['PC', 'Granger', 'CVGG'] as const).map(alg => {
+                  const m = t1[alg].metrics;
+                  return (
+                    <div key={alg} className="p-3 border rounded space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm" style={{ color: algColors[alg] }}>{alg}</span>
+                        <Badge variant={alg === 'CVGG' ? 'default' : 'secondary'}>F1 {m.f1.toFixed(3)}</Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-2 text-xs text-muted-foreground">
+                        <span>SHD: <strong className="text-foreground">{m.shd}</strong></span>
+                        <span>FPR: <strong className="text-foreground">{m.fpr.toFixed(3)}</strong></span>
+                        <span>Precision: <strong className="text-foreground">{m.precision.toFixed(3)}</strong></span>
+                        <span>Recall: <strong className="text-foreground">{m.recall.toFixed(3)}</strong></span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-medium mb-1">ROC — TPR vs FPR across thresholds</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis type="number" dataKey="fpr" domain={[0, 1]} stroke="hsl(var(--muted-foreground))" fontSize={11} label={{ value: 'FPR', position: 'insideBottom', offset: -2, fontSize: 10 }} />
+                      <YAxis type="number" dataKey="tpr" domain={[0, 1]} stroke="hsl(var(--muted-foreground))" fontSize={11} label={{ value: 'TPR', angle: -90, position: 'insideLeft', fontSize: 10 }} />
+                      <Tooltip />
+                      <Legend />
+                      <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                      {(['PC', 'Granger', 'CVGG'] as const).map(alg => (
+                        <Line key={alg} data={t1[alg].roc} type="monotone" dataKey="tpr" name={alg} stroke={algColors[alg]} strokeWidth={2} dot={false} />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div>
+                  <div className="text-xs font-medium mb-1">PR — Precision vs Recall</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis type="number" dataKey="recall" domain={[0, 1]} stroke="hsl(var(--muted-foreground))" fontSize={11} label={{ value: 'Recall', position: 'insideBottom', offset: -2, fontSize: 10 }} />
+                      <YAxis type="number" dataKey="precision" domain={[0, 1]} stroke="hsl(var(--muted-foreground))" fontSize={11} label={{ value: 'Precision', angle: -90, position: 'insideLeft', fontSize: 10 }} />
+                      <Tooltip />
+                      <Legend />
+                      {(['PC', 'Granger', 'CVGG'] as const).map(alg => (
+                        <Line key={alg} data={t1[alg].roc} type="monotone" dataKey="precision" name={alg} stroke={algColors[alg]} strokeWidth={2} dot={false} />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <Separator />
+              <div>
+                <div className="text-xs font-medium mb-2">Causal Graph Comparison — Ground-Truth vs Reconstructed Edge Scores</div>
+                <div className="overflow-x-auto">
+                  <table className="text-xs w-full border-collapse">
+                    <thead>
+                      <tr className="bg-muted">
+                        <th className="border px-2 py-1 text-left">Edge</th>
+                        <th className="border px-2 py-1">Truth</th>
+                        <th className="border px-2 py-1">PC</th>
+                        <th className="border px-2 py-1">Granger</th>
+                        <th className="border px-2 py-1">CVGG</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dagComparisonRows.slice(0, 12).map(r => (
+                        <tr key={r.edge} className={r.truth ? 'bg-emerald-50/40 dark:bg-emerald-950/20' : ''}>
+                          <td className="border px-2 py-1 font-mono">{r.edge}</td>
+                          <td className="border px-2 py-1 text-center">{r.truth ? '✓' : '·'}</td>
+                          <td className="border px-2 py-1 text-center">{r.PC.toFixed(2)}</td>
+                          <td className="border px-2 py-1 text-center">{r.Granger.toFixed(2)}</td>
+                          <td className="border px-2 py-1 text-center font-semibold">{r.CVGG.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-1">Showing top 12 edges by ground-truth + CVGG confidence.</div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ============= TIER 2 ============= */}
+        <TabsContent value="tier2" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Tier 2 — Multi-Scale Temporal Validity</CardTitle>
+              <CardDescription>
+                Wavelet decomposition of sensor streams + causal shift alignment, and F1 invariance across micro/meso/macro scales.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="text-xs font-medium mb-1">Wavelet Scalogram + Causal Shift Alignment</div>
+                <ResponsiveContainer width="100%" height={240}>
+                  <LineChart data={results.tier2.series}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="t" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="lowFreq" name="Low-Freq (macro wear)" stroke="#0d7a5f" dot={false} strokeWidth={2} />
+                    <Line type="monotone" dataKey="highFreq" name="High-Freq (micro)" stroke="#f59e0b" dot={false} strokeWidth={1.5} />
+                    <Line type="monotone" dataKey="raw" name="Raw" stroke="#94a3b8" dot={false} strokeWidth={1} opacity={0.5} />
+                    <ReferenceLine x={40} stroke="#dc2626" strokeDasharray="3 3" label={{ value: 'micro fault', fontSize: 10, fill: '#dc2626' }} />
+                    <ReferenceLine x={140} stroke="#7c3aed" strokeDasharray="3 3" label={{ value: 'macro wear', fontSize: 10, fill: '#7c3aed' }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-medium mb-1">Scale Sensitivity — F1</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={results.tier2.scales}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="scale" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                      <YAxis domain={[0.7, 1]} stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                      <Tooltip />
+                      <Bar dataKey="f1" fill="#0d7a5f" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div>
+                  <div className="text-xs font-medium mb-1">Detection Latency (ms)</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={results.tier2.scales}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="scale" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                      <Tooltip />
+                      <Bar dataKey="latency_ms" fill="#0ea5e9" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+              <div className="text-xs">
+                Structural stability (mean F1 across scales): <Badge variant="default">{results.tier2.stability}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ============= TIER 3 ============= */}
+        <TabsContent value="tier3" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Tier 3 — Environmental Awareness &amp; Rock-Image Fusion</CardTitle>
+              <CardDescription>
+                Ablation: sensor-only vs sensor+image vs end-to-end CVGG fusion across geological complexity.
+                Geological boundary latency curve shows ATE-error convergence after a stratum change.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="text-xs font-medium mb-1">Ablation — F1 vs Geological Complexity</div>
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={results.tier3.ablation}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="complexity" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <YAxis domain={[0.5, 1]} stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="sensorOnly" name="Sensor Only" fill="#94a3b8" />
+                    <Bar dataKey="sensorPlusImg" name="Sensor + Image" fill="#0ea5e9" />
+                    <Bar dataKey="cvggFusion" name="CVGG Fusion" fill="#0d7a5f" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <div className="text-xs font-medium mb-1">Geological Boundary Latency — ATE estimation error vs time</div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={results.tier3.latency}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="t" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <Tooltip />
+                    <Legend />
+                    <ReferenceLine x={80} stroke="#dc2626" strokeDasharray="3 3" label={{ value: 'stratum change', fontSize: 10, fill: '#dc2626' }} />
+                    <Line type="monotone" dataKey="sensorATEerr" name="Sensor only" stroke="#94a3b8" dot={false} strokeWidth={2} />
+                    <Line type="monotone" dataKey="fusedATEerr" name="CVGG fused" stroke="#0d7a5f" dot={false} strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div className="p-2 border rounded"><div className="text-muted-foreground">Sensor F1</div><div className="font-semibold">{results.tier3.sensorAvgF1}</div></div>
+                <div className="p-2 border rounded"><div className="text-muted-foreground">CVGG F1</div><div className="font-semibold text-emerald-700">{results.tier3.cvggAvgF1}</div></div>
+                <div className="p-2 border rounded"><div className="text-muted-foreground">ATE Gain</div><div className="font-semibold">+{results.tier3.ateImprovement}%</div></div>
+                <div className="p-2 border rounded"><div className="text-muted-foreground">Convergence (sensor → fused)</div><div className="font-semibold">{results.tier3.convergenceSensor} → {results.tier3.convergenceFused} ep</div></div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ============= TIER 4 ============= */}
+        <TabsContent value="tier4" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Tier 4 — Counterfactual &amp; Interventional Accuracy</CardTitle>
+              <CardDescription>
+                Counterfactual trajectory plot (factual vs intervened path) and PEHE distribution across operating modes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="text-xs font-medium mb-1">Counterfactual Trajectory — Motor Temperature (°C)</div>
+                <ResponsiveContainer width="100%" height={260}>
+                  <AreaChart data={results.tier4.trajectory}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="t" stroke="hsl(var(--muted-foreground))" fontSize={11} label={{ value: 'Time / Chainage', position: 'insideBottom', offset: -2, fontSize: 10 }} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} domain={[50, 110]} />
+                    <Tooltip />
+                    <Legend />
+                    <ReferenceLine y={results.tier4.threshold} stroke="#dc2626" strokeDasharray="4 2" label={{ value: `Failure threshold ${results.tier4.threshold}°C`, fontSize: 10, fill: '#dc2626' }} />
+                    <ReferenceLine x={60} stroke="#7c3aed" strokeDasharray="3 3" label={{ value: 't_intervene', fontSize: 10, fill: '#7c3aed' }} />
+                    <Area type="monotone" dataKey="cfUpper" stroke="none" fill="#0d7a5f" fillOpacity={0.12} />
+                    <Area type="monotone" dataKey="cfLower" stroke="none" fill="#ffffff" fillOpacity={1} />
+                    <Line type="monotone" dataKey="factual" name="Factual (no action)" stroke="#dc2626" dot={false} strokeWidth={2} />
+                    <Line type="monotone" dataKey="counterfactual" name="Counterfactual (do: −15% advance)" stroke="#0d7a5f" dot={false} strokeWidth={2} strokeDasharray="5 3" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-medium mb-1">PEHE Distribution by Operating Mode</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={results.tier4.pehe}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="mode" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="q25" name="Q25" fill="#bbf7d0" />
+                      <Bar dataKey="median" name="Median" fill="#0d7a5f" />
+                      <Bar dataKey="q75" name="Q75" fill="#86efac" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-2">
+                  <div className="p-3 border rounded">
+                    <div className="text-xs text-muted-foreground">Counterfactual RMSE (Ŷ_CF)</div>
+                    <div className="text-2xl font-bold text-primary">{results.tier4.rmseCF}</div>
+                  </div>
+                  <div className="p-3 border rounded">
+                    <div className="text-xs text-muted-foreground">Root-PEHE</div>
+                    <div className="text-2xl font-bold">{results.tier4.rootPEHE}</div>
+                  </div>
+                  <div className={`p-3 border rounded ${results.tier4.failureAvoided ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300' : 'bg-amber-50 dark:bg-amber-950/30 border-amber-300'}`}>
+                    <div className="text-xs text-muted-foreground">Intervention Outcome</div>
+                    <div className="text-sm font-semibold flex items-center gap-1">
+                      {results.tier4.failureAvoided
+                        ? <><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Failure avoided</>
+                        : <><AlertTriangle className="h-4 w-4 text-amber-600" /> Threshold breached</>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ============= TIER 5 ============= */}
+        <TabsContent value="tier5" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Tier 5 — Closed-Loop System Integration</CardTitle>
+              <CardDescription>
+                End-to-end pipeline latency breakdown and prescriptive early-warning confusion matrix.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="text-xs font-medium mb-1">Pipeline Latency Breakdown (ms) — total {results.tier5.totalLatency} ms</div>
+                <ResponsiveContainer width="100%" height={120}>
+                  <BarChart layout="vertical" data={[{
+                    name: 'Pipeline',
+                    ...Object.fromEntries(results.tier5.pipeline.map(p => [p.stage, p.time])),
+                  }]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <Tooltip />
+                    <Legend />
+                    {results.tier5.pipeline.map((p, i) => (
+                      <Bar key={p.stage} dataKey={p.stage} stackId="a" fill={['#94a3b8', '#0d7a5f', '#0ea5e9', '#f59e0b'][i]} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-medium mb-2">Confusion Matrix — Prescriptive Early Warnings</div>
+                  <div className="grid grid-cols-3 gap-1 text-xs max-w-sm">
+                    <div></div>
+                    <div className="font-semibold text-center p-2 bg-muted rounded">Pred: Fault</div>
+                    <div className="font-semibold text-center p-2 bg-muted rounded">Pred: Normal</div>
+                    <div className="font-semibold p-2 bg-muted rounded">Actual: Fault</div>
+                    <div className="p-3 bg-emerald-100 dark:bg-emerald-950/40 rounded text-center"><div className="text-[10px]">TP</div><div className="font-bold text-lg">{results.tier5.confusion.tp}</div></div>
+                    <div className="p-3 bg-amber-100 dark:bg-amber-950/40 rounded text-center"><div className="text-[10px]">FN</div><div className="font-bold text-lg">{results.tier5.confusion.fn}</div></div>
+                    <div className="font-semibold p-2 bg-muted rounded">Actual: Normal</div>
+                    <div className="p-3 bg-amber-100 dark:bg-amber-950/40 rounded text-center"><div className="text-[10px]">FP</div><div className="font-bold text-lg">{results.tier5.confusion.fp}</div></div>
+                    <div className="p-3 bg-emerald-100 dark:bg-emerald-950/40 rounded text-center"><div className="text-[10px]">TN</div><div className="font-bold text-lg">{results.tier5.confusion.tn}</div></div>
+                  </div>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="p-2 border rounded flex justify-between"><span>Accuracy</span><span className="font-semibold">{results.tier5.accuracy}</span></div>
+                  <div className="p-2 border rounded flex justify-between"><span>Precision</span><span className="font-semibold">{results.tier5.precision}</span></div>
+                  <div className="p-2 border rounded flex justify-between"><span>Recall</span><span className="font-semibold">{results.tier5.recall}</span></div>
+                  <div className="p-2 border rounded flex justify-between"><span>False Alarm Rate (FAR)</span><span className="font-semibold">{results.tier5.far}</span></div>
+                  <div className="p-2 border rounded flex justify-between"><span>Operator Override Ratio</span><span className="font-semibold">{results.tier5.overrideRatio}</span></div>
+                  <div className="p-2 border rounded flex justify-between"><span>End-to-end Latency</span><span className="font-semibold">{results.tier5.totalLatency} ms</span></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default ExperimentPanel;
