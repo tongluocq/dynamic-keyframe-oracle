@@ -27,7 +27,253 @@ import {
 import {
   FlaskConical, Play, Download, FileText, FileJson, Table as TableIcon,
   CheckCircle2, AlertTriangle, Activity, Layers, Image as ImageIcon, GitBranch, Gauge,
+  ImageDown,
 } from 'lucide-react';
+
+/* ============================================================================
+ * SVG Figure Builders — produce standalone <svg> strings (downloadable + inline)
+ * ========================================================================= */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const wrapSVG = (w: number, h: number, title: string, inner: string) =>
+  `<svg xmlns="${SVG_NS}" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <title>${title}</title>
+  <rect width="${w}" height="${h}" fill="#ffffff"/>
+  <text x="${w/2}" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#0d7a5f">${title}</text>
+  ${inner}
+</svg>`;
+
+const axisRect = (x: number, y: number, w: number, h: number) =>
+  `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#cbd5e1" stroke-width="1"/>`;
+
+function buildRocSVG(results: any): string {
+  const W = 520, H = 360, PAD_L = 60, PAD_R = 20, PAD_T = 40, PAD_B = 50;
+  const pw = W - PAD_L - PAD_R, ph = H - PAD_T - PAD_B;
+  const colors: Record<string, string> = { PC: '#94a3b8', Granger: '#0ea5e9', CVGG: '#0d7a5f' };
+  const algs = ['PC', 'Granger', 'CVGG'] as const;
+  let inner = axisRect(PAD_L, PAD_T, pw, ph);
+  // diagonal reference
+  inner += `<line x1="${PAD_L}" y1="${PAD_T+ph}" x2="${PAD_L+pw}" y2="${PAD_T}" stroke="#e2e8f0" stroke-dasharray="4 4"/>`;
+  // axes labels
+  inner += `<text x="${PAD_L+pw/2}" y="${H-12}" text-anchor="middle" font-size="11" fill="#475569">False Positive Rate</text>`;
+  inner += `<text x="18" y="${PAD_T+ph/2}" text-anchor="middle" font-size="11" fill="#475569" transform="rotate(-90 18 ${PAD_T+ph/2})">True Positive Rate</text>`;
+  for (let i = 0; i <= 5; i++) {
+    const v = i/5;
+    inner += `<text x="${PAD_L + v*pw}" y="${PAD_T+ph+14}" text-anchor="middle" font-size="9" fill="#64748b">${v.toFixed(1)}</text>`;
+    inner += `<text x="${PAD_L-6}" y="${PAD_T+ph - v*ph + 3}" text-anchor="end" font-size="9" fill="#64748b">${v.toFixed(1)}</text>`;
+  }
+  algs.forEach((alg, idx) => {
+    const pts = results.tier1.algorithms[alg].roc as Array<{fpr:number; tpr:number}>;
+    const sorted = [...pts].sort((a,b)=>a.fpr-b.fpr);
+    const path = sorted.map((p,i)=>`${i===0?'M':'L'} ${PAD_L + p.fpr*pw} ${PAD_T + ph - p.tpr*ph}`).join(' ');
+    inner += `<path d="${path}" stroke="${colors[alg]}" stroke-width="2" fill="none"/>`;
+    inner += `<circle cx="${W-PAD_R-90}" cy="${PAD_T+10+idx*16}" r="4" fill="${colors[alg]}"/>`;
+    inner += `<text x="${W-PAD_R-80}" y="${PAD_T+14+idx*16}" font-size="11" fill="#334155">${alg} (F1=${results.tier1.algorithms[alg].metrics.f1.toFixed(2)})</text>`;
+  });
+  return wrapSVG(W, H, 'Tier 1 — ROC Curves (PC vs Granger vs CVGG)', inner);
+}
+
+function buildDagComparisonSVG(results: any): string {
+  const W = 540, H = 360, cx = W/2, cy = H/2 + 10, r = 110;
+  const nodes = NODES;
+  const pos: Record<string, {x:number;y:number}> = {};
+  nodes.forEach((n, i) => {
+    const a = (i / nodes.length) * Math.PI * 2 - Math.PI/2;
+    pos[n] = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  });
+  let inner = '';
+  // edges: ground truth (solid green) + CVGG inferred (dashed orange)
+  for (const a of nodes) for (const b of nodes) {
+    if (a === b) continue;
+    const k = `${a}->${b}`;
+    const isTruth = (results.tier1.groundTruth as string[]).includes(k);
+    const cvggWeight = results.tier1.algorithms.CVGG.matrix[k] ?? 0;
+    if (!isTruth && cvggWeight < 0.5) continue;
+    const p1 = pos[a], p2 = pos[b];
+    const stroke = isTruth ? '#0d7a5f' : '#f59e0b';
+    const dash = isTruth ? '' : 'stroke-dasharray="5 4"';
+    const wid = isTruth ? 2 : Math.max(1, cvggWeight * 2.5);
+    inner += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${stroke}" stroke-width="${wid}" ${dash} opacity="0.8"/>`;
+  }
+  nodes.forEach(n => {
+    inner += `<circle cx="${pos[n].x}" cy="${pos[n].y}" r="26" fill="#ecfdf5" stroke="#0d7a5f" stroke-width="2"/>`;
+    inner += `<text x="${pos[n].x}" y="${pos[n].y+4}" text-anchor="middle" font-size="10" font-weight="600" fill="#064e3b">${n}</text>`;
+  });
+  inner += `<g font-size="11"><rect x="20" y="${H-44}" width="14" height="3" fill="#0d7a5f"/><text x="40" y="${H-39}" fill="#334155">Ground-truth edge</text>`;
+  inner += `<line x1="170" y1="${H-42}" x2="184" y2="${H-42}" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5 4"/><text x="190" y="${H-39}" fill="#334155">CVGG inferred (weight = thickness)</text></g>`;
+  return wrapSVG(W, H, 'Tier 1 — Ground-Truth vs CVGG-Inferred DAG', inner);
+}
+
+function buildTier2SVG(results: any): string {
+  const W = 640, H = 320, PAD_L = 50, PAD_R = 20, PAD_T = 40, PAD_B = 40;
+  const pw = W - PAD_L - PAD_R, ph = H - PAD_T - PAD_B;
+  const series = results.tier2.series as Array<{t:number;raw:number;lowFreq:number;highFreq:number;causalShift:number}>;
+  const xs = series.map(s=>s.t);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const vals = series.flatMap(s=>[s.raw, s.lowFreq, s.highFreq]);
+  const minY = Math.min(...vals), maxY = Math.max(...vals);
+  const sx = (x:number)=> PAD_L + ((x-minX)/(maxX-minX))*pw;
+  const sy = (y:number)=> PAD_T + ph - ((y-minY)/(maxY-minY))*ph;
+  let inner = axisRect(PAD_L, PAD_T, pw, ph);
+  const mkPath = (key: 'raw'|'lowFreq'|'highFreq') =>
+    series.map((s,i)=>`${i===0?'M':'L'} ${sx(s.t)} ${sy(s[key])}`).join(' ');
+  inner += `<path d="${mkPath('raw')}" stroke="#64748b" stroke-width="1" fill="none" opacity="0.6"/>`;
+  inner += `<path d="${mkPath('lowFreq')}" stroke="#0d7a5f" stroke-width="1.6" fill="none"/>`;
+  inner += `<path d="${mkPath('highFreq')}" stroke="#0ea5e9" stroke-width="1.2" fill="none" opacity="0.85"/>`;
+  // detection bands
+  series.forEach(s => { if (s.causalShift) inner += `<rect x="${sx(s.t)}" y="${PAD_T}" width="2" height="${ph}" fill="#f59e0b" opacity="0.18"/>`; });
+  inner += `<text x="${PAD_L+pw/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="#475569">time (samples)</text>`;
+  inner += `<g font-size="10" transform="translate(${PAD_L+10},${PAD_T+10})">
+    <rect x="0" y="0" width="12" height="3" fill="#64748b"/><text x="18" y="4" fill="#334155">raw</text>
+    <rect x="60" y="0" width="12" height="3" fill="#0d7a5f"/><text x="78" y="4" fill="#334155">low-freq (macro wear)</text>
+    <rect x="200" y="0" width="12" height="3" fill="#0ea5e9"/><text x="218" y="4" fill="#334155">high-freq (micro fault)</text>
+    <rect x="380" y="-2" width="10" height="8" fill="#f59e0b" opacity="0.4"/><text x="396" y="4" fill="#334155">causal shift detected</text>
+  </g>`;
+  return wrapSVG(W, H, `Tier 2 — Multi-Scale Wavelet Decomposition (stability=${results.tier2.stability})`, inner);
+}
+
+function buildTier3SVG(results: any): string {
+  const W = 600, H = 340, PAD_L = 80, PAD_R = 20, PAD_T = 50, PAD_B = 50;
+  const pw = W - PAD_L - PAD_R, ph = H - PAD_T - PAD_B;
+  const data = results.tier3.ablation as Array<{complexity:string;sensorOnly:number;sensorPlusImg:number;cvggFusion:number}>;
+  const n = data.length;
+  const gw = pw / n;
+  const bw = gw / 4;
+  let inner = axisRect(PAD_L, PAD_T, pw, ph);
+  for (let i = 0; i <= 5; i++) {
+    const v = i/5;
+    inner += `<text x="${PAD_L-6}" y="${PAD_T+ph - v*ph + 3}" text-anchor="end" font-size="9" fill="#64748b">${v.toFixed(1)}</text>`;
+    inner += `<line x1="${PAD_L}" y1="${PAD_T+ph - v*ph}" x2="${PAD_L+pw}" y2="${PAD_T+ph - v*ph}" stroke="#f1f5f9"/>`;
+  }
+  const colors = ['#94a3b8', '#0ea5e9', '#0d7a5f'];
+  const keys: Array<'sensorOnly'|'sensorPlusImg'|'cvggFusion'> = ['sensorOnly','sensorPlusImg','cvggFusion'];
+  data.forEach((d, i) => {
+    keys.forEach((k, j) => {
+      const v = d[k];
+      const x = PAD_L + i*gw + j*bw + bw*0.3;
+      const h = v*ph;
+      inner += `<rect x="${x}" y="${PAD_T+ph-h}" width="${bw*0.8}" height="${h}" fill="${colors[j]}"/>`;
+    });
+    inner += `<text x="${PAD_L + i*gw + gw/2}" y="${PAD_T+ph+16}" text-anchor="middle" font-size="10" fill="#334155">${d.complexity}</text>`;
+  });
+  const labels = ['Sensor only','Sensor + Image','CVGG Fusion'];
+  labels.forEach((l, i) => {
+    inner += `<rect x="${PAD_L + i*160}" y="${PAD_T-26}" width="12" height="10" fill="${colors[i]}"/>`;
+    inner += `<text x="${PAD_L + i*160 + 18}" y="${PAD_T-17}" font-size="11" fill="#334155">${l}</text>`;
+  });
+  inner += `<text x="18" y="${PAD_T+ph/2}" text-anchor="middle" font-size="11" fill="#475569" transform="rotate(-90 18 ${PAD_T+ph/2})">F1 score</text>`;
+  return wrapSVG(W, H, `Tier 3 — Modality Ablation (ATE +${results.tier3.ateImprovement}% from fusion)`, inner);
+}
+
+function buildTier4SVG(results: any): string {
+  const W = 640, H = 340, PAD_L = 55, PAD_R = 20, PAD_T = 40, PAD_B = 45;
+  const pw = W - PAD_L - PAD_R, ph = H - PAD_T - PAD_B;
+  const traj = results.tier4.trajectory as Array<{t:number;factual:number;counterfactual:number;cfUpper:number;cfLower:number;threshold:number}>;
+  const xs = traj.map(p=>p.t);
+  const vals = traj.flatMap(p=>[p.factual, p.cfUpper, p.cfLower, p.threshold]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...vals)-2, maxY = Math.max(...vals)+2;
+  const sx = (x:number)=> PAD_L + ((x-minX)/(maxX-minX))*pw;
+  const sy = (y:number)=> PAD_T + ph - ((y-minY)/(maxY-minY))*ph;
+  let inner = axisRect(PAD_L, PAD_T, pw, ph);
+  // CF uncertainty band
+  const bandTop = traj.map((p,i)=>`${i===0?'M':'L'} ${sx(p.t)} ${sy(p.cfUpper)}`).join(' ');
+  const bandBot = traj.slice().reverse().map((p,i)=>`${i===0?'L':'L'} ${sx(p.t)} ${sy(p.cfLower)}`).join(' ');
+  inner += `<path d="${bandTop} ${bandBot} Z" fill="#0d7a5f" opacity="0.15"/>`;
+  const path = (k: 'factual'|'counterfactual') => traj.map((p,i)=>`${i===0?'M':'L'} ${sx(p.t)} ${sy(p[k])}`).join(' ');
+  inner += `<path d="${path('factual')}" stroke="#dc2626" stroke-width="1.8" fill="none"/>`;
+  inner += `<path d="${path('counterfactual')}" stroke="#0d7a5f" stroke-width="1.8" fill="none"/>`;
+  // threshold
+  inner += `<line x1="${PAD_L}" y1="${sy(results.tier4.threshold)}" x2="${PAD_L+pw}" y2="${sy(results.tier4.threshold)}" stroke="#ef4444" stroke-dasharray="4 4"/>`;
+  inner += `<text x="${PAD_L+pw-4}" y="${sy(results.tier4.threshold)-4}" text-anchor="end" font-size="10" fill="#ef4444">failure threshold ${results.tier4.threshold}°C</text>`;
+  // intervention marker
+  inner += `<line x1="${sx(60)}" y1="${PAD_T}" x2="${sx(60)}" y2="${PAD_T+ph}" stroke="#6366f1" stroke-dasharray="3 3"/>`;
+  inner += `<text x="${sx(60)+4}" y="${PAD_T+12}" font-size="10" fill="#4338ca">do(advance -15%)</text>`;
+  inner += `<g font-size="10" transform="translate(${PAD_L+10},${PAD_T+10})">
+    <rect x="0" y="0" width="12" height="3" fill="#dc2626"/><text x="18" y="4" fill="#334155">factual</text>
+    <rect x="80" y="0" width="12" height="3" fill="#0d7a5f"/><text x="98" y="4" fill="#334155">counterfactual ±CI</text>
+  </g>`;
+  inner += `<text x="${PAD_L+pw/2}" y="${H-10}" text-anchor="middle" font-size="11" fill="#475569">time (s)</text>`;
+  inner += `<text x="18" y="${PAD_T+ph/2}" text-anchor="middle" font-size="11" fill="#475569" transform="rotate(-90 18 ${PAD_T+ph/2})">motor temp (°C)</text>`;
+  return wrapSVG(W, H, `Tier 4 — Counterfactual Trajectory (RMSE=${results.tier4.rmseCF}, √PEHE=${results.tier4.rootPEHE})`, inner);
+}
+
+function buildTier5SVG(results: any): string {
+  const W = 560, H = 300, PAD_L = 160, PAD_R = 60, PAD_T = 40, PAD_B = 40;
+  const pw = W - PAD_L - PAD_R, ph = H - PAD_T - PAD_B;
+  const data = results.tier5.pipeline as Array<{stage:string; time:number}>;
+  const total = results.tier5.totalLatency;
+  const maxT = Math.max(...data.map(d=>d.time)) * 1.15;
+  const bh = ph / data.length * 0.7;
+  const gap = ph / data.length;
+  let inner = axisRect(PAD_L, PAD_T, pw, ph);
+  data.forEach((d, i) => {
+    const y = PAD_T + i*gap + (gap-bh)/2;
+    const w = (d.time/maxT)*pw;
+    inner += `<rect x="${PAD_L}" y="${y}" width="${w}" height="${bh}" fill="#0d7a5f" opacity="${0.4 + 0.15*i}"/>`;
+    inner += `<text x="${PAD_L-8}" y="${y+bh/2+4}" text-anchor="end" font-size="11" fill="#334155">${d.stage}</text>`;
+    inner += `<text x="${PAD_L+w+6}" y="${y+bh/2+4}" font-size="11" fill="#334155">${d.time} ms</text>`;
+  });
+  inner += `<text x="${PAD_L+pw/2}" y="${H-10}" text-anchor="middle" font-size="11" fill="#475569">latency (ms) — total ${total} ms · FAR ${results.tier5.far}</text>`;
+  return wrapSVG(W, H, `Tier 5 — Closed-Loop Pipeline Latency Breakdown`, inner);
+}
+
+function buildAllFigures(results: any): Record<string, string> {
+  return {
+    'tier1_roc.svg': buildRocSVG(results),
+    'tier1_dag_comparison.svg': buildDagComparisonSVG(results),
+    'tier2_wavelet.svg': buildTier2SVG(results),
+    'tier3_ablation.svg': buildTier3SVG(results),
+    'tier4_counterfactual.svg': buildTier4SVG(results),
+    'tier5_latency.svg': buildTier5SVG(results),
+  };
+}
+
+/* ============================================================================
+ * Narrative — design rationale, purpose, and theory used per tier
+ * (Embedded in HTML report and referenced in the UI.)
+ * ========================================================================= */
+const TIER_NARRATIVE: Array<{id:string; title:string; design:string; purpose:string; theory:string; algorithms:string}> = [
+  {
+    id: 'tier1',
+    title: 'Tier 1 — Algorithmic Baseline',
+    design: 'A 5-node TBM cascade (Electrical→Hydraulic→Mechanical→Thermal→Cutting) with one hidden confounder edge (Electrical→Thermal). Each algorithm proposes edge probabilities over the full 5×4 directed edge space; metrics computed at threshold 0.5 and across the full ROC sweep.',
+    purpose: 'Quantify how well CVGG recovers the ground-truth causal skeleton versus classical baselines under realistic confounding. The hidden edge is the discriminator: methods that confuse correlation with causation inflate FPR.',
+    theory: 'Pearl\'s Structural Causal Models (Pearl 2009); Spirtes–Glymour–Scheines causal discovery; Granger (1969) temporal predictability; Structural Hamming Distance (Tsamardinos 2006) and standard precision/recall on the edge-classification task.',
+    algorithms: 'PC algorithm (conditional-independence skeleton + orientation), pairwise Granger causality, and CVGG — the project\'s Causal Variational Graph network with DAG-constrained loss (Zheng et al. 2018 NOTEARS h(W)=tr(e^{W∘W})−d).',
+  },
+  {
+    id: 'tier2',
+    title: 'Tier 2 — Multi-Scale Temporal Validity',
+    design: 'A synthetic signal with a fast micro-fault burst (t≈40-55) and a slow macro wear ramp (t≥140) is decomposed into low- and high-frequency bands; CVGG-style causal-shift detection is shaded.',
+    purpose: 'Demonstrate that the system preserves causal structure across temporal resolutions — short-horizon faults must not erase long-horizon trends and vice versa.',
+    theory: 'Continuous Wavelet Transform (Morlet/Mexican-hat) for multi-resolution scalograms; temporal causal stability defined as the mean F1 across micro/meso/macro detectors.',
+    algorithms: 'CWT scalogram features feeding the CVGG temporal encoder; sliding-window F1 evaluation at three scales; latency measured from anomaly onset to first detection event.',
+  },
+  {
+    id: 'tier3',
+    title: 'Tier 3 — Environmental Awareness & Fusion',
+    design: 'Five geological complexity strata (Soft→Fault Zone). Three model variants are compared: sensors-only, sensors + raw image, and full CVGG cross-modal fusion. A stratum change at t=80 stresses post-shift convergence.',
+    purpose: 'Isolate the contribution of the rock-image modality. The ATE improvement (Δ in average causal effect estimation) is the headline metric: it shows whether geology context resolves ambiguous sensor patterns.',
+    theory: 'Average Treatment Effect under multi-modal observational data; Rubin potential-outcomes framework; cross-modal attention as a soft confounder-adjustment operator.',
+    algorithms: 'ResNet-style visual backbone + 1D-CNN sensor backbone fused via cross-modal attention inside CVGG; ablation experiment (remove modality → measure F1/ATE drop).',
+  },
+  {
+    id: 'tier4',
+    title: 'Tier 4 — Counterfactual & Interventional Accuracy',
+    design: 'A factual motor-temperature trajectory is paired with a counterfactual trajectory under do(advance-rate −15%) starting at t=60. Confidence ribbon shows ±3.5°C estimator uncertainty; failure threshold 95°C.',
+    purpose: 'Verify that the model answers Pearl Level-3 (counterfactual) queries with bounded error and avoids the failure mode — the practical value of prescriptive control.',
+    theory: 'Pearl\'s do-calculus and twin-network counterfactual computation; Precision in Estimation of Heterogeneous Effects (PEHE, Hill 2011) as the standard counterfactual benchmark.',
+    algorithms: 'CVGG counterfactual decoder: given factual outcome Y and intervention do(X=x*), sample Y_{X=x*} via the abducted exogenous noise; bin PEHE by operating mode (Soft / Mixed / Hard / Fault).',
+  },
+  {
+    id: 'tier5',
+    title: 'Tier 5 — Closed-Loop System Integration',
+    design: 'End-to-end pipeline timed at four stages (Ingress → Causal Discovery → Intervention → UI). Prescriptive alerts evaluated as a binary classifier against a labelled stream; operator override ratio tracks human trust.',
+    purpose: 'Prove the IMSCHM app layer meets real-time control budgets (<1 s loop) while keeping FAR low enough for unattended deployment.',
+    theory: 'Real-time control loop budgeting; classification calibration (FAR/recall trade-off); human-AI teaming (override-rate as a trust proxy).',
+    algorithms: 'Stage-level wall-clock instrumentation; confusion-matrix derivation of Accuracy / Precision / Recall / FAR; rolling override ratio from the prescriptive AI module.',
+  },
+];
 
 /* ============================================================================
  * Seeded RNG (mulberry32) — reproducible experiments
