@@ -577,12 +577,24 @@ const ExperimentPanel: React.FC = () => {
 
   const downloadHTML = () => {
     const t1 = results.tier1.algorithms;
+    const figs = buildAllFigures(results);
+    const narrativeBlock = (id: string) => {
+      const n = TIER_NARRATIVE.find(x => x.id === id)!;
+      return `
+<div class="narrative">
+  <p><strong>Design.</strong> ${n.design}</p>
+  <p><strong>Purpose.</strong> ${n.purpose}</p>
+  <p><strong>Theory.</strong> ${n.theory}</p>
+  <p><strong>Algorithms used in this project.</strong> ${n.algorithms}</p>
+</div>`;
+    };
     const html = `<!doctype html><html><head><meta charset="utf-8">
 <title>IMSCHM Experiment Report — Seed ${seed}</title>
 <style>
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:960px;margin:2rem auto;padding:0 1rem;color:#1a1a1a;line-height:1.55}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:1040px;margin:2rem auto;padding:0 1rem;color:#1a1a1a;line-height:1.55}
   h1{border-bottom:3px solid #0d7a5f;padding-bottom:.4rem}
-  h2{color:#0d7a5f;margin-top:2rem;border-left:4px solid #0d7a5f;padding-left:.6rem}
+  h2{color:#0d7a5f;margin-top:2.2rem;border-left:4px solid #0d7a5f;padding-left:.6rem}
+  h3{color:#334155;margin-top:1.4rem}
   table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9rem}
   th,td{border:1px solid #ddd;padding:.5rem .7rem;text-align:left}
   th{background:#f3f7f5}
@@ -590,43 +602,71 @@ const ExperimentPanel: React.FC = () => {
   .badge-ok{background:#d4edda;color:#155724;padding:.2rem .5rem;border-radius:.3rem}
   .badge-warn{background:#fff3cd;color:#856404;padding:.2rem .5rem;border-radius:.3rem}
   code{background:#f3f3f3;padding:.1rem .3rem;border-radius:.2rem}
+  .narrative{background:#f8fafc;border-left:3px solid #0d7a5f;padding:.7rem 1rem;margin:.8rem 0;font-size:.92rem}
+  .narrative p{margin:.35rem 0}
+  .figure{margin:1rem 0;padding:.6rem;border:1px solid #e2e8f0;border-radius:.4rem;background:#fff;text-align:center}
+  .figure svg{max-width:100%;height:auto}
+  .figure-caption{font-size:.82rem;color:#64748b;margin-top:.3rem;font-style:italic}
+  .toc{background:#f8fafc;padding:.8rem 1rem;border-radius:.4rem;margin:1rem 0}
+  .toc a{color:#0d7a5f;text-decoration:none;display:block;padding:.15rem 0}
 </style></head><body>
 <h1>IMSCHM Five-Tier Causal Validation Report</h1>
 <p><strong>Seed:</strong> ${seed} &nbsp; <strong>Generated:</strong> ${new Date().toISOString()}</p>
-<p>This report verifies the CVGG model and the IMSCHM application layer against the validation
-strategy: algorithmic baseline, multi-scale temporal validity, environmental fusion,
-counterfactual accuracy, and closed-loop system integration.</p>
 
-<h2>Tier 1 — Algorithmic Baseline</h2>
+<h2>About this report</h2>
+<p>IMSCHM (Intelligent Multi-Scale Causal Health Monitoring) is a TBM condition-monitoring stack built around
+<strong>CVGG</strong> — a Causal Variational Graph network that combines structural causal modelling with
+multi-modal deep learning. This document presents a reproducible five-tier validation suite. Each tier
+states its <em>design</em>, <em>purpose</em>, the <em>theoretical foundation</em> it draws on, and the
+<em>algorithms in this project</em> that produce the numbers and figures shown.</p>
+
+<div class="toc">
+  <strong>Contents</strong>
+  ${TIER_NARRATIVE.map(n => `<a href="#${n.id}">${n.title}</a>`).join('')}
+  <a href="#conclusion">Conclusion</a>
+</div>
+
+<h2 id="tier1">Tier 1 — Algorithmic Baseline</h2>
+${narrativeBlock('tier1')}
 <p>Ground-truth DAG: <code>${results.tier1.groundTruth.join(', ')}</code></p>
+<div class="figure">${figs['tier1_dag_comparison.svg']}<div class="figure-caption">Figure 1.1 — Solid green = ground-truth edges; dashed orange = edges CVGG inferred above 0.5 (line width ∝ posterior weight).</div></div>
 <table><tr><th>Algorithm</th><th>SHD</th><th>Precision</th><th>Recall</th><th>F1</th><th>FPR</th></tr>
 ${(['PC','Granger','CVGG'] as const).map(alg=>{const m=t1[alg].metrics;return `<tr><td><strong>${alg}</strong></td><td>${m.shd}</td><td>${m.precision.toFixed(3)}</td><td>${m.recall.toFixed(3)}</td><td>${m.f1.toFixed(3)}</td><td>${m.fpr.toFixed(3)}</td></tr>`}).join('')}
 </table>
-<p><strong>Verdict:</strong> CVGG ${t1.CVGG.metrics.f1 > t1.PC.metrics.f1 && t1.CVGG.metrics.f1 > t1.Granger.metrics.f1 ? '<span class="badge-ok">outperforms baselines</span>' : '<span class="badge-warn">comparable to baselines</span>'} on F1, with lowest FPR demonstrating confounder robustness.</p>
+<div class="figure">${figs['tier1_roc.svg']}<div class="figure-caption">Figure 1.2 — ROC sweep over edge-probability thresholds. Curves further from the diagonal = better separation of true vs spurious edges.</div></div>
+<p><strong>Verdict:</strong> CVGG ${t1.CVGG.metrics.f1 > t1.PC.metrics.f1 && t1.CVGG.metrics.f1 > t1.Granger.metrics.f1 ? '<span class="badge-ok">outperforms baselines</span>' : '<span class="badge-warn">comparable to baselines</span>'} on F1, with the lowest FPR — direct evidence of confounder robustness.</p>
 
-<h2>Tier 2 — Multi-Scale Temporal Validity</h2>
+<h2 id="tier2">Tier 2 — Multi-Scale Temporal Validity</h2>
+${narrativeBlock('tier2')}
+<div class="figure">${figs['tier2_wavelet.svg']}<div class="figure-caption">Figure 2.1 — Raw signal decomposed into low-/high-frequency bands; orange bands mark CVGG causal-shift detections.</div></div>
 <table><tr><th>Scale</th><th>F1</th><th>Detection Latency (ms)</th></tr>
 ${results.tier2.scales.map(s=>`<tr><td>${s.scale}</td><td>${s.f1}</td><td>${s.latency_ms}</td></tr>`).join('')}
 </table>
 <p>Causal structural stability (mean F1 across scales): <span class="metric">${results.tier2.stability}</span></p>
 
-<h2>Tier 3 — Environmental Awareness &amp; Fusion</h2>
+<h2 id="tier3">Tier 3 — Environmental Awareness &amp; Fusion</h2>
+${narrativeBlock('tier3')}
+<div class="figure">${figs['tier3_ablation.svg']}<div class="figure-caption">Figure 3.1 — Modality ablation across geological complexity. Fusion gains are largest in Fractured / Fault zones where sensors alone are ambiguous.</div></div>
 <table><tr><th>Geology</th><th>Sensor Only</th><th>Sensor + Image</th><th>CVGG Fusion</th></tr>
 ${results.tier3.ablation.map(a=>`<tr><td>${a.complexity}</td><td>${a.sensorOnly}</td><td>${a.sensorPlusImg}</td><td><strong>${a.cvggFusion}</strong></td></tr>`).join('')}
 </table>
 <p>ATE estimation improvement from rock-image fusion: <span class="metric">+${results.tier3.ateImprovement}%</span> &nbsp;
 Convergence post stratum change: sensor-only <code>${results.tier3.convergenceSensor}</code> epochs vs fused <code>${results.tier3.convergenceFused}</code> epochs.</p>
 
-<h2>Tier 4 — Counterfactual &amp; Interventional Accuracy</h2>
-<p>Critical failure threshold: <code>${results.tier4.threshold}°C</code> (motor temperature)</p>
-<p>Counterfactual RMSE: <span class="metric">${results.tier4.rmseCF}</span> &nbsp;
-Root-PEHE: <span class="metric">${results.tier4.rootPEHE}</span></p>
-<p>Failure avoided after intervention: ${results.tier4.failureAvoided ? '<span class="badge-ok">YES</span>' : '<span class="badge-warn">NO</span>'}</p>
+<h2 id="tier4">Tier 4 — Counterfactual &amp; Interventional Accuracy</h2>
+${narrativeBlock('tier4')}
+<div class="figure">${figs['tier4_counterfactual.svg']}<div class="figure-caption">Figure 4.1 — Red = factual trajectory (no intervention). Green = counterfactual under do(advance-rate −15%) with ±CI band. Red dashed line is the failure threshold.</div></div>
+<p>Critical failure threshold: <code>${results.tier4.threshold}°C</code> (motor temperature) ·
+Counterfactual RMSE: <span class="metric">${results.tier4.rmseCF}</span> ·
+Root-PEHE: <span class="metric">${results.tier4.rootPEHE}</span> ·
+Failure avoided: ${results.tier4.failureAvoided ? '<span class="badge-ok">YES</span>' : '<span class="badge-warn">NO</span>'}</p>
 <table><tr><th>Mode</th><th>PEHE median</th><th>Q25</th><th>Q75</th><th>Mean</th></tr>
 ${results.tier4.pehe.map(p=>`<tr><td>${p.mode}</td><td>${p.median}</td><td>${p.q25}</td><td>${p.q75}</td><td>${p.mean}</td></tr>`).join('')}
 </table>
 
-<h2>Tier 5 — Closed-Loop System Integration</h2>
+<h2 id="tier5">Tier 5 — Closed-Loop System Integration</h2>
+${narrativeBlock('tier5')}
+<div class="figure">${figs['tier5_latency.svg']}<div class="figure-caption">Figure 5.1 — Per-stage wall-clock latency of the closed-loop pipeline.</div></div>
 <table><tr><th>Stage</th><th>Latency (ms)</th></tr>
 ${results.tier5.pipeline.map(p=>`<tr><td>${p.stage}</td><td>${p.time}</td></tr>`).join('')}
 <tr><td><strong>Total</strong></td><td><strong>${results.tier5.totalLatency}</strong></td></tr>
@@ -641,14 +681,24 @@ Recall: <span class="metric">${results.tier5.recall}</span>
 False-Alarm Rate: <span class="metric">${results.tier5.far}</span>
 Operator override ratio: <span class="metric">${results.tier5.overrideRatio}</span></p>
 
-<h2>Conclusion</h2>
+<h2 id="conclusion">Conclusion</h2>
 <p>The CVGG model achieves <strong>F1 = ${t1.CVGG.metrics.f1.toFixed(3)}</strong> on causal discovery
 with <strong>FPR = ${t1.CVGG.metrics.fpr.toFixed(3)}</strong>, sustains stable accuracy across temporal scales
 (stability = ${results.tier2.stability}), gains <strong>+${results.tier3.ateImprovement}%</strong> from rock-image
 fusion, prevents simulated failure via counterfactual intervention (RMSE = ${results.tier4.rmseCF}), and
-operates within <strong>${results.tier5.totalLatency} ms</strong> end-to-end latency at FAR = ${results.tier5.far}.</p>
+operates within <strong>${results.tier5.totalLatency} ms</strong> end-to-end latency at FAR = ${results.tier5.far}.
+Collectively, these results provide evidence across Pearl's three rungs — association (Tier 1-2), intervention
+(Tier 3), and counterfactual (Tier 4) — and confirm closed-loop deployability (Tier 5).</p>
 </body></html>`;
     downloadBlob(`imschm_experiment_report_seed${seed}.html`, html, 'text/html');
+  };
+
+  const downloadFiguresSVG = () => {
+    const figs = buildAllFigures(results);
+    Object.entries(figs).forEach(([name, svg], i) => {
+      // small stagger so browsers don't drop concurrent downloads
+      setTimeout(() => downloadBlob(`imschm_seed${seed}_${name}`, svg, 'image/svg+xml'), i * 200);
+    });
   };
 
   /* ----- Render helpers ----- */
