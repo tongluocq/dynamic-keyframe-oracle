@@ -551,28 +551,90 @@ const ExperimentPanel: React.FC = () => {
   );
 
   const downloadCSV = () => {
-    const rows: string[] = ['Tier,Metric,Algorithm,Value'];
+    // Multi-section CSV: summary metrics + every per-point series used in the figures,
+    // so each tier's graph can be reproduced in Excel/Python/R without the JSON.
+    const sections: string[] = [];
     const t1 = results.tier1.algorithms;
+
+    /* ---------- SUMMARY METRICS ---------- */
+    const summary: string[] = ['# Section: summary_metrics', 'Tier,Metric,Algorithm,Value'];
     (['PC', 'Granger', 'CVGG'] as const).forEach(alg => {
       const m = t1[alg].metrics;
-      Object.entries(m).forEach(([k, v]) => rows.push(`1,${k},${alg},${v}`));
+      Object.entries(m).forEach(([k, v]) => summary.push(`1,${k},${alg},${v}`));
     });
-    results.tier2.scales.forEach(s => rows.push(`2,F1,${s.scale},${s.f1}`));
-    rows.push(`2,Stability,CVGG,${results.tier2.stability}`);
-    results.tier3.ablation.forEach(a => {
-      rows.push(`3,F1_sensorOnly,${a.complexity},${a.sensorOnly}`);
-      rows.push(`3,F1_sensor+img,${a.complexity},${a.sensorPlusImg}`);
-      rows.push(`3,F1_cvggFusion,${a.complexity},${a.cvggFusion}`);
+    results.tier2.scales.forEach(s => {
+      summary.push(`2,F1,${s.scale},${s.f1}`);
+      summary.push(`2,Latency_ms,${s.scale},${s.latency_ms}`);
     });
-    rows.push(`3,ATE_Improvement_pct,CVGG,${results.tier3.ateImprovement}`);
-    rows.push(`4,RMSE_Counterfactual,CVGG,${results.tier4.rmseCF}`);
-    rows.push(`4,Root_PEHE,CVGG,${results.tier4.rootPEHE}`);
-    results.tier4.pehe.forEach(p => rows.push(`4,PEHE_median,${p.mode},${p.median}`));
-    results.tier5.pipeline.forEach(p => rows.push(`5,Latency_ms,${p.stage},${p.time}`));
-    rows.push(`5,FAR,System,${results.tier5.far}`);
-    rows.push(`5,Accuracy,System,${results.tier5.accuracy}`);
-    rows.push(`5,Override_Ratio,Operator,${results.tier5.overrideRatio}`);
-    downloadBlob(`imschm_experiment_seed${seed}.csv`, rows.join('\n'), 'text/csv');
+    summary.push(`2,Stability,CVGG,${results.tier2.stability}`);
+    summary.push(`3,ATE_Improvement_pct,CVGG,${results.tier3.ateImprovement}`);
+    summary.push(`3,Convergence_epochs,SensorOnly,${results.tier3.convergenceSensor}`);
+    summary.push(`3,Convergence_epochs,CVGGFusion,${results.tier3.convergenceFused}`);
+    summary.push(`4,RMSE_Counterfactual,CVGG,${results.tier4.rmseCF}`);
+    summary.push(`4,Root_PEHE,CVGG,${results.tier4.rootPEHE}`);
+    summary.push(`4,Failure_Avoided,CVGG,${results.tier4.failureAvoided}`);
+    summary.push(`5,Total_Latency_ms,System,${results.tier5.totalLatency}`);
+    summary.push(`5,FAR,System,${results.tier5.far}`);
+    summary.push(`5,Accuracy,System,${results.tier5.accuracy}`);
+    summary.push(`5,Precision,System,${results.tier5.precision}`);
+    summary.push(`5,Recall,System,${results.tier5.recall}`);
+    summary.push(`5,Override_Ratio,Operator,${results.tier5.overrideRatio}`);
+    sections.push(summary.join('\n'));
+
+    /* ---------- TIER 1 figures: ROC curves + edge matrix (DAG comparison) ---------- */
+    const roc: string[] = ['# Section: tier1_roc_curves (Figure 1.2)', 'Algorithm,Threshold,FPR,TPR,Precision,Recall'];
+    (['PC', 'Granger', 'CVGG'] as const).forEach(alg => {
+      t1[alg].roc.forEach(p => roc.push(`${alg},${p.threshold},${p.fpr.toFixed(4)},${p.tpr.toFixed(4)},${p.precision.toFixed(4)},${p.recall.toFixed(4)}`));
+    });
+    sections.push(roc.join('\n'));
+
+    const edges: string[] = ['# Section: tier1_edge_matrix (Figure 1.1 — DAG comparison)', 'Edge,IsGroundTruth,PC_weight,Granger_weight,CVGG_weight'];
+    Object.keys(t1.CVGG.matrix).forEach(k => {
+      edges.push(`${k},${truthSet.has(k) ? 1 : 0},${t1.PC.matrix[k].toFixed(4)},${t1.Granger.matrix[k].toFixed(4)},${t1.CVGG.matrix[k].toFixed(4)}`);
+    });
+    sections.push(edges.join('\n'));
+
+    /* ---------- TIER 2 figure: wavelet timeseries ---------- */
+    const t2: string[] = ['# Section: tier2_wavelet_series (Figure 2.1)', 't,raw,lowFreq,highFreq,causalShift'];
+    results.tier2.series.forEach(s => t2.push(`${s.t},${s.raw},${s.lowFreq},${s.highFreq},${s.causalShift}`));
+    sections.push(t2.join('\n'));
+
+    /* ---------- TIER 3 figures: ablation + ATE-error latency curve ---------- */
+    const t3a: string[] = ['# Section: tier3_ablation (Figure 3.1)', 'Complexity,SensorOnly,SensorPlusImg,CVGGFusion'];
+    results.tier3.ablation.forEach(a => t3a.push(`${a.complexity},${a.sensorOnly},${a.sensorPlusImg},${a.cvggFusion}`));
+    sections.push(t3a.join('\n'));
+
+    const t3b: string[] = ['# Section: tier3_ate_latency (Figure 3.2 — post-stratum-change convergence)', 't,sensor_ATE_err,fused_ATE_err'];
+    results.tier3.latency.forEach(p => t3b.push(`${p.t},${p.sensorATEerr},${p.fusedATEerr}`));
+    sections.push(t3b.join('\n'));
+
+    /* ---------- TIER 4 figures: trajectory fan + PEHE quartiles ---------- */
+    const t4a: string[] = ['# Section: tier4_counterfactual_trajectory (Figure 4.1)', 't,factual,counterfactual,cf_upper,cf_lower,threshold'];
+    results.tier4.trajectory.forEach(p => t4a.push(`${p.t},${p.factual},${p.counterfactual},${p.cfUpper},${p.cfLower},${p.threshold}`));
+    sections.push(t4a.join('\n'));
+
+    const t4b: string[] = ['# Section: tier4_pehe_by_mode (Figure 4.2 — box-plot data)', 'Mode,Mean,Median,Q25,Q75,Max'];
+    results.tier4.pehe.forEach(p => t4b.push(`${p.mode},${p.mean},${p.median},${p.q25},${p.q75},${p.max}`));
+    sections.push(t4b.join('\n'));
+
+    /* ---------- TIER 5 figures: pipeline latency + confusion matrix ---------- */
+    const t5a: string[] = ['# Section: tier5_pipeline_latency (Figure 5.1)', 'Stage,Latency_ms'];
+    results.tier5.pipeline.forEach(p => t5a.push(`${p.stage},${p.time}`));
+    sections.push(t5a.join('\n'));
+
+    const cm = results.tier5.confusion;
+    const t5b: string[] = [
+      '# Section: tier5_confusion_matrix (Figure 5.2)',
+      'Cell,Count',
+      `TruePositive,${cm.tp}`,
+      `FalsePositive,${cm.fp}`,
+      `FalseNegative,${cm.fn}`,
+      `TrueNegative,${cm.tn}`,
+    ];
+    sections.push(t5b.join('\n'));
+
+    const header = `# IMSCHM Experiment Report — seed=${seed} — generated=${new Date().toISOString()}\n# Each section below is a self-contained CSV block (lines starting with '#' are comments).\n# Pandas: pd.read_csv(io.StringIO(block), comment='#')`;
+    downloadBlob(`imschm_experiment_seed${seed}.csv`, header + '\n\n' + sections.join('\n\n') + '\n', 'text/csv');
   };
 
   const downloadHTML = () => {
