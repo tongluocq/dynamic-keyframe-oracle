@@ -760,6 +760,9 @@ Collectively, these results provide evidence across Pearl's three rungs — asso
               <Button onClick={downloadJSON} variant="outline" size="sm">
                 <FileJson className="h-3 w-3 mr-1" /> JSON
               </Button>
+              <Button onClick={downloadFiguresSVG} variant="outline" size="sm">
+                <ImageDown className="h-3 w-3 mr-1" /> SVG Figures
+              </Button>
             </div>
           </div>
         </CardHeader>
