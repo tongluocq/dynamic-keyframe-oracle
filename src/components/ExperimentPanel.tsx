@@ -856,6 +856,9 @@ Collectively, these results provide evidence across Pearl's three rungs — asso
               );
             })}
           </div>
+
+          {/* Rationale Chain: Cause → Mechanism → Observable Effect */}
+          <RationaleChain completed={completed} />
         </CardContent>
       </Card>
 
