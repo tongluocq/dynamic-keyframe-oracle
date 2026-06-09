@@ -492,6 +492,127 @@ function tier5Data(rng: () => number) {
 }
 
 /* ============================================================================
+ * Rationale Chain Badge — Cause → Mechanism → Observable Effect
+ * Visually shows which of the three causal links are validated by the active run.
+ *   Link A  Cause → Mechanism     : validated by Tier 1 (DAG recovery) + Tier 3 (fusion ablation)
+ *   Link B  Mechanism → Observable: validated by Tier 2 (wavelet/temporal) + Tier 4 (counterfactual)
+ *   End-to-end closure            : Tier 5 (closed-loop integration)
+ * ========================================================================= */
+const RationaleChain: React.FC<{ completed: Record<string, boolean> }> = ({ completed }) => {
+  const linkA = !!(completed.tier1 || completed.tier3);
+  const linkAFull = !!(completed.tier1 && completed.tier3);
+  const linkB = !!(completed.tier2 || completed.tier4);
+  const linkBFull = !!(completed.tier2 && completed.tier4);
+  const closure = !!completed.tier5;
+  const allValid = linkAFull && linkBFull && closure;
+
+  const nodeCls = (active: boolean) =>
+    `flex flex-col items-center justify-center w-28 h-20 rounded-lg border-2 text-center px-2 transition-colors ${
+      active
+        ? 'bg-emerald-50 border-emerald-500 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200'
+        : 'bg-muted/30 border-muted text-muted-foreground'
+    }`;
+
+  const linkCls = (state: 'none' | 'partial' | 'full') => {
+    if (state === 'full') return 'border-emerald-500 text-emerald-700 dark:text-emerald-300';
+    if (state === 'partial') return 'border-amber-400 text-amber-700 dark:text-amber-300';
+    return 'border-muted text-muted-foreground';
+  };
+  const arrowCls = (state: 'none' | 'partial' | 'full') => {
+    if (state === 'full') return 'text-emerald-600';
+    if (state === 'partial') return 'text-amber-500';
+    return 'text-muted-foreground/40';
+  };
+  const stateA: 'none'|'partial'|'full' = linkAFull ? 'full' : linkA ? 'partial' : 'none';
+  const stateB: 'none'|'partial'|'full' = linkBFull ? 'full' : linkB ? 'partial' : 'none';
+
+  return (
+    <div className="mt-3 p-3 border rounded-lg bg-background/50">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs font-semibold flex items-center gap-2">
+          <GitBranch className="h-3 w-3 text-primary" />
+          Rationale Chain — Cause → Mechanism → Observable Effect
+        </div>
+        <Badge variant={allValid ? 'default' : 'secondary'} className="text-[10px]">
+          {allValid ? 'Causality well-established' : closure ? 'Closure only' : (linkAFull || linkBFull) ? 'Partial validation' : 'Not yet validated'}
+        </Badge>
+      </div>
+
+      <div className="flex items-center justify-center gap-1 flex-wrap">
+        {/* Cause */}
+        <div className={nodeCls(linkA || linkB)}>
+          <span className="text-[10px] uppercase tracking-wider opacity-70">Cause</span>
+          <span className="text-xs font-semibold leading-tight">Intervention / Fault</span>
+          <span className="text-[9px] opacity-60">do(X = x′)</span>
+        </div>
+
+        {/* Link A */}
+        <div className={`flex flex-col items-center px-1 ${linkCls(stateA)}`}>
+          <span className="text-[9px] font-semibold whitespace-nowrap">Link A · T1+T3</span>
+          <svg width="56" height="14" viewBox="0 0 56 14" className={arrowCls(stateA)}>
+            <line x1="2" y1="7" x2="48" y2="7" stroke="currentColor" strokeWidth="2"
+                  strokeDasharray={stateA === 'partial' ? '4 3' : undefined} />
+            <polygon points="48,2 56,7 48,12" fill="currentColor" />
+          </svg>
+          <span className="text-[9px] opacity-80">structural</span>
+        </div>
+
+        {/* Mechanism */}
+        <div className={nodeCls(linkA && linkB)}>
+          <span className="text-[10px] uppercase tracking-wider opacity-70">Mechanism</span>
+          <span className="text-xs font-semibold leading-tight">CVGG Mediators</span>
+          <span className="text-[9px] opacity-60">M̂ = f_M(h(x))</span>
+        </div>
+
+        {/* Link B */}
+        <div className={`flex flex-col items-center px-1 ${linkCls(stateB)}`}>
+          <span className="text-[9px] font-semibold whitespace-nowrap">Link B · T2+T4</span>
+          <svg width="56" height="14" viewBox="0 0 56 14" className={arrowCls(stateB)}>
+            <line x1="2" y1="7" x2="48" y2="7" stroke="currentColor" strokeWidth="2"
+                  strokeDasharray={stateB === 'partial' ? '4 3' : undefined} />
+            <polygon points="48,2 56,7 48,12" fill="currentColor" />
+          </svg>
+          <span className="text-[9px] opacity-80">predictive</span>
+        </div>
+
+        {/* Observable Effect */}
+        <div className={nodeCls(linkB)}>
+          <span className="text-[10px] uppercase tracking-wider opacity-70">Observable</span>
+          <span className="text-xs font-semibold leading-tight">Sensor / Outcome</span>
+          <span className="text-[9px] opacity-60">Ŷ , scalograms</span>
+        </div>
+
+        {/* Closure loop */}
+        <div className={`flex flex-col items-center px-1 ${closure ? 'text-emerald-700 dark:text-emerald-300' : 'text-muted-foreground'}`}>
+          <span className="text-[9px] font-semibold whitespace-nowrap">Closure · T5</span>
+          <svg width="40" height="22" viewBox="0 0 40 22" className={closure ? 'text-emerald-600' : 'text-muted-foreground/40'}>
+            <path d="M2 18 Q 20 -4 38 18" stroke="currentColor" strokeWidth="2" fill="none"
+                  strokeDasharray={closure ? undefined : '3 3'} />
+            <polygon points="34,12 40,18 32,20" fill="currentColor" />
+          </svg>
+          <span className="text-[9px] opacity-80">end-to-end</span>
+        </div>
+      </div>
+
+      <div className="mt-2 grid grid-cols-3 gap-2 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1">
+          <span className={`inline-block w-2 h-2 rounded-full ${stateA==='full'?'bg-emerald-500':stateA==='partial'?'bg-amber-400':'bg-muted'}`} />
+          Link A: Tier 1 (DAG SHD/F1) {completed.tier1?'✓':'·'} &nbsp; Tier 3 (ablation ATE) {completed.tier3?'✓':'·'}
+        </div>
+        <div className="flex items-center gap-1">
+          <span className={`inline-block w-2 h-2 rounded-full ${stateB==='full'?'bg-emerald-500':stateB==='partial'?'bg-amber-400':'bg-muted'}`} />
+          Link B: Tier 2 (wavelet) {completed.tier2?'✓':'·'} &nbsp; Tier 4 (PEHE) {completed.tier4?'✓':'·'}
+        </div>
+        <div className="flex items-center gap-1">
+          <span className={`inline-block w-2 h-2 rounded-full ${closure?'bg-emerald-500':'bg-muted'}`} />
+          Closure: Tier 5 (FAR + latency) {completed.tier5?'✓':'·'}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================================
  * Component
  * ========================================================================= */
 const ExperimentPanel: React.FC = () => {
