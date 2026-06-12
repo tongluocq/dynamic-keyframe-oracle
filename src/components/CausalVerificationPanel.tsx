@@ -5,19 +5,20 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  AlertTriangle, 
-  BookOpen, 
+import {
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  BookOpen,
   FlaskConical,
   Shield,
   ChevronRight,
-  Play
+  Play,
+  Cpu
 } from 'lucide-react';
 import { SensorReading } from '@/types/industrial';
-import { 
-  CausalDatasetVerifier, 
+import {
+  CausalDatasetVerifier,
   CausalVerificationSuite,
   VerificationResult,
   PhysicsGrounding,
@@ -25,15 +26,71 @@ import {
   generateCausalEvidenceExamples,
   CausalEvidence
 } from '@/utils/causalDatasetVerification';
+import { InferenceResult } from '@/hooks/useEnhancedCVGG';
 
 interface CausalVerificationPanelProps {
   sensorData: SensorReading[];
   isRunning: boolean;
+  cvggResult?: InferenceResult | null;
+}
+
+interface CVGGCheck {
+  name: string;
+  passed: boolean;
+  value: string;
+  rationale: string;
+}
+
+function verifyCVGGResult(r: InferenceResult): { checks: CVGGCheck[]; passed: number; total: number } {
+  const { ATE, CATE, directEffect, indirectEffect } = r.causalEffects;
+  const decompErr = Math.abs((directEffect + indirectEffect) - ATE);
+  const isNormal = r.classification.className === 'Normal';
+  const conf = r.classification.confidence;
+  const checks: CVGGCheck[] = [
+    {
+      name: 'Non-trivial ATE',
+      passed: Math.abs(ATE) > 0.01,
+      value: `ATE = ${ATE.toFixed(4)}`,
+      rationale: 'A genuine causal model must produce a measurable do-effect, not zero.'
+    },
+    {
+      name: 'Mediation decomposition consistency (ATE ≈ Direct + Indirect)',
+      passed: decompErr < 0.15 * Math.max(Math.abs(ATE), 0.05),
+      value: `|Δ| = ${decompErr.toFixed(4)} (Direct=${directEffect.toFixed(3)}, Indirect=${indirectEffect.toFixed(3)})`,
+      rationale: 'Pearl mediation: total effect = direct + indirect; large gap → ill-formed pathway.'
+    },
+    {
+      name: 'CATE heterogeneity (CATE ≠ ATE)',
+      passed: Math.abs(CATE - ATE) > 1e-3,
+      value: `CATE − ATE = ${(CATE - ATE).toFixed(4)}`,
+      rationale: 'Cheat-sheet models output identical CATE/ATE; real conditioning shifts the estimate.'
+    },
+    {
+      name: 'Confidence in plausible range (not 1.0)',
+      passed: conf > 0.4 && conf < 0.999,
+      value: `confidence = ${(conf * 100).toFixed(1)}%`,
+      rationale: 'Exactly 1.0 indicates overfitting or label leakage; <0.4 indicates under-trained.'
+    },
+    {
+      name: 'Anomaly score consistent with class',
+      passed: isNormal ? r.anomalyScore < 0.5 : r.anomalyScore > 0.3,
+      value: `anomaly = ${r.anomalyScore.toFixed(3)}, class = ${r.classification.className}`,
+      rationale: 'Independent anomaly head must agree with classification — guards against label cheating.'
+    },
+    {
+      name: 'Real inference latency (> 0 ms)',
+      passed: r.processingTimeMs > 0,
+      value: `t = ${r.processingTimeMs.toFixed(1)} ms`,
+      rationale: 'Zero latency would imply a cached/pre-baked answer rather than live forward-pass.'
+    }
+  ];
+  return { checks, passed: checks.filter(c => c.passed).length, total: checks.length };
 }
 
 const CausalVerificationPanel: React.FC<CausalVerificationPanelProps> = ({
   sensorData,
-  isRunning
+  isRunning,
+  cvggResult
 }) => {
   const [verifier] = useState(() => new CausalDatasetVerifier());
   const [verificationResult, setVerificationResult] = useState<CausalVerificationSuite | null>(null);
