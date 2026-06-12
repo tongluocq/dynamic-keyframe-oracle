@@ -481,6 +481,7 @@ const IndustrialMonitor = () => {
         <CausalVerificationPanel
           sensorData={sensorData}
           isRunning={isRunning}
+          cvggResult={cvggInferenceResult}
         />
       )}
 

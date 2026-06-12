@@ -5,19 +5,20 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  AlertTriangle, 
-  BookOpen, 
+import {
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  BookOpen,
   FlaskConical,
   Shield,
   ChevronRight,
-  Play
+  Play,
+  Cpu
 } from 'lucide-react';
 import { SensorReading } from '@/types/industrial';
-import { 
-  CausalDatasetVerifier, 
+import {
+  CausalDatasetVerifier,
   CausalVerificationSuite,
   VerificationResult,
   PhysicsGrounding,
@@ -25,15 +26,71 @@ import {
   generateCausalEvidenceExamples,
   CausalEvidence
 } from '@/utils/causalDatasetVerification';
+import { InferenceResult } from '@/hooks/useEnhancedCVGG';
 
 interface CausalVerificationPanelProps {
   sensorData: SensorReading[];
   isRunning: boolean;
+  cvggResult?: InferenceResult | null;
+}
+
+interface CVGGCheck {
+  name: string;
+  passed: boolean;
+  value: string;
+  rationale: string;
+}
+
+function verifyCVGGResult(r: InferenceResult): { checks: CVGGCheck[]; passed: number; total: number } {
+  const { ATE, CATE, directEffect, indirectEffect } = r.causalEffects;
+  const decompErr = Math.abs((directEffect + indirectEffect) - ATE);
+  const isNormal = r.classification.className === 'Normal';
+  const conf = r.classification.confidence;
+  const checks: CVGGCheck[] = [
+    {
+      name: 'Non-trivial ATE',
+      passed: Math.abs(ATE) > 0.01,
+      value: `ATE = ${ATE.toFixed(4)}`,
+      rationale: 'A genuine causal model must produce a measurable do-effect, not zero.'
+    },
+    {
+      name: 'Mediation decomposition consistency (ATE ≈ Direct + Indirect)',
+      passed: decompErr < 0.15 * Math.max(Math.abs(ATE), 0.05),
+      value: `|Δ| = ${decompErr.toFixed(4)} (Direct=${directEffect.toFixed(3)}, Indirect=${indirectEffect.toFixed(3)})`,
+      rationale: 'Pearl mediation: total effect = direct + indirect; large gap → ill-formed pathway.'
+    },
+    {
+      name: 'CATE heterogeneity (CATE ≠ ATE)',
+      passed: Math.abs(CATE - ATE) > 1e-3,
+      value: `CATE − ATE = ${(CATE - ATE).toFixed(4)}`,
+      rationale: 'Cheat-sheet models output identical CATE/ATE; real conditioning shifts the estimate.'
+    },
+    {
+      name: 'Confidence in plausible range (not 1.0)',
+      passed: conf > 0.4 && conf < 0.999,
+      value: `confidence = ${(conf * 100).toFixed(1)}%`,
+      rationale: 'Exactly 1.0 indicates overfitting or label leakage; <0.4 indicates under-trained.'
+    },
+    {
+      name: 'Anomaly score consistent with class',
+      passed: isNormal ? r.anomalyScore < 0.5 : r.anomalyScore > 0.3,
+      value: `anomaly = ${r.anomalyScore.toFixed(3)}, class = ${r.classification.className}`,
+      rationale: 'Independent anomaly head must agree with classification — guards against label cheating.'
+    },
+    {
+      name: 'Real inference latency (> 0 ms)',
+      passed: r.processingTimeMs > 0,
+      value: `t = ${r.processingTimeMs.toFixed(1)} ms`,
+      rationale: 'Zero latency would imply a cached/pre-baked answer rather than live forward-pass.'
+    }
+  ];
+  return { checks, passed: checks.filter(c => c.passed).length, total: checks.length };
 }
 
 const CausalVerificationPanel: React.FC<CausalVerificationPanelProps> = ({
   sensorData,
-  isRunning
+  isRunning,
+  cvggResult
 }) => {
   const [verifier] = useState(() => new CausalDatasetVerifier());
   const [verificationResult, setVerificationResult] = useState<CausalVerificationSuite | null>(null);
@@ -137,10 +194,14 @@ const CausalVerificationPanel: React.FC<CausalVerificationPanelProps> = ({
       </Card>
 
       <Tabs defaultValue="verification" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="verification">
             <FlaskConical className="h-4 w-4 mr-1" />
-            Tests
+            Data Tests
+          </TabsTrigger>
+          <TabsTrigger value="cvgg">
+            <Cpu className="h-4 w-4 mr-1" />
+            CVGG {cvggResult ? <span className="ml-1 h-1.5 w-1.5 rounded-full bg-green-500 inline-block" /> : <span className="ml-1 h-1.5 w-1.5 rounded-full bg-muted-foreground/40 inline-block" />}
           </TabsTrigger>
           <TabsTrigger value="physics">
             <BookOpen className="h-4 w-4 mr-1" />
@@ -151,6 +212,82 @@ const CausalVerificationPanel: React.FC<CausalVerificationPanelProps> = ({
             Evidence
           </TabsTrigger>
         </TabsList>
+
+        {/* CVGG Results Verification Tab */}
+        <TabsContent value="cvgg" className="mt-4">
+          {cvggResult ? (() => {
+            const { checks, passed, total } = verifyCVGGResult(cvggResult);
+            const allPass = passed === total;
+            return (
+              <div className="space-y-4">
+                <Card className={allPass ? "border-green-500/50 bg-green-500/5" : "border-yellow-500/50 bg-yellow-500/5"}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium flex items-center gap-2">
+                        <Cpu className="h-4 w-4 text-primary" />
+                        CVGG Inference Verification
+                      </span>
+                      <span className="text-lg font-bold">{passed}/{total}</span>
+                    </div>
+                    <Progress value={(passed / total) * 100} className="h-2 mb-2" />
+                    <p className="text-xs text-muted-foreground">
+                      Verifies that the last EnhancedCVGG inference produced internally-consistent,
+                      non-trivial causal outputs (ATE, mediation decomposition, CATE heterogeneity,
+                      confidence calibration, anomaly–class agreement, real forward-pass latency).
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                      <Badge variant="outline">Class: {cvggResult.classification.className}</Badge>
+                      <Badge variant="outline">ATE: {cvggResult.causalEffects.ATE.toFixed(3)}</Badge>
+                      <Badge variant="outline">CATE: {cvggResult.causalEffects.CATE.toFixed(3)}</Badge>
+                      <Badge variant="outline">Latency: {cvggResult.processingTimeMs.toFixed(1)} ms</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <ScrollArea className="h-[380px]">
+                  <div className="space-y-3">
+                    {checks.map((c, i) => (
+                      <Card key={i} className={c.passed ? "border-green-500/30" : "border-red-500/30"}>
+                        <CardContent className="pt-4">
+                          <div className="flex items-start gap-3">
+                            {c.passed
+                              ? <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                              : <XCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-medium text-sm">{c.name}</h4>
+                                <Badge variant={c.passed ? "default" : "destructive"} className="text-xs">
+                                  {c.passed ? "PASSED" : "FAILED"}
+                                </Badge>
+                              </div>
+                              <div className="mt-2 p-2 bg-muted/50 rounded text-xs font-mono">{c.value}</div>
+                              <p className="text-xs text-muted-foreground mt-2">{c.rationale}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            );
+          })() : (
+            <Card className="bg-muted/30">
+              <CardContent className="pt-6 text-center space-y-3">
+                <Cpu className="h-12 w-12 mx-auto text-muted-foreground" />
+                <p className="text-sm font-medium">No CVGG inference result yet</p>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Switch to the <span className="font-semibold text-foreground">CVGG</span> tab, then run
+                  <span className="font-semibold text-foreground"> Initialize → Train → Inference</span>.
+                  When CVGG completes a forward pass, its <span className="font-mono">{`{ATE, CATE, direct, indirect, anomalyScore}`}</span> output
+                  becomes available here and this tab will automatically run six structural checks against it
+                  (alongside the data-level tests in the <span className="font-semibold text-foreground">Data Tests</span> tab).
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
 
         {/* Verification Tests Tab */}
         <TabsContent value="verification" className="mt-4">
