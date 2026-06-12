@@ -190,10 +190,10 @@ const CausalVerificationPanel: React.FC<CausalVerificationPanelProps> = ({
             <Card className="bg-muted/30">
               <CardContent className="pt-6 text-center">
                 <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  {dataCollected < 50 
-                    ? `Collecting data... ${dataCollected}/50 samples minimum required`
-                    : "Click 'Run Verification Suite' to test dataset realism"
+                <p className="text-muted-foreground text-sm">
+                  {dataCollected < 50
+                    ? <>Streaming from the <span className="font-medium text-foreground">live in-app simulator</span> — {dataCollected}/50 samples buffered. {isRunning ? 'Simulation is running.' : 'Start the monitor to continue collecting.'}</>
+                    : "Click 'Run Verification Suite' to test dataset realism on the live-streamed samples."
                   }
                 </p>
                 {dataCollected < 50 && (
