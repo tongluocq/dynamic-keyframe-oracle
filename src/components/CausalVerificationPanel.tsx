@@ -70,26 +70,66 @@ const CausalVerificationPanel: React.FC<CausalVerificationPanelProps> = ({
               Causal Dataset Verification
             </CardTitle>
             <Badge variant={verificationResult?.passedTests === verificationResult?.totalTests ? "default" : "secondary"}>
-              {dataCollected} samples collected
+              {dataCollected} live samples streamed
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            This panel provides evidence to refute the criticism that the IMSCHM causality dataset 
+          <p className="text-sm text-muted-foreground mb-3">
+            This panel provides evidence to refute the criticism that the IMSCHM causality dataset
             is a "cheat-sheet trick". The verification suite tests for realistic causal properties.
           </p>
-          <Button 
-            onClick={runVerification} 
+
+          {/* Sample-source explanation */}
+          <div className="mb-4 p-3 rounded-md border border-primary/20 bg-background/60 text-xs space-y-2">
+            <div className="flex items-center gap-2 font-semibold text-primary">
+              <BookOpen className="h-3.5 w-3.5" />
+              Where do these samples come from?
+            </div>
+            <p className="text-muted-foreground leading-relaxed">
+              Samples are <span className="font-medium text-foreground">streamed live from the running
+              project simulation</span> (physics + failure-injection pipeline in this app), <span className="font-medium">not</span> from
+              an uploaded file. Each tick of the monitor pushes one multi-sensor reading
+              (<code className="px-1 rounded bg-muted">SensorReading[]</code>) into the verifier's rolling buffer.
+            </p>
+            <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+              <li><span className="text-foreground font-medium">Source:</span> in-app simulator (Simulate → Inject Fault stages)</li>
+              <li><span className="text-foreground font-medium">Rate:</span> 1 sample per sensor update tick</li>
+              <li><span className="text-foreground font-medium">Minimum:</span> 50 samples needed to compute lag-correlations &amp; partial-correlation statistics reliably</li>
+              <li><span className="text-foreground font-medium">Status:</span> {isRunning
+                ? <span className="text-green-500 font-medium">● Live — collecting from active simulation</span>
+                : <span className="text-amber-500 font-medium">● Paused — start the monitor to collect more</span>}</li>
+            </ul>
+            <p className="text-[11px] text-muted-foreground/80 italic">
+              Uploaded CSV/JSON datasets are not currently wired into this verifier; this keeps verification
+              tied to the same ground-truth physics the rest of the pipeline uses.
+            </p>
+          </div>
+
+          <div className="mb-2 flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Buffer fill</span>
+            <span className="font-mono">{Math.min(dataCollected, 50)}/50 min · {dataCollected} total</span>
+          </div>
+          <Progress value={Math.min(100, (dataCollected / 50) * 100)} className="h-1.5 mb-3" />
+
+          <Button
+            onClick={runVerification}
             disabled={isVerifying || dataCollected < 50}
             className="w-full"
           >
             {isVerifying ? (
               <>Running Verification...</>
+            ) : dataCollected < 50 ? (
+              <>
+                <Play className="h-4 w-4 mr-2" />
+                {isRunning
+                  ? `Collecting from live simulation… need ${50 - dataCollected} more`
+                  : `Start the monitor to collect ${50 - dataCollected} more samples`}
+              </>
             ) : (
               <>
                 <Play className="h-4 w-4 mr-2" />
-                Run Verification Suite ({dataCollected < 50 ? `Need ${50 - dataCollected} more samples` : 'Ready'})
+                Run Verification Suite on {dataCollected} live samples
               </>
             )}
           </Button>
@@ -150,10 +190,10 @@ const CausalVerificationPanel: React.FC<CausalVerificationPanelProps> = ({
             <Card className="bg-muted/30">
               <CardContent className="pt-6 text-center">
                 <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  {dataCollected < 50 
-                    ? `Collecting data... ${dataCollected}/50 samples minimum required`
-                    : "Click 'Run Verification Suite' to test dataset realism"
+                <p className="text-muted-foreground text-sm">
+                  {dataCollected < 50
+                    ? <>Streaming from the <span className="font-medium text-foreground">live in-app simulator</span> — {dataCollected}/50 samples buffered. {isRunning ? 'Simulation is running.' : 'Start the monitor to continue collecting.'}</>
+                    : "Click 'Run Verification Suite' to test dataset realism on the live-streamed samples."
                   }
                 </p>
                 {dataCollected < 50 && (
