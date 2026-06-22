@@ -746,33 +746,70 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
           </TabsContent>
 
 
-          {/* 5. Counterfactual Sweep */}
           <TabsContent value="counterfactual" className="mt-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-medium">Counterfactual Sweep</h4>
                 <Badge variant="outline">{counterfactualResults.length} points</Badge>
               </div>
-              
-              {/* Pressure Range Control */}
-              <div className="space-y-2">
-                <Label className="text-xs">Pressure Range (bar)</Label>
-                <div className="flex items-center gap-4">
-                  <span className="text-xs w-12">{pressureRange[0]}</span>
-                  <Slider
-                    value={pressureRange}
-                    onValueChange={(v) => setPressureRange(v as [number, number])}
-                    min={0}
-                    max={300}
-                    step={10}
-                    className="flex-1"
-                  />
-                  <span className="text-xs w-12">{pressureRange[1]}</span>
+
+              {/* Data Source panel — clarifies what is system-frozen vs manual */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                <div className="rounded-md border bg-muted/30 p-3 space-y-1">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <Lock className="h-3 w-3" />
+                    <span>System · Frozen for this sweep</span>
+                    <Badge variant="secondary" className="ml-auto text-[10px]">auto</Badge>
+                  </div>
+                  {sweepMeta ? (
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-muted-foreground font-mono">
+                      <span>baseline P:</span><span>{sweepMeta.baselinePressure.toFixed(1)} bar</span>
+                      <span>system T:</span><span>{sweepMeta.systemTemp.toFixed(1)} °C</span>
+                      <span>buffer:</span><span>{sweepMeta.bufferLength} samples</span>
+                      <span>faults @snap:</span><span>{sweepMeta.activeFailures}</span>
+                      <span>simulator:</span><span>{sweepMeta.isRunning ? 'live' : 'paused'}</span>
+                      <span>snapshot:</span><span>{new Date(sweepMeta.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                      No snapshot yet. Click "Run" to freeze the current live-simulator state for this experiment.
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <Hand className="h-3 w-3" />
+                    <span>Manual · You control these</span>
+                    <Badge variant="outline" className="ml-auto text-[10px]">manual</Badge>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px]">Pressure Range (bar)</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] w-8 font-mono">{pressureRange[0]}</span>
+                      <Slider
+                        value={pressureRange}
+                        onValueChange={(v) => setPressureRange(v as [number, number])}
+                        min={0} max={300} step={10}
+                        className="flex-1"
+                      />
+                      <span className="text-[11px] w-8 font-mono">{pressureRange[1]}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-[11px] flex-1">MC replicates per point</Label>
+                    <Input
+                      type="number"
+                      min={1} max={20}
+                      value={replicates}
+                      onChange={(e) => setReplicates(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                      className="h-7 w-16 text-xs"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <Button 
-                onClick={handleCounterfactualSweep} 
+              <Button
+                onClick={handleCounterfactualSweep}
                 disabled={isRunningCounterfactual || !onCounterfactualSweep}
                 size="sm"
               >
@@ -785,39 +822,70 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
               </Button>
 
               {counterfactualResults.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={counterfactualResults}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis 
-                      dataKey="pressure" 
-                      label={{ value: 'Pressure Magnitude (bar)', position: 'insideBottom', offset: -5 }}
-                      className="text-xs fill-muted-foreground"
-                    />
-                    <YAxis 
-                      label={{ value: 'Estimated Causal Effect', angle: -90, position: 'insideLeft' }}
-                      className="text-xs fill-muted-foreground"
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--background))', 
-                        border: '1px solid hsl(var(--border))' 
-                      }}
-                      formatter={(value: number) => [value.toFixed(4), 'Causal Effect']}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="effect" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--primary))', r: 3 }}
-                    />
-                    <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
-                  </LineChart>
-                </ResponsiveContainer>
+                <>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <ComposedChart data={counterfactualResults}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis
+                        dataKey="pressure"
+                        label={{ value: 'Pressure Magnitude (bar) — do(P=p)', position: 'insideBottom', offset: -5 }}
+                        className="text-xs fill-muted-foreground"
+                        tickFormatter={(v: number) => v.toFixed(0)}
+                      />
+                      <YAxis
+                        label={{ value: 'Estimated Causal Effect', angle: -90, position: 'insideLeft' }}
+                        className="text-xs fill-muted-foreground"
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--background))',
+                          border: '1px solid hsl(var(--border))'
+                        }}
+                        formatter={(value: number, name: string) => [value.toFixed(4), name]}
+                      />
+                      {/* Confidence band: stack lower (transparent) + (upper-lower) shaded */}
+                      <Area
+                        type="monotone"
+                        dataKey="lower"
+                        stackId="band"
+                        stroke="none"
+                        fill="transparent"
+                        isAnimationActive={false}
+                        legendType="none"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey={(d: SweepPoint) => d.upper - d.lower}
+                        stackId="band"
+                        stroke="none"
+                        fill="hsl(var(--primary))"
+                        fillOpacity={0.18}
+                        name="±1σ band"
+                        isAnimationActive={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="effect"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                        dot={{ fill: 'hsl(var(--primary))', r: 3 }}
+                        name="mean effect"
+                        isAnimationActive={false}
+                      />
+                      <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Shaded band = ±1σ over {sweepMeta?.replicates ?? replicates} Monte-Carlo replicates on the frozen
+                    background snapshot above. The background is held constant within one sweep, so the curve isolates
+                    do(pressure) only. Click <span className="font-medium">Run</span> again to refresh the snapshot from
+                    the current live simulator — useful when running different experiments.
+                  </p>
+                </>
               ) : (
-                <div className="h-[250px] flex items-center justify-center text-muted-foreground border rounded-lg">
-                  {onCounterfactualSweep 
-                    ? 'Click "Run Counterfactual Sweep" to generate data'
+                <div className="h-[250px] flex items-center justify-center text-muted-foreground border rounded-lg text-sm">
+                  {onCounterfactualSweep
+                    ? 'Click "Run Counterfactual Sweep" to freeze the current simulator state and generate a stable curve.'
                     : 'Counterfactual sweep requires Enhanced CVGG model'}
                 </div>
               )}
