@@ -262,56 +262,88 @@ const IndustrialMonitor = () => {
     });
   }, [currentState, isRunning, sensorData.length, activeFailures.length]);
 
-  // Counterfactual sweep handler
-  const handleCounterfactualSweep = useCallback(async (pressureValues: number[]): Promise<{ pressure: number; effect: number }[]> => {
+  // Counterfactual sweep handler — Plan 2: frozen background + Monte-Carlo replicates
+  // The sweep snapshots the live simulator state ONCE at click time, then varies only
+  // the do(pressure) intervention. This isolates the causal effect from drift in
+  // the streaming sensor buffer and yields a stable mean curve with a ±1σ band.
+  const handleCounterfactualSweep = useCallback(async (
+    pressureValues: number[],
+    opts?: { replicates?: number }
+  ): Promise<{
+    points: { pressure: number; effect: number; std: number; lower: number; upper: number }[];
+    meta: {
+      timestamp: number;
+      bufferLength: number;
+      baselinePressure: number;
+      systemTemp: number;
+      isRunning: boolean;
+      activeFailures: number;
+      replicates: number;
+    };
+  }> => {
     if (!cvggHook.modelState.isBuilt) {
       await cvggHook.initializeModel();
     }
 
-    const results: { pressure: number; effect: number }[] = [];
-    
+    const replicates = Math.max(1, Math.min(20, opts?.replicates ?? 5));
+
+    // FREEZE background: deep-copy buffers + scalar state at sweep start.
+    const frozenVibX = sensorHistory.vibrationX.length > 0 ? [...sensorHistory.vibrationX] : [0];
+    const frozenVibY = sensorHistory.vibrationY.length > 0 ? [...sensorHistory.vibrationY] : [0];
+    const frozenVibZ = sensorHistory.vibrationZ.length > 0 ? [...sensorHistory.vibrationZ] : [0];
+    const frozenTemp = currentState ? currentState.thermal.system_temp : 25;
+    const frozenBaselinePressure = currentState ? currentState.hydraulic.pressure : 150;
+
+    const meta = {
+      timestamp: Date.now(),
+      bufferLength: frozenVibX.length,
+      baselinePressure: frozenBaselinePressure,
+      systemTemp: frozenTemp,
+      isRunning,
+      activeFailures: activeFailures.length,
+      replicates,
+    };
+
+    const points: { pressure: number; effect: number; std: number; lower: number; upper: number }[] = [];
+
     for (const pressure of pressureValues) {
-      // Generate signals with varied pressure
-      const cwruSignals = cvggHook.generateCWRUSignals(
-        sensorHistory.vibrationX.length > 0 ? sensorHistory.vibrationX : [0],
-        sensorHistory.vibrationY.length > 0 ? sensorHistory.vibrationY : [0],
-        sensorHistory.vibrationZ.length > 0 ? sensorHistory.vibrationZ : [0]
-      );
-
-      const environmentalSignals = cvggHook.generateEnvironmentalSignals(
-        currentState ? [currentState.thermal.system_temp] : [25],
-        [pressure], // Varied pressure
-        [50]
-      );
-
-      const causalMetadata = cvggHook.createCausalMetadata(
-        [{
-          amplitude: pressure / 200, // Normalize to 0-1
-          interventionType: 'pressure_spike',
-          startTime: 0,
-          endTime: 1,
-          slope: 0.5
-        }],
-        currentState?.thermal.system_temp || 25,
-        0.5
-      );
-
-      const result = await cvggHook.runInference({
-        cwruSignals,
-        environmentalSignals,
-        causalMetadata
-      });
-
-      if (result) {
-        results.push({
-          pressure,
-          effect: result.causalEffects.ATE
-        });
+      const effects: number[] = [];
+      for (let r = 0; r < replicates; r++) {
+        const cwruSignals = cvggHook.generateCWRUSignals(frozenVibX, frozenVibY, frozenVibZ);
+        const environmentalSignals = cvggHook.generateEnvironmentalSignals(
+          [frozenTemp],
+          [pressure],
+          [50]
+        );
+        const causalMetadata = cvggHook.createCausalMetadata(
+          [{
+            amplitude: pressure / 200,
+            interventionType: 'pressure_spike',
+            startTime: 0,
+            endTime: 1,
+            slope: 0.5
+          }],
+          frozenTemp,
+          0.5
+        );
+        const result = await cvggHook.runInference({ cwruSignals, environmentalSignals, causalMetadata });
+        if (result) effects.push(result.causalEffects.ATE);
       }
+      if (effects.length === 0) continue;
+      const mean = effects.reduce((a, b) => a + b, 0) / effects.length;
+      const variance = effects.reduce((a, b) => a + (b - mean) ** 2, 0) / effects.length;
+      const std = Math.sqrt(variance);
+      points.push({
+        pressure,
+        effect: mean,
+        std,
+        lower: mean - std,
+        upper: mean + std,
+      });
     }
 
-    return results;
-  }, [cvggHook, sensorHistory, currentState]);
+    return { points, meta };
+  }, [cvggHook, sensorHistory, currentState, isRunning, activeFailures.length]);
 
   const getDomainIcon = (domain: string) => {
     switch (domain) {
