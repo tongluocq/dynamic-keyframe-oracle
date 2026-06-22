@@ -126,8 +126,10 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState('timeseries');
   const [isRunningCounterfactual, setIsRunningCounterfactual] = useState(false);
-  const [counterfactualResults, setCounterfactualResults] = useState<{ pressure: number; effect: number }[]>([]);
+  const [counterfactualResults, setCounterfactualResults] = useState<SweepPoint[]>([]);
+  const [sweepMeta, setSweepMeta] = useState<SweepMeta | null>(null);
   const [pressureRange, setPressureRange] = useState<[number, number]>([0, 200]);
+  const [replicates, setReplicates] = useState<number>(5);
 
   // 1. Causal Effect Time Series Data
   const causalEffectTimeSeries = useMemo((): CausalEffectTimePoint[] => {
