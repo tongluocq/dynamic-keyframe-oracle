@@ -401,8 +401,9 @@ const CausalVisualizationPanel: React.FC<CausalVisualizationPanelProps> = ({
       for (let i = 0; i <= numPoints; i++) {
         pressureValues.push(pressureRange[0] + (pressureRange[1] - pressureRange[0]) * (i / numPoints));
       }
-      const results = await onCounterfactualSweep(pressureValues);
-      setCounterfactualResults(results);
+      const { points, meta } = await onCounterfactualSweep(pressureValues, { replicates });
+      setCounterfactualResults(points);
+      setSweepMeta(meta);
     } catch (error) {
       console.error('Counterfactual sweep failed:', error);
     } finally {
