@@ -31,7 +31,9 @@ import {
   ScatterChart,
   Scatter,
   Cell,
-  ReferenceLine
+  ReferenceLine,
+  ComposedChart,
+  Area
 } from 'recharts';
 import {
   TrendingUp,
@@ -40,15 +42,40 @@ import {
   GitBranch,
   Sliders,
   Play,
-  Loader2
+  Loader2,
+  Database,
+  Lock,
+  Hand
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { InferenceResult } from '@/hooks/useEnhancedCVGG';
 import { CausalRelation } from '@/types/industrial';
+
+export interface SweepPoint {
+  pressure: number;
+  effect: number;
+  std: number;
+  lower: number;
+  upper: number;
+}
+
+export interface SweepMeta {
+  timestamp: number;
+  bufferLength: number;
+  baselinePressure: number;
+  systemTemp: number;
+  isRunning: boolean;
+  activeFailures: number;
+  replicates: number;
+}
 
 interface CausalVisualizationPanelProps {
   inferenceHistory: InferenceResult[];
   causalGraph: Map<string, CausalRelation[]>;
-  onCounterfactualSweep?: (pressureValues: number[]) => Promise<{ pressure: number; effect: number }[]>;
+  onCounterfactualSweep?: (
+    pressureValues: number[],
+    opts?: { replicates?: number }
+  ) => Promise<{ points: SweepPoint[]; meta: SweepMeta }>;
 }
 
 interface CausalEffectTimePoint {
