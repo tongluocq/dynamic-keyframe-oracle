@@ -383,6 +383,19 @@ const IndustrialMonitor = () => {
               </div>
             )}
           </div>
+          {/* Data Source indicator — clarifies simulator vs. manual inputs */}
+          <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
+            <Badge variant={isRunning ? 'default' : 'outline'} className="font-mono">
+              <Database className="h-3 w-3 mr-1" />
+              Data: in-app simulator (system)
+            </Badge>
+            <Badge variant="outline" className="font-mono">
+              {isRunning ? '● Live' : '○ Paused'} • buffer {sensorHistory.vibrationX.length}/1024
+            </Badge>
+            <Badge variant={activeFailures.length > 0 ? 'secondary' : 'outline'} className="font-mono">
+              Manual faults: {activeFailures.length}
+            </Badge>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
           {/* Language Selector */}
