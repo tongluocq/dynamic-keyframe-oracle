@@ -12,6 +12,7 @@ import { FailureSimulator } from '@/utils/failureSimulator';
 import { CausalDiscovery } from '@/utils/causalInference';
 import { SystemState, SensorReading, CausalRelation } from '@/types/industrial';
 import EnhancedCVGGPanel from '@/components/EnhancedCVGGPanel';
+import RealDataUploadPanel from '@/components/RealDataUploadPanel';
 import CausalVisualizationPanel from '@/components/CausalVisualizationPanel';
 import PrescriptiveAIPanel from '@/components/PrescriptiveAIPanel';
 import CounterfactualQueryPanel from '@/components/CounterfactualQueryPanel';
@@ -483,6 +484,9 @@ const IndustrialMonitor = () => {
         cvggResult={cvggInferenceResult}
         modelMode={modelMode}
       />
+
+      {/* Real Data Upload Panel - always available */}
+      <RealDataUploadPanel />
 
       {/* EnhancedCVGG Panel - Show when CVGG mode is active */}
       {modelMode === 'enhanced-cvgg' && (
