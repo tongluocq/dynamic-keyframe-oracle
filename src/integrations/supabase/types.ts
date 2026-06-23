@@ -14,7 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cwru_samples: {
+        Row: {
+          created_at: string
+          fault_class: string
+          fault_size_in: number | null
+          filename: string
+          id: string
+          load_hp: number | null
+          notes: string | null
+          row_count: number | null
+          rpm: number | null
+          sample_rate_hz: number | null
+          size_bytes: number | null
+          source: string | null
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          fault_class: string
+          fault_size_in?: number | null
+          filename: string
+          id?: string
+          load_hp?: number | null
+          notes?: string | null
+          row_count?: number | null
+          rpm?: number | null
+          sample_rate_hz?: number | null
+          size_bytes?: number | null
+          source?: string | null
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          fault_class?: string
+          fault_size_in?: number | null
+          filename?: string
+          id?: string
+          load_hp?: number | null
+          notes?: string | null
+          row_count?: number | null
+          rpm?: number | null
+          sample_rate_hz?: number | null
+          size_bytes?: number | null
+          source?: string | null
+          storage_path?: string
+        }
+        Relationships: []
+      }
+      rock_samples: {
+        Row: {
+          created_at: string
+          fault_class: string
+          filename: string
+          id: string
+          notes: string | null
+          size_bytes: number | null
+          source: string | null
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          fault_class: string
+          filename: string
+          id?: string
+          notes?: string | null
+          size_bytes?: number | null
+          source?: string | null
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          fault_class?: string
+          filename?: string
+          id?: string
+          notes?: string | null
+          size_bytes?: number | null
+          source?: string | null
+          storage_path?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
