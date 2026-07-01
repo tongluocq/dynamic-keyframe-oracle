@@ -27,8 +27,9 @@ import {
 import {
   FlaskConical, Play, Download, FileText, FileJson, Table as TableIcon,
   CheckCircle2, AlertTriangle, Activity, Layers, Image as ImageIcon, GitBranch, Gauge,
-  ImageDown,
+  ImageDown, BookOpen,
 } from 'lucide-react';
+import { buildHandbookHTML, buildHandbookMarkdown } from '@/utils/experimentHandbookReport';
 
 /* ============================================================================
  * SVG Figure Builders — produce standalone <svg> strings (downloadable + inline)
