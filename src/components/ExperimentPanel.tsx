@@ -960,6 +960,12 @@ Collectively, these results provide evidence across Pearl's three rungs — asso
               <Button onClick={downloadFiguresSVG} variant="outline" size="sm">
                 <ImageDown className="h-3 w-3 mr-1" /> SVG Figures
               </Button>
+              <Button onClick={downloadHandbookHTML} variant="secondary" size="sm" title="Entry-level handbook covering the full IMSCHM + CVGG project — theory, architecture, engines, experiments, glossary.">
+                <BookOpen className="h-3 w-3 mr-1" /> Handbook (HTML)
+              </Button>
+              <Button onClick={downloadHandbookMD} variant="secondary" size="sm">
+                <BookOpen className="h-3 w-3 mr-1" /> Handbook (MD)
+              </Button>
             </div>
           </div>
         </CardHeader>
