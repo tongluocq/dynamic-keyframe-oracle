@@ -1003,6 +1003,83 @@ Collectively, these results provide evidence across Pearl's three rungs — asso
         </CardContent>
       </Card>
 
+      {/* Entry-level Project Overview & Theory — surfaced above the tier tabs */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-primary" />
+            Project Overview & Theory (Entry-Level)
+          </CardTitle>
+          <CardDescription>
+            A short read for newcomers. Full write-up is downloadable via the <em>Handbook</em> buttons above.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-sm space-y-3 leading-relaxed">
+          <p>
+            <strong>IMSCHM</strong> watches a Tunnel Boring Machine and answers three question types:
+            <em> what is happening</em> (association), <em>what if I change something</em> (intervention),
+            and <em>what would have happened</em> (counterfactual). The inference engine at the middle is
+            <strong> CVGG</strong> — a dual-VGG causal network with a DAG-consistency loss
+            <code className="mx-1 px-1 rounded bg-muted">|ATE − (DE + IE)|²</code>
+            that forces its four causal outputs to respect the underlying graph structure.
+          </p>
+          <div className="grid md:grid-cols-3 gap-2 text-xs">
+            <div className="p-2 rounded border bg-muted/30">
+              <div className="font-semibold text-primary mb-1">Rung 1 — Association</div>
+              <code>P(Y | X)</code> — patterns already seen in the sensor stream.
+            </div>
+            <div className="p-2 rounded border bg-muted/30">
+              <div className="font-semibold text-primary mb-1">Rung 2 — Intervention</div>
+              <code>P(Y | do(X = x))</code> — effect of forcibly setting a control.
+            </div>
+            <div className="p-2 rounded border bg-muted/30">
+              <div className="font-semibold text-primary mb-1">Rung 3 — Counterfactual</div>
+              <code>P(Y_x* | X = x, Y = y)</code> — what would have happened instead.
+            </div>
+          </div>
+          <div className="text-xs">
+            <div className="font-semibold mb-1">Pipeline (8 steps):</div>
+            <div className="p-2 rounded bg-slate-900 text-slate-100 font-mono text-[11px] overflow-x-auto">
+              Physics Sim → Failure Inject → Discovery (PC / Granger / TE) → Neural Encoder →
+              <span className="text-emerald-400"> CVGG (ATE, CATE, DE, IE) </span>
+              → do-Calculus → Counterfactual SCM → Prescriptive AI → KG / UI
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-3 text-xs">
+            <div>
+              <div className="font-semibold mb-1">What each engine does</div>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li><strong>Discovery</strong> — PC + Granger + Transfer Entropy consensus vote → DAG.</li>
+                <li><strong>CVGG</strong> — dual-VGG (image + scalogram) + metadata → calibrated ATE/CATE/DE/IE.</li>
+                <li><strong>do-Calculus</strong> — backdoor / frontdoor adjustment for interventions.</li>
+                <li><strong>Counterfactual SCM</strong> — abduction → action → prediction.</li>
+                <li><strong>Prescriptive AI</strong> — rank actions by causal impact under constraints.</li>
+                <li><strong>Knowledge Graph</strong> — FMEA ontology fused with the learned causal graph.</li>
+              </ul>
+            </div>
+            <div>
+              <div className="font-semibold mb-1">How the 5 tiers cover Pearl's hierarchy</div>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li><strong>Tier 1</strong> — DAG recovery (L1 structural).</li>
+                <li><strong>Tier 2</strong> — wavelet stability (L1 temporal).</li>
+                <li><strong>Tier 3</strong> — modality ablation (L2 fusion).</li>
+                <li><strong>Tier 4</strong> — counterfactual PEHE (L3).</li>
+                <li><strong>Tier 5</strong> — end-to-end latency + FAR (deployability).</li>
+              </ul>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Key glossary: <strong>ATE</strong> = average treatment effect ·
+            <strong> CATE</strong> = conditional ATE ·
+            <strong> DE/IE</strong> = direct/indirect effect ·
+            <strong> SHD</strong> = structural Hamming distance ·
+            <strong> PEHE</strong> = counterfactual error ·
+            <strong> FAR</strong> = false-alarm rate.
+          </p>
+        </CardContent>
+      </Card>
+
+
       <Tabs defaultValue="tier1">
         <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="tier1">1. Baseline</TabsTrigger>
