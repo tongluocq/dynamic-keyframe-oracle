@@ -885,6 +885,19 @@ Collectively, these results provide evidence across Pearl's three rungs — asso
     });
   };
 
+  const downloadHandbookHTML = () => {
+    const html = buildHandbookHTML({
+      seed, results, figures: buildAllFigures(results), narrative: TIER_NARRATIVE,
+    });
+    downloadBlob(`imschm_experiment_handbook_seed${seed}.html`, html, 'text/html');
+  };
+  const downloadHandbookMD = () => {
+    const md = buildHandbookMarkdown({
+      seed, results, figures: buildAllFigures(results), narrative: TIER_NARRATIVE,
+    });
+    downloadBlob(`imschm_experiment_handbook_seed${seed}.md`, md, 'text/markdown');
+  };
+
   /* ----- Render helpers ----- */
   const t1 = results.tier1.algorithms;
   const algColors = { PC: '#94a3b8', Granger: '#0ea5e9', CVGG: '#0d7a5f' } as const;
