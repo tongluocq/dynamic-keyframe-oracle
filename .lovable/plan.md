@@ -1,61 +1,81 @@
-## Deliverable
+# Audit result & proposed enhancement
 
-Create a single new markdown document at the repo root:
+## What the Experiment Panel currently covers
 
-- **`KG_APPROACHES_COMPARISON.md`**
+`src/components/ExperimentPanel.tsx` (1,335 lines) provides:
 
-No code changes, no dependencies, no UI changes. Documentation only.
+- **5 validation tiers** with UI cards, charts, and per-tier narrative (Design / Purpose / Theory / Algorithms):
+  1. Algorithmic Baseline (SHD, F1, ROC — PC vs Granger vs CVGG)
+  2. Multi-Scale Temporal (wavelet stability)
+  3. Environmental Fusion (modality ablation)
+  4. Counterfactual (PEHE, trajectory RMSE)
+  5. Closed-Loop (latency, FAR, confusion matrix)
+- **Rationale Chain** badge (Cause → Mechanism → Observable) tied to tier completion
+- **Downloads**: HTML report, CSV (multi-section, chart-reproducible), JSON, SVG figure bundle
 
-## Structure of the document
+## Gaps against your request
 
-1. **Purpose & scope**
-   - What "KG" means here (typed nodes + typed edges + provenance).
-   - Explicitly LLM-free — same constraint as the reference note.
-   - Scope note: covers Stage-2-equivalent structures in IMSCHM (FMEA taxonomy + causal graph + CVGG DAG loss).
+The panel is **validation-focused**, not a full project write-up. Missing from both the UI and the downloadable HTML:
 
-2. **Recap of the 6 non-LLM KG families** (condensed, 3–4 lines each, with the same minimal math already provided):
-   1.1 Ontology-anchored mapping
-   1.2 Statistical association graphs
-   1.3 Causal discovery (PC / NOTEARS / LiNGAM)
-   1.4 Granger / Transfer Entropy
-   1.5 GNN / learned adjacency
-   1.6 Expert-curated rule bases
+| Topic | In panel? | Elsewhere in project? |
+|---|---|---|
+| Physics simulator (5 domains, coupling) | ❌ | `physicsSimulator.ts`, DATASET_OVERVIEW.md |
+| Failure injector mechanics | ❌ | `failureSimulator.ts` |
+| CVGG architecture (dual-VGG, DAG loss) | Partial (mentioned) | NEURAL_CAUSAL_ARCHITECTURE.md |
+| Causal discovery (PC / Granger / TE / consensus) | Only Tier 1 metrics | `causalInference.ts` |
+| do-calculus intervention engine | ❌ | `causalInterventionEngine.ts` |
+| Counterfactual SCM engine | Only Tier 4 metrics | `counterfactualEngine.ts` |
+| Prescriptive AI | ❌ | `prescriptiveAI.ts` |
+| Knowledge Graph (ontology + causal) | ❌ | `KnowledgeGraphPanel.tsx`, KG_APPROACHES_COMPARISON.md |
+| Pearl's hierarchy framing (L1/L2/L3) | Brief sentence | Multiple docs |
+| Dataset details, real-data uploads | ❌ | DATASET_OVERVIEW.md |
+| Entry-level tutorial tone / glossary | ❌ | — |
 
-3. **Family-by-family mapping to IMSCHM** — for each family:
-   - Used? (Yes / Partial / Indirect / No)
-   - File & line evidence, e.g.
-     - 1.1 → `src/components/KnowledgeGraphPanel.tsx` (FMEA_NODES, FMEA_EDGES, causalRefs)
-     - 1.3 → `src/utils/causalInference.ts` (PC), `src/utils/enhancedCausalVGG.ts` (DAG-constraint loss `|ATE−(DE+IE)|²`, NOTEARS-adjacent)
-     - 1.4 → `src/utils/causalInference.ts` (Granger, TE) + `src/utils/causalGraphRAG.ts` `discoveredBy: 'granger' | 'transfer_entropy'`
-     - 1.5 → `src/utils/enhancedCausalVGG.ts` (cross-modal attention + ATE head as learned adjacency)
-     - 1.6 → `KnowledgeGraphPanel.tsx` `fallbackPairs` + FMEA skeleton
-     - 1.2 → not standalone; correlation/MI only appears inside PC independence tests
-   - Short note on how it's wired into the pipeline (Simulate → Inject → Train CVGG → Infer → Intervene).
+Existing downloadable docs (`imschmAcademicReport`, `thesisChapterReport`, `cvggImschmComparisonReport`, root `.md` files) are **thesis/architecture style**, not tutorial style, and are **not exposed from the Experiment Panel**.
 
-4. **Comparison table** — one row per family plus a final "IMSCHM Stage-2 equivalent" column, in the same axes as the reference table (Input / Node typing / Edge semantics / Provenance / Adaptivity / Validation / LLM dependency).
+## Proposed changes
 
-5. **Gap analysis (what IMSCHM is missing vs the reference Stage-2 spec)**
-   - No external ontology anchor (no SNOMED/UMLS analogue; suggest ISO-13374 / MIMOSA CRIS as the industrial equivalent).
-   - Per-edge provenance is thin: currently only `strength`, `lag`, `discoveredBy` on `CausalRelation` / `CausalEdge`. Missing `evidence_type ∈ {expert, mined}`, p-value/bootstrap frequency, mechanism string, per-cohort audit.
-   - No `prove-kg`-style validation (cohort-split Jaccard, λ=0 ablation, permutation null). `causalDatasetVerification.ts` validates the dataset, not KG edges.
-   - No online edge-trust updates (Loops 1/2/3). KG is rebuilt per run instead of incrementally re-weighted.
-   - FMEA tier and causal tier are visually cross-highlighted (dual SVG) but not unified into one typed two-tier graph schema.
+### 1. Add "Project Overview & Theory" section to the Experiment Panel UI
+A new collapsible card above the 5-tier cards containing entry-level explanations of:
+- What IMSCHM is trying to prove (problem statement, one paragraph)
+- Pearl's 3-rung hierarchy with plain-language examples
+- The 8-step pipeline diagram (ASCII)
+- CVGG in one page: dual-VGG backbones + causal head + DAG-consistency loss
+- Discovery engines (PC / Granger / TE / consensus) in plain language
+- do-calculus, counterfactual, prescriptive AI — one paragraph each
+- Knowledge Graph role
+- Glossary (ATE, CATE, DE, IE, SHD, PEHE, do(), SCM…)
 
-6. **Suggested next steps (non-binding, for later planning)**
-   - Extend `CausalRelation` / `CausalEdge` with a `provenance` object.
-   - Add a unified two-tier node/edge schema so Tier-1 (hierarchical) and Tier-2 (causal) live in one graph.
-   - Add a `prove-kg` panel: cohort-split Jaccard + permutation null + ablation summary.
+Written for an entry-level learner: short sentences, one formula per concept, an analogy where useful.
 
-## Technical details
+### 2. New downloadable "Experiment Handbook" (single self-contained HTML)
+Add a **Download → Handbook (HTML)** button. New file `src/utils/experimentHandbookReport.ts` generates one document with:
 
-- File format: GitHub-flavoured Markdown, no emojis in section headers.
-- Tables use standard Markdown pipes.
-- All code references use `path/to/file.ts:Lstart-Lend` style so they are clickable in IDEs.
-- Length target: ~400–600 lines; hard cap 800.
-- No changes to `src/`, `supabase/`, `package.json`, or any config.
+```
+1. Introduction (what/why, target reader)
+2. Background theory (Pearl hierarchy, causal DAGs, SCM) — with analogies
+3. System architecture (IMSCHM vs CVGG, 8-step pipeline)
+4. Data & simulation (physics domains, failure injection, real-data uploads)
+5. CVGG deep-dive (backbones, heads, DAG loss, training loop)
+6. Causal engines (discovery, do-calculus, counterfactual, prescriptive, KG)
+7. Experiment design — the 5 tiers (embedded SVGs + narratives — reuse existing)
+8. Results & discussion (auto-filled from current run + interpretation guide)
+9. Limitations & future work
+10. Glossary + reading list
+```
 
-## Out of scope
+Embeds the same SVG figures already built in the panel; auto-fills with the latest run's metrics; renders standalone (no external assets).
 
-- Implementing provenance fields, `prove-kg`, or ontology anchoring.
-- Any UI or backend change.
-- Editing existing docs (`NEURAL_CAUSAL_ARCHITECTURE.md`, `TECHNICAL_REPORT_IMSCHM.md`, `README.md`, `.lovable/plan.md`).
+### 3. Also expose a Markdown variant
+Same handbook as `.md` for easy reading/printing (Download → Handbook (MD)).
+
+### Technical notes
+- No changes to backend / simulation / engines — pure documentation + UI additions.
+- Reuse existing `buildTier*SVG` builders and `TIER_NARRATIVE` array.
+- New util file keeps `ExperimentPanel.tsx` from growing further; panel only wires two new buttons.
+- No new dependencies.
+
+## Deliverables
+- Updated `src/components/ExperimentPanel.tsx` (overview card + 2 new download buttons)
+- New `src/utils/experimentHandbookReport.ts` (HTML + MD generators)
+- No changes to routing, data model, or other panels.
