@@ -1,68 +1,61 @@
-## Goal
+## Deliverable
 
-Apply Plan 2 to stabilize the Counterfactual Sweep curve, while making the **data source** for every sweep explicit in the GUI: what comes from the in-app physics simulator (Start button), what comes from manual user controls, and what is held fixed during one experiment.
+Create a single new markdown document at the repo root:
 
-## Data source audit (what answers your first question)
+- **`KG_APPROACHES_COMPARISON.md`**
 
-Tracing the current pipeline:
+No code changes, no dependencies, no UI changes. Documentation only.
 
-| Quantity used by the sweep | Where it comes from | Manual or system? |
-|---|---|---|
-| `sensorHistory.vibrationX/Y/Z` (1024-sample rolling buffer) | `PhysicsSimulator.step()` called every 100 ms while **Start** is on (`IndustrialMonitor.tsx` lines 116–127) | System (stochastic; changes every tick) |
-| `currentState.thermal.system_temp` | Same simulator step | System |
-| `currentState.hydraulic.pressure` baseline | Same simulator step (also mutated by injected faults) | System + manual fault injection |
-| `pressureRange` slider | `CausalVisualizationPanel.tsx` line 732 | Manual |
-| Injected failures and severities | "Inject Fault" controls → `failureSimulator` | Manual |
-| CVGG model weights | Trained once via Initialize → Train | System (frozen after training) |
+## Structure of the document
 
-So **Start** is the *only* source of streaming sensor data; it drives `sensorHistory` and `currentState`. Manual controls only choose the pressure range, the failures, and when to train. The sweep instability comes from re-reading the still-running simulator buffers on every click.
+1. **Purpose & scope**
+   - What "KG" means here (typed nodes + typed edges + provenance).
+   - Explicitly LLM-free — same constraint as the reference note.
+   - Scope note: covers Stage-2-equivalent structures in IMSCHM (FMEA taxonomy + causal graph + CVGG DAG loss).
 
-## Changes
+2. **Recap of the 6 non-LLM KG families** (condensed, 3–4 lines each, with the same minimal math already provided):
+   1.1 Ontology-anchored mapping
+   1.2 Statistical association graphs
+   1.3 Causal discovery (PC / NOTEARS / LiNGAM)
+   1.4 Granger / Transfer Entropy
+   1.5 GNN / learned adjacency
+   1.6 Expert-curated rule bases
 
-### 1. `src/components/IndustrialMonitor.tsx` — freeze background + MC replicates
+3. **Family-by-family mapping to IMSCHM** — for each family:
+   - Used? (Yes / Partial / Indirect / No)
+   - File & line evidence, e.g.
+     - 1.1 → `src/components/KnowledgeGraphPanel.tsx` (FMEA_NODES, FMEA_EDGES, causalRefs)
+     - 1.3 → `src/utils/causalInference.ts` (PC), `src/utils/enhancedCausalVGG.ts` (DAG-constraint loss `|ATE−(DE+IE)|²`, NOTEARS-adjacent)
+     - 1.4 → `src/utils/causalInference.ts` (Granger, TE) + `src/utils/causalGraphRAG.ts` `discoveredBy: 'granger' | 'transfer_entropy'`
+     - 1.5 → `src/utils/enhancedCausalVGG.ts` (cross-modal attention + ATE head as learned adjacency)
+     - 1.6 → `KnowledgeGraphPanel.tsx` `fallbackPairs` + FMEA skeleton
+     - 1.2 → not standalone; correlation/MI only appears inside PC independence tests
+   - Short note on how it's wired into the pipeline (Simulate → Inject → Train CVGG → Infer → Intervene).
 
-Refactor `handleCounterfactualSweep` (lines 266–314) to:
+4. **Comparison table** — one row per family plus a final "IMSCHM Stage-2 equivalent" column, in the same axes as the reference table (Input / Node typing / Edge semantics / Provenance / Adaptivity / Validation / LLM dependency).
 
-- **Snapshot** `sensorHistory` and `currentState` into local consts at function entry. Reuse the same snapshot for every pressure point (no re-reads from React state mid-loop).
-- Accept an options arg `{ replicates?: number }` (default 5). For each pressure value, run inference `replicates` times and return `{ pressure, effect: mean, std, lower, upper }` where bounds are `mean ± std`.
-- Return type becomes `{ pressure: number; effect: number; std: number; lower: number; upper: number }[]`.
-- Also return a `meta` object (via a new sibling handler or by storing in a ref) describing the frozen snapshot: timestamp, buffer length, baseline pressure/temp, whether the simulator was running, active failures. This feeds the Data Source badge below.
+5. **Gap analysis (what IMSCHM is missing vs the reference Stage-2 spec)**
+   - No external ontology anchor (no SNOMED/UMLS analogue; suggest ISO-13374 / MIMOSA CRIS as the industrial equivalent).
+   - Per-edge provenance is thin: currently only `strength`, `lag`, `discoveredBy` on `CausalRelation` / `CausalEdge`. Missing `evidence_type ∈ {expert, mined}`, p-value/bootstrap frequency, mechanism string, per-cohort audit.
+   - No `prove-kg`-style validation (cohort-split Jaccard, λ=0 ablation, permutation null). `causalDatasetVerification.ts` validates the dataset, not KG edges.
+   - No online edge-trust updates (Loops 1/2/3). KG is rebuilt per run instead of incrementally re-weighted.
+   - FMEA tier and causal tier are visually cross-highlighted (dual SVG) but not unified into one typed two-tier graph schema.
 
-### 2. `src/components/CausalVisualizationPanel.tsx` — confidence band + data-source badge
+6. **Suggested next steps (non-binding, for later planning)**
+   - Extend `CausalRelation` / `CausalEdge` with a `provenance` object.
+   - Add a unified two-tier node/edge schema so Tier-1 (hierarchical) and Tier-2 (causal) live in one graph.
+   - Add a `prove-kg` panel: cohort-split Jaccard + permutation null + ablation summary.
 
-- Update `onCounterfactualSweep` prop signature to the new return type, and update local `counterfactualResults` state accordingly.
-- Replace the single `<Line>` with a Recharts composition:
-  - `<Area dataKey="upper" / "lower">` rendered as a shaded band (use `--primary` at low opacity), or a `<ReferenceArea>`-style stacked area trick.
-  - Solid `<Line dataKey="effect">` for the mean.
-  - Keep the `y=0` reference line.
-- Add a **"Data Source" panel** above the chart (small card with two columns):
-  - **Frozen for this sweep** (system, auto): baseline pressure, system temp, vibration buffer length, snapshot timestamp, active failures at snapshot time. Label: badge "System · Frozen".
-  - **Manual inputs**: pressure range (slider), MC replicates (new small input, default 5, range 1–20). Label: badge "Manual".
-- Add a small legend line under the chart: "Shaded band = ±1σ over N Monte-Carlo replicates on the frozen background. Re-click Start → Run Sweep to refresh the snapshot."
-- Keep the existing CSV/JSON export hooks working with the new fields (`effect`, `std`, `lower`, `upper`).
+## Technical details
 
-### 3. Global "Data Source" indicator (small, header-level)
+- File format: GitHub-flavoured Markdown, no emojis in section headers.
+- Tables use standard Markdown pipes.
+- All code references use `path/to/file.ts:Lstart-Lend` style so they are clickable in IDEs.
+- Length target: ~400–600 lines; hard cap 800.
+- No changes to `src/`, `supabase/`, `package.json`, or any config.
 
-In `IndustrialMonitor.tsx` near the Start button (around line 423), add a compact badge group:
+## Out of scope
 
-- `Live Simulator: ● running / ○ paused` — driven by `isRunning`.
-- `Sensor buffer: N / 1024 samples` — from `sensorHistory.vibrationX.length`.
-- `Manual faults: K active` — from `activeFailures.length`.
-
-This makes it visually obvious on every screen that streaming data comes from the Start button, while faults and sweep parameters are manual.
-
-### 4. No changes to physics, CVGG model, training, or other panels.
-
-## Why this satisfies your requirements
-
-- **Plan 2 applied**: frozen background + Monte-Carlo confidence band → stable mean curve, honest uncertainty.
-- **Flexibility preserved**: every new Start cycle or new sweep click takes a fresh snapshot, so different experiments can use different data sources.
-- **Relatively fixed per experiment**: within one sweep, the background is locked, so the curve only varies along the do(pressure) axis.
-- **GUI clarity**: the new Data Source panel and header badges make explicit which values come from the simulator (system) and which from manual controls.
-
-## Technical notes
-
-- Recharts band: easiest implementation is two stacked `<Area>` series — a transparent `lower` baseline area plus a `(upper - lower)` area on top with `fillOpacity≈0.2`. Alternatively render as `<Area dataKey="upper">` + `<Area dataKey="lower">` with `fill="transparent"` for the lower and a custom gradient.
-- MC replicate count is bounded (≤20) to keep the sweep responsive; each replicate is one CVGG forward pass.
-- Snapshot is a deep copy via `structuredClone` to prevent later simulator ticks from mutating arrays in place.
-- The exported CSV/JSON from the Visualization panel will gain `std`, `lower`, `upper` columns/fields automatically.
+- Implementing provenance fields, `prove-kg`, or ontology anchoring.
+- Any UI or backend change.
+- Editing existing docs (`NEURAL_CAUSAL_ARCHITECTURE.md`, `TECHNICAL_REPORT_IMSCHM.md`, `README.md`, `.lovable/plan.md`).
